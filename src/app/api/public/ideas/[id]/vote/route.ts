@@ -67,41 +67,48 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     let newVoteCount: number;
 
     if (existingVote) {
-      // Remove vote (toggle off)
-      // Note: Using separate queries since neon-http doesn't support transactions
-      await db
-        .delete(votes)
-        .where(
-          and(
-            eq(votes.ideaId, ideaId),
-            eq(votes.contributorId, contributor.id)
-          )
-        );
+      // Remove vote (toggle off) - use transaction for atomicity
+      const result = await db.transaction(async (tx) => {
+        await tx
+          .delete(votes)
+          .where(
+            and(
+              eq(votes.ideaId, ideaId),
+              eq(votes.contributorId, contributor.id)
+            )
+          );
 
-      const [updated] = await db
-        .update(ideas)
-        .set({ voteCount: sql`GREATEST(${ideas.voteCount} - 1, 0)` })
-        .where(eq(ideas.id, ideaId))
-        .returning({ voteCount: ideas.voteCount });
-
-      voted = false;
-      newVoteCount = updated.voteCount;
-    } else {
-      // Add vote (toggle on)
-      try {
-        await db.insert(votes).values({
-          ideaId,
-          contributorId: contributor.id,
-        });
-
-        const [updated] = await db
+        const [updated] = await tx
           .update(ideas)
-          .set({ voteCount: sql`${ideas.voteCount} + 1` })
+          .set({ voteCount: sql`GREATEST(${ideas.voteCount} - 1, 0)` })
           .where(eq(ideas.id, ideaId))
           .returning({ voteCount: ideas.voteCount });
 
-        voted = true;
-        newVoteCount = updated.voteCount;
+        return { voted: false, voteCount: updated.voteCount };
+      });
+
+      voted = result.voted;
+      newVoteCount = result.voteCount;
+    } else {
+      // Add vote (toggle on) - use transaction for atomicity
+      try {
+        const result = await db.transaction(async (tx) => {
+          await tx.insert(votes).values({
+            ideaId,
+            contributorId: contributor.id,
+          });
+
+          const [updated] = await tx
+            .update(ideas)
+            .set({ voteCount: sql`${ideas.voteCount} + 1` })
+            .where(eq(ideas.id, ideaId))
+            .returning({ voteCount: ideas.voteCount });
+
+          return { voted: true, voteCount: updated.voteCount };
+        });
+
+        voted = result.voted;
+        newVoteCount = result.voteCount;
       } catch (error) {
         // Only handle unique constraint violation (race condition)
         if (isUniqueConstraintError(error)) {
