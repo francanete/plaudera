@@ -1,0 +1,394 @@
+import {
+  pgTable,
+  text,
+  timestamp,
+  boolean,
+  pgEnum,
+  uniqueIndex,
+  index,
+  integer,
+} from "drizzle-orm/pg-core";
+import { relations } from "drizzle-orm";
+import { createId } from "@paralleldrive/cuid2";
+
+// ============ Enums ============
+export const planEnum = pgEnum("plan", ["FREE", "STARTER", "GROWTH", "SCALE"]);
+export const subscriptionStatusEnum = pgEnum("subscription_status", [
+  "ACTIVE",
+  "CANCELED",
+  "PAST_DUE",
+  "TRIALING",
+]);
+export const billingTypeEnum = pgEnum("billing_type", [
+  "recurring",
+  "one_time",
+  "none",
+]);
+export const roleEnum = pgEnum("role", ["user", "admin"]);
+
+// ============ Auth Tables (Better Auth) ============
+// Note: Better Auth expects specific table names. We use pluralized names
+// for convention and configure `usePlural: true` in the Drizzle adapter (Step 3).
+
+export const users = pgTable("users", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => createId()),
+  email: text("email").notNull().unique(),
+  emailVerified: boolean("email_verified").default(false),
+  name: text("name"),
+  image: text("image"),
+  role: roleEnum("role").default("user").notNull(),
+  marketingUnsubscribed: boolean("marketing_unsubscribed")
+    .default(false)
+    .notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at")
+    .defaultNow()
+    .notNull()
+    .$onUpdate(() => new Date()),
+});
+
+export const sessions = pgTable(
+  "sessions",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => createId()),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    token: text("token").notNull().unique(),
+    expiresAt: timestamp("expires_at").notNull(),
+    ipAddress: text("ip_address"),
+    userAgent: text("user_agent"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at")
+      .defaultNow()
+      .notNull()
+      .$onUpdate(() => new Date()),
+  },
+  (table) => [index("sessions_user_id_idx").on(table.userId)]
+);
+
+export const accounts = pgTable(
+  "accounts",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => createId()),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    accountId: text("account_id").notNull(),
+    providerId: text("provider_id").notNull(),
+    accessToken: text("access_token"),
+    refreshToken: text("refresh_token"),
+    accessTokenExpiresAt: timestamp("access_token_expires_at"),
+    refreshTokenExpiresAt: timestamp("refresh_token_expires_at"),
+    scope: text("scope"),
+    idToken: text("id_token"),
+    password: text("password"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at")
+      .defaultNow()
+      .notNull()
+      .$onUpdate(() => new Date()),
+  },
+  (table) => [
+    uniqueIndex("accounts_provider_account_idx").on(
+      table.providerId,
+      table.accountId
+    ),
+    index("accounts_user_id_idx").on(table.userId),
+  ]
+);
+
+export const verifications = pgTable(
+  "verifications",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => createId()),
+    identifier: text("identifier").notNull(),
+    value: text("value").notNull(),
+    expiresAt: timestamp("expires_at").notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at")
+      .defaultNow()
+      .notNull()
+      .$onUpdate(() => new Date()),
+  },
+  (table) => [
+    uniqueIndex("verifications_identifier_value_idx").on(
+      table.identifier,
+      table.value
+    ),
+  ]
+);
+
+// ============ App Tables ============
+export const subscriptions = pgTable(
+  "subscriptions",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => createId()),
+    userId: text("user_id")
+      .notNull()
+      .unique()
+      .references(() => users.id, { onDelete: "cascade" }),
+
+    // Polar IDs
+    polarCustomerId: text("polar_customer_id"),
+    polarSubscriptionId: text("polar_subscription_id"), // For recurring subscriptions
+    polarOrderId: text("polar_order_id"), // For one-time purchases (LTD)
+    polarProductId: text("polar_product_id"), // The actual Polar product purchased
+
+    // Billing info
+    billingType: billingTypeEnum("billing_type").default("recurring").notNull(),
+    plan: planEnum("plan").default("FREE").notNull(),
+    status: subscriptionStatusEnum("status").default("ACTIVE").notNull(),
+
+    // Period (NULL for lifetime purchases)
+    currentPeriodEnd: timestamp("current_period_end"),
+    cancelAtPeriodEnd: boolean("cancel_at_period_end").default(false),
+
+    // Sync tracking (for API fallback when webhooks fail)
+    lastSyncedAt: timestamp("last_synced_at"),
+
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at")
+      .defaultNow()
+      .notNull()
+      .$onUpdate(() => new Date()),
+  },
+  (table) => [
+    index("subscriptions_status_idx").on(table.status),
+    index("subscriptions_billing_type_idx").on(table.billingType),
+    index("subscriptions_polar_customer_id_idx").on(table.polarCustomerId),
+  ]
+);
+
+// ============ AI Usage Table ============
+export const aiUsage = pgTable(
+  "ai_usage",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => createId()),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+
+    // Request metadata
+    model: text("model").notNull(),
+    feature: text("feature").notNull(), // "chat" | "summarize" | "generate"
+
+    // Token usage
+    promptTokens: integer("prompt_tokens").notNull(),
+    completionTokens: integer("completion_tokens").notNull(),
+    totalTokens: integer("total_tokens").notNull(),
+
+    // Response metadata
+    finishReason: text("finish_reason"),
+    durationMs: integer("duration_ms"),
+
+    // Timestamps
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at")
+      .defaultNow()
+      .notNull()
+      .$onUpdate(() => new Date()),
+  },
+  (table) => [
+    index("ai_usage_user_id_idx").on(table.userId),
+    index("ai_usage_created_at_idx").on(table.createdAt),
+    index("ai_usage_user_created_idx").on(table.userId, table.createdAt),
+  ]
+);
+
+// ============ Onboarding Flows Table ============
+export const onboardingFlows = pgTable(
+  "onboarding_flows",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => createId()),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    flowId: text("flow_id").notNull(), // "dashboard", "settings", etc.
+    completedAt: timestamp("completed_at"),
+    skippedAt: timestamp("skipped_at"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at")
+      .defaultNow()
+      .notNull()
+      .$onUpdate(() => new Date()),
+  },
+  (table) => [
+    uniqueIndex("onboarding_flows_user_flow_idx").on(
+      table.userId,
+      table.flowId
+    ),
+    index("onboarding_flows_user_id_idx").on(table.userId),
+  ]
+);
+
+// ============ Email Tracking Table ============
+export const emailsSent = pgTable(
+  "emails_sent",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => createId()),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    emailKey: text("email_key").notNull(), // "welcome_instant", "welcome_day3", etc.
+    sentAt: timestamp("sent_at").defaultNow().notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex("emails_sent_user_email_idx").on(table.userId, table.emailKey),
+    index("emails_sent_user_id_idx").on(table.userId),
+  ]
+);
+
+// ============ Tier System Tables ============
+export const tierConfigs = pgTable("tier_configs", {
+  plan: planEnum("plan").primaryKey(),
+  displayName: text("display_name").notNull(),
+  description: text("description"),
+  sortOrder: integer("sort_order").notNull().default(0),
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at")
+    .defaultNow()
+    .notNull()
+    .$onUpdate(() => new Date()),
+});
+
+export const featureRateLimits = pgTable(
+  "feature_rate_limits",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => createId()),
+    plan: planEnum("plan").notNull(),
+    feature: text("feature").notNull(), // e.g., "chat", "generation"
+    requestsPerHour: integer("requests_per_hour"),
+    requestsPerDay: integer("requests_per_day"),
+    tokensPerDay: integer("tokens_per_day"),
+    isActive: boolean("is_active").notNull().default(true),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at")
+      .defaultNow()
+      .notNull()
+      .$onUpdate(() => new Date()),
+  },
+  (table) => [
+    uniqueIndex("feature_rate_limits_plan_feature_idx").on(
+      table.plan,
+      table.feature
+    ),
+    index("feature_rate_limits_plan_feature_active_idx").on(
+      table.plan,
+      table.feature,
+      table.isActive
+    ),
+  ]
+);
+
+// ============ Relations ============
+export const usersRelations = relations(users, ({ many, one }) => ({
+  sessions: many(sessions),
+  accounts: many(accounts),
+  subscription: one(subscriptions, {
+    fields: [users.id],
+    references: [subscriptions.userId],
+  }),
+  aiUsage: many(aiUsage),
+  onboardingFlows: many(onboardingFlows),
+  emailsSent: many(emailsSent),
+}));
+
+export const sessionsRelations = relations(sessions, ({ one }) => ({
+  user: one(users, {
+    fields: [sessions.userId],
+    references: [users.id],
+  }),
+}));
+
+export const accountsRelations = relations(accounts, ({ one }) => ({
+  user: one(users, {
+    fields: [accounts.userId],
+    references: [users.id],
+  }),
+}));
+
+export const subscriptionsRelations = relations(subscriptions, ({ one }) => ({
+  user: one(users, {
+    fields: [subscriptions.userId],
+    references: [users.id],
+  }),
+}));
+
+export const aiUsageRelations = relations(aiUsage, ({ one }) => ({
+  user: one(users, {
+    fields: [aiUsage.userId],
+    references: [users.id],
+  }),
+}));
+
+export const onboardingFlowsRelations = relations(
+  onboardingFlows,
+  ({ one }) => ({
+    user: one(users, {
+      fields: [onboardingFlows.userId],
+      references: [users.id],
+    }),
+  })
+);
+
+export const emailsSentRelations = relations(emailsSent, ({ one }) => ({
+  user: one(users, {
+    fields: [emailsSent.userId],
+    references: [users.id],
+  }),
+}));
+
+export const tierConfigsRelations = relations(tierConfigs, ({ many }) => ({
+  rateLimits: many(featureRateLimits),
+}));
+
+export const featureRateLimitsRelations = relations(
+  featureRateLimits,
+  ({ one }) => ({
+    tier: one(tierConfigs, {
+      fields: [featureRateLimits.plan],
+      references: [tierConfigs.plan],
+    }),
+  })
+);
+
+// ============ Type Exports ============
+export type User = typeof users.$inferSelect;
+export type NewUser = typeof users.$inferInsert;
+export type Session = typeof sessions.$inferSelect;
+export type Subscription = typeof subscriptions.$inferSelect;
+export type NewSubscription = typeof subscriptions.$inferInsert;
+export type AIUsage = typeof aiUsage.$inferSelect;
+export type NewAIUsage = typeof aiUsage.$inferInsert;
+export type TierConfig = typeof tierConfigs.$inferSelect;
+export type NewTierConfig = typeof tierConfigs.$inferInsert;
+export type FeatureRateLimit = typeof featureRateLimits.$inferSelect;
+export type NewFeatureRateLimit = typeof featureRateLimits.$inferInsert;
+export type OnboardingFlow = typeof onboardingFlows.$inferSelect;
+export type NewOnboardingFlow = typeof onboardingFlows.$inferInsert;
+export type EmailSent = typeof emailsSent.$inferSelect;
+export type NewEmailSent = typeof emailsSent.$inferInsert;
+export type Plan = "FREE" | "STARTER" | "GROWTH" | "SCALE";
+export type BillingType = "recurring" | "one_time" | "none";
+export type Role = "user" | "admin";

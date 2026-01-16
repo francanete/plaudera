@@ -1,0 +1,1 @@
+ALTER TYPE "public"."billing_type" ADD VALUE 'none';

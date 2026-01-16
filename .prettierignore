@@ -1,0 +1,33 @@
+# Build outputs
+.next/
+out/
+build/
+
+# Dependencies
+node_modules/
+
+# Database migrations (auto-generated)
+drizzle/
+
+# Static assets
+public/
+
+# Lock files
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Environment files
+.env
+.env.*
+
+# TypeScript build info
+*.tsbuildinfo
+next-env.d.ts
+
+# Coverage
+coverage/
+
+# Misc
+.DS_Store
+.vercel

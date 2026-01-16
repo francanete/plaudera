@@ -1,0 +1,1 @@
+ALTER TABLE "subscriptions" ADD COLUMN "last_synced_at" timestamp;
