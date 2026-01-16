@@ -62,7 +62,10 @@ export const GET = protectedApiRouteWrapper(
       orderBy: [orderBy],
     });
 
-    return NextResponse.json({ ideas: userIdeas, workspaceSlug: workspace.slug });
+    return NextResponse.json({
+      ideas: userIdeas,
+      workspaceSlug: workspace.slug,
+    });
   },
   { requirePaid: false }
 );

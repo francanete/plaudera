@@ -41,6 +41,7 @@ npm run build         # Migrates DB + builds Next.js
 ## Architecture
 
 ### Tech Stack
+
 - **Framework**: Next.js 16 App Router with React 19
 - **Database**: PostgreSQL (Neon serverless) with Drizzle ORM
 - **Auth**: Better Auth with magic links, Google OAuth, and Polar integration
@@ -51,6 +52,7 @@ npm run build         # Migrates DB + builds Next.js
 - **Styling**: Tailwind CSS 4 + shadcn/ui
 
 ### Project Structure
+
 ```
 /src
 ├── /app                    # Next.js App Router
@@ -80,7 +82,9 @@ npm run build         # Migrates DB + builds Next.js
 ```
 
 ### Database Schema Location
+
 All tables defined in `/src/lib/db/schema.ts`:
+
 - `users` - User accounts with roles (user/admin)
 - `sessions` - Auth sessions
 - `subscriptions` - Plan status (FREE/STARTER/GROWTH/SCALE)
@@ -90,6 +94,7 @@ All tables defined in `/src/lib/db/schema.ts`:
 ### API Patterns
 
 Protected routes use the wrapper for consistent auth/subscription checks:
+
 ```typescript
 export const POST = protectedApiRouteWrapper(
   async (request, { session, subscription }) => {
@@ -100,6 +105,7 @@ export const POST = protectedApiRouteWrapper(
 ```
 
 Error handling uses custom error classes:
+
 ```typescript
 throw new BadRequestError("Invalid input");
 throw new RateLimitError("Too many requests", resetAt, remaining);
@@ -107,13 +113,17 @@ throw new ValidationError("Invalid data", { field: ["message"] });
 ```
 
 ### Subscription Access in Server Components
+
 Zero-DB-query subscription access via middleware headers:
+
 ```typescript
 const subscription = await getSubscriptionFromRequest();
 ```
 
 ### Background Jobs (Inngest)
+
 Events defined in `/src/lib/inngest/client.ts`, functions in `/src/lib/inngest/functions.ts`:
+
 - `user/created` - Triggers welcome emails
 - `subscription/changed` - Handles plan changes
 - Email sequences with opt-out tracking
@@ -121,22 +131,27 @@ Events defined in `/src/lib/inngest/client.ts`, functions in `/src/lib/inngest/f
 ## Development Workflow
 
 ### Database Changes
+
 1. Modify `/src/lib/db/schema.ts`
 2. Run `npm run db:generate`
 3. Run `npm run db:migrate`
 
 ### Adding API Routes
+
 Use `protectedApiRouteWrapper` from `/src/lib/api-utils.ts`
 
 ### Adding UI Components
+
 Import from shadcn: `npx shadcn add <component>`
 
 ### Onboarding Tours
+
 See `/src/components/onboarding/CLAUDE.md` for the complete guide on adding new onboarding flows.
 
 ## Configuration
 
 Main config in `/src/lib/config.ts` (AppConfig):
+
 - Pricing tiers and Polar product IDs
 - SEO metadata
 - Legal/company information
@@ -145,6 +160,7 @@ Main config in `/src/lib/config.ts` (AppConfig):
 ## Testing
 
 Tests in `/tests` directory using Vitest with React Testing Library. Run individual test files:
+
 ```bash
 npx vitest run tests/path/to/file.test.ts
 ```

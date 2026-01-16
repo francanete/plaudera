@@ -37,7 +37,7 @@ export default async function IdeasPage() {
     <div className="space-y-8">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold flex items-center gap-2">
+          <h1 className="flex items-center gap-2 text-3xl font-bold">
             <Lightbulb className="h-8 w-8" />
             Ideas
           </h1>

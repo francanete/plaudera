@@ -15,7 +15,10 @@ export default function IdeasLoading() {
       {/* Ideas list */}
       <div className="space-y-3">
         {[1, 2, 3].map((i) => (
-          <div key={i} className="flex items-center gap-4 p-4 border rounded-lg">
+          <div
+            key={i}
+            className="flex items-center gap-4 rounded-lg border p-4"
+          >
             <Skeleton className="h-16 w-16 rounded-lg" />
             <div className="flex-1 space-y-2">
               <Skeleton className="h-5 w-3/4" />

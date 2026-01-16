@@ -24,7 +24,11 @@ interface IdeasListProps {
 
 const statusConfig: Record<
   IdeaStatus,
-  { label: string; variant: "default" | "secondary" | "outline" | "destructive"; icon: typeof Clock }
+  {
+    label: string;
+    variant: "default" | "secondary" | "outline" | "destructive";
+    icon: typeof Clock;
+  }
 > = {
   NEW: { label: "New", variant: "default", icon: Lightbulb },
   UNDER_REVIEW: { label: "Under Review", variant: "secondary", icon: Search },
@@ -77,14 +81,14 @@ export function IdeasList({ initialIdeas, workspaceSlug }: IdeasListProps) {
     return (
       <Card className="border-dashed">
         <CardContent className="flex flex-col items-center justify-center py-16">
-          <Lightbulb className="h-12 w-12 text-muted-foreground mb-4" />
-          <h3 className="text-lg font-semibold mb-2">No ideas yet</h3>
-          <p className="text-muted-foreground text-center mb-6 max-w-md">
+          <Lightbulb className="text-muted-foreground mb-4 h-12 w-12" />
+          <h3 className="mb-2 text-lg font-semibold">No ideas yet</h3>
+          <p className="text-muted-foreground mb-6 max-w-md text-center">
             Start collecting feature requests and feedback from your users.
             Create your first idea to get started.
           </p>
           <Button onClick={() => setIsCreating(true)}>
-            <Plus className="h-4 w-4 mr-2" />
+            <Plus className="mr-2 h-4 w-4" />
             Add your first idea
           </Button>
         </CardContent>
@@ -106,7 +110,10 @@ export function IdeasList({ initialIdeas, workspaceSlug }: IdeasListProps) {
                 onKeyDown={handleKeyDown}
                 autoFocus
               />
-              <Button onClick={handleCreateIdea} disabled={isSubmitting || !newTitle.trim()}>
+              <Button
+                onClick={handleCreateIdea}
+                disabled={isSubmitting || !newTitle.trim()}
+              >
                 {isSubmitting ? "Adding..." : "Add"}
               </Button>
               <Button
@@ -123,7 +130,7 @@ export function IdeasList({ initialIdeas, workspaceSlug }: IdeasListProps) {
         </Card>
       ) : (
         <Button onClick={() => setIsCreating(true)}>
-          <Plus className="h-4 w-4 mr-2" />
+          <Plus className="mr-2 h-4 w-4" />
           New idea
         </Button>
       )}
@@ -135,29 +142,34 @@ export function IdeasList({ initialIdeas, workspaceSlug }: IdeasListProps) {
           const StatusIcon = status.icon;
 
           return (
-            <Card key={idea.id} className="hover:border-primary/50 transition-colors cursor-pointer">
+            <Card
+              key={idea.id}
+              className="hover:border-primary/50 cursor-pointer transition-colors"
+            >
               <CardContent className="flex items-center gap-4 py-4">
                 {/* Vote count */}
-                <div className="flex flex-col items-center min-w-[60px] py-2 px-3 rounded-lg bg-muted/50">
-                  <ChevronUp className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-lg font-semibold">{idea.voteCount}</span>
-                  <span className="text-xs text-muted-foreground">votes</span>
+                <div className="bg-muted/50 flex min-w-[60px] flex-col items-center rounded-lg px-3 py-2">
+                  <ChevronUp className="text-muted-foreground h-4 w-4" />
+                  <span className="text-lg font-semibold">
+                    {idea.voteCount}
+                  </span>
+                  <span className="text-muted-foreground text-xs">votes</span>
                 </div>
 
                 {/* Content */}
-                <div className="flex-1 min-w-0">
-                  <h3 className="font-medium truncate">{idea.title}</h3>
+                <div className="min-w-0 flex-1">
+                  <h3 className="truncate font-medium">{idea.title}</h3>
                   {idea.description && (
-                    <p className="text-sm text-muted-foreground line-clamp-1 mt-1">
+                    <p className="text-muted-foreground mt-1 line-clamp-1 text-sm">
                       {idea.description}
                     </p>
                   )}
-                  <div className="flex items-center gap-2 mt-2">
+                  <div className="mt-2 flex items-center gap-2">
                     <Badge variant={status.variant} className="text-xs">
-                      <StatusIcon className="h-3 w-3 mr-1" />
+                      <StatusIcon className="mr-1 h-3 w-3" />
                       {status.label}
                     </Badge>
-                    <span className="text-xs text-muted-foreground">
+                    <span className="text-muted-foreground text-xs">
                       {new Date(idea.createdAt).toLocaleDateString()}
                     </span>
                   </div>
@@ -171,9 +183,9 @@ export function IdeasList({ initialIdeas, workspaceSlug }: IdeasListProps) {
       {/* Public board link */}
       <Card className="bg-muted/30">
         <CardContent className="py-4">
-          <p className="text-sm text-muted-foreground">
+          <p className="text-muted-foreground text-sm">
             <span className="font-medium">Public board:</span>{" "}
-            <code className="bg-muted px-2 py-1 rounded text-xs">
+            <code className="bg-muted rounded px-2 py-1 text-xs">
               /b/{workspaceSlug}
             </code>
             <span className="ml-2">(Coming soon)</span>

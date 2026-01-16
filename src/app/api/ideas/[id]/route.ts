@@ -68,7 +68,8 @@ export const PATCH = protectedApiRouteWrapper<RouteParams>(
     }> = {};
 
     if (data.title !== undefined) updateData.title = data.title;
-    if (data.description !== undefined) updateData.description = data.description;
+    if (data.description !== undefined)
+      updateData.description = data.description;
     if (data.status !== undefined) updateData.status = data.status;
 
     const [updatedIdea] = await db
