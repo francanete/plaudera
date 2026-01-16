@@ -149,32 +149,47 @@ async function setContributorCookie(contributor: Contributor): Promise<void> {
 /**
  * Get the authenticated contributor from the request cookie.
  * Returns null if not authenticated or token is invalid.
+ * Throws on database errors (these should not be silenced).
  */
 export async function getContributor(): Promise<Contributor | null> {
-  try {
-    const cookieStore = await cookies();
-    const token = cookieStore.get(COOKIE_NAME)?.value;
+  const cookieStore = await cookies();
+  const token = cookieStore.get(COOKIE_NAME)?.value;
 
-    if (!token) {
-      return null;
-    }
-
-    const { payload } = await jwtVerify(token, getJwtSecret());
-    const contributorId = payload.sub as string;
-
-    if (!contributorId) {
-      return null;
-    }
-
-    const contributor = await db.query.contributors.findFirst({
-      where: eq(contributors.id, contributorId),
-    });
-
-    return contributor || null;
-  } catch {
-    // Token invalid or expired
+  if (!token) {
     return null;
   }
+
+  let contributorId: string;
+
+  try {
+    const { payload } = await jwtVerify(token, getJwtSecret());
+    contributorId = payload.sub as string;
+  } catch (error) {
+    // Only catch JWT-specific verification errors (invalid/expired token)
+    // These are expected errors and should return null
+    if (
+      error instanceof Error &&
+      (error.name === "JWTExpired" ||
+        error.name === "JWTInvalid" ||
+        error.message.includes("JWS") ||
+        error.message.includes("JWT"))
+    ) {
+      return null;
+    }
+    // Re-throw unexpected errors
+    throw error;
+  }
+
+  if (!contributorId) {
+    return null;
+  }
+
+  // DB errors should propagate - don't catch here
+  const contributor = await db.query.contributors.findFirst({
+    where: eq(contributors.id, contributorId),
+  });
+
+  return contributor || null;
 }
 
 /**

@@ -15,10 +15,8 @@ export default function BoardLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="min-h-screen bg-background">
-      <main className="container mx-auto max-w-3xl px-4 py-8">
-        {children}
-      </main>
+    <div className="bg-background min-h-screen">
+      <main className="container mx-auto max-w-3xl px-4 py-8">{children}</main>
       <footer className="border-t py-6">
         <div className="container mx-auto max-w-3xl px-4 text-center">
           <p className="text-muted-foreground text-sm">

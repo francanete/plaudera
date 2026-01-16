@@ -63,7 +63,9 @@ export function VoteButton({
           : "bg-muted/50 hover:bg-muted",
         isPending && "opacity-50"
       )}
-      aria-label={optimisticState.hasVoted ? "Remove vote" : "Vote for this idea"}
+      aria-label={
+        optimisticState.hasVoted ? "Remove vote" : "Vote for this idea"
+      }
     >
       <ChevronUp
         className={cn(

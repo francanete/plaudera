@@ -17,7 +17,10 @@ interface PublicIdeaListProps {
   initialContributor: { email: string; id: string } | null;
 }
 
-type PendingAction = { type: "vote"; ideaId: string } | { type: "submit" } | null;
+type PendingAction =
+  | { type: "vote"; ideaId: string }
+  | { type: "submit" }
+  | null;
 
 export function PublicIdeaList({
   workspaceName,
@@ -87,13 +90,16 @@ export function PublicIdeaList({
   const refreshData = async () => {
     try {
       const res = await fetch(`/api/public/${workspaceSlug}/ideas`);
-      if (res.ok) {
-        const data = await res.json();
-        setIdeas(data.ideas);
-        setContributor(data.contributor);
+      if (!res.ok) {
+        toast.error("Failed to refresh data. Please reload the page.");
+        return;
       }
+      const data = await res.json();
+      setIdeas(data.ideas);
+      setContributor(data.contributor);
     } catch (error) {
       console.error("Failed to refresh data:", error);
+      toast.error("Network error. Please check your connection.");
     }
   };
 
@@ -103,17 +109,22 @@ export function PublicIdeaList({
         method: "POST",
       });
 
-      if (res.ok) {
-        const { voted, voteCount } = await res.json();
-        setIdeas((prev) =>
-          prev.map((idea) =>
-            idea.id === ideaId ? { ...idea, hasVoted: voted, voteCount } : idea
-          )
-        );
-        toast.success(voted ? "Vote added!" : "Vote removed");
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        toast.error(data.error || "Failed to record your vote");
+        return;
       }
+
+      const { voted, voteCount } = await res.json();
+      setIdeas((prev) =>
+        prev.map((idea) =>
+          idea.id === ideaId ? { ...idea, hasVoted: voted, voteCount } : idea
+        )
+      );
+      toast.success(voted ? "Vote added!" : "Vote removed");
     } catch (error) {
       console.error("Vote failed:", error);
+      toast.error("Network error. Please try again.");
     }
   };
 
@@ -186,14 +197,17 @@ export function PublicIdeaList({
     return url.pathname + url.search;
   };
 
-  // Sort ideas by vote count (highest first)
-  const sortedIdeas = [...ideas].sort((a, b) => b.voteCount - a.voteCount);
+  // Ideas are already sorted by vote count (highest first) from the server
+  // No need for client-side sorting
 
   return (
     <div className="space-y-6">
-      <BoardHeader workspaceName={workspaceName} onSubmitIdea={handleSubmitIdea} />
+      <BoardHeader
+        workspaceName={workspaceName}
+        onSubmitIdea={handleSubmitIdea}
+      />
 
-      {sortedIdeas.length === 0 ? (
+      {ideas.length === 0 ? (
         <Card className="border-dashed">
           <CardContent className="flex flex-col items-center justify-center py-16">
             <Lightbulb className="text-muted-foreground mb-4 h-12 w-12" />
@@ -205,7 +219,7 @@ export function PublicIdeaList({
         </Card>
       ) : (
         <div className="space-y-3">
-          {sortedIdeas.map((idea) => (
+          {ideas.map((idea) => (
             <IdeaCard
               key={idea.id}
               idea={idea}

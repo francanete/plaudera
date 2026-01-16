@@ -567,10 +567,5 @@ export type Contributor = typeof contributors.$inferSelect;
 export type NewContributor = typeof contributors.$inferInsert;
 export type ContributorToken = typeof contributorTokens.$inferSelect;
 export type NewContributorToken = typeof contributorTokens.$inferInsert;
-export type IdeaStatus =
-  | "NEW"
-  | "UNDER_REVIEW"
-  | "PLANNED"
-  | "IN_PROGRESS"
-  | "DONE"
-  | "DECLINED";
+// Derive IdeaStatus type from the enum to keep them in sync
+export type IdeaStatus = (typeof ideaStatusEnum.enumValues)[number];

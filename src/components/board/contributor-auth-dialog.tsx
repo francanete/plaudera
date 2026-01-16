@@ -125,7 +125,11 @@ export function ContributorAuthDialog({
             </DialogHeader>
             <div className="text-muted-foreground space-y-4 text-sm">
               <p>The link expires in 15 minutes.</p>
-              <Button variant="outline" className="w-full" onClick={() => setState("form")}>
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={() => setState("form")}
+              >
                 Use a different email
               </Button>
             </div>
@@ -138,7 +142,11 @@ export function ContributorAuthDialog({
               <DialogTitle>Something went wrong</DialogTitle>
               <DialogDescription>{errorMessage}</DialogDescription>
             </DialogHeader>
-            <Button variant="outline" className="w-full" onClick={() => setState("form")}>
+            <Button
+              variant="outline"
+              className="w-full"
+              onClick={() => setState("form")}
+            >
               Try again
             </Button>
           </>

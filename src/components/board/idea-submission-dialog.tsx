@@ -102,9 +102,7 @@ export function IdeaSubmissionDialog({
             />
           </div>
 
-          {error && (
-            <p className="text-destructive text-sm">{error}</p>
-          )}
+          {error && <p className="text-destructive text-sm">{error}</p>}
 
           <div className="flex justify-end gap-2">
             <Button
