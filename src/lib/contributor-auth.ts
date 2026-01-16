@@ -55,27 +55,43 @@ export async function sendVerificationEmail(
   verifyUrl.searchParams.set("callback", callbackUrl);
 
   // Send the email
-  await sendEmail({
-    to: normalizedEmail,
-    subject: `Verify your email for ${appConfig.name}`,
-    html: `
-      <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
-        <h2>Verify your email</h2>
-        <p>Click the button below to verify your email and continue:</p>
-        <p style="margin: 24px 0;">
-          <a href="${verifyUrl.toString()}" style="display: inline-block; padding: 12px 24px; background: #000; color: #fff; text-decoration: none; border-radius: 6px;">
-            Verify Email
-          </a>
-        </p>
-        <p style="color: #666; font-size: 14px;">
-          This link expires in ${TOKEN_EXPIRY_MINUTES} minutes.
-        </p>
-        <p style="color: #666; font-size: 14px;">
-          If you didn't request this, you can safely ignore this email.
-        </p>
-      </div>
-    `,
-  });
+  try {
+    await sendEmail({
+      to: normalizedEmail,
+      subject: `Verify your email for ${appConfig.name}`,
+      html: `
+        <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2>Verify your email</h2>
+          <p>Click the button below to verify your email and continue:</p>
+          <p style="margin: 24px 0;">
+            <a href="${verifyUrl.toString()}" style="display: inline-block; padding: 12px 24px; background: #000; color: #fff; text-decoration: none; border-radius: 6px;">
+              Verify Email
+            </a>
+          </p>
+          <p style="color: #666; font-size: 14px;">
+            This link expires in ${TOKEN_EXPIRY_MINUTES} minutes.
+          </p>
+          <p style="color: #666; font-size: 14px;">
+            If you didn't request this, you can safely ignore this email.
+          </p>
+        </div>
+      `,
+    });
+  } catch (emailError) {
+    console.error("[ContributorAuth] Failed to send verification email:", {
+      error: emailError instanceof Error ? emailError.message : "Unknown",
+    });
+
+    // Clean up orphaned token
+    await db
+      .delete(contributorTokens)
+      .where(eq(contributorTokens.token, token));
+
+    return {
+      success: false,
+      message: "Unable to send verification email. Please try again.",
+    };
+  }
 
   return { success: true, message: "Check your email for a verification link" };
 }

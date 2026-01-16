@@ -4,7 +4,8 @@ import { ideas, votes } from "@/lib/db/schema";
 import { eq, and, sql } from "drizzle-orm";
 import { getContributor } from "@/lib/contributor-auth";
 import { handleApiError } from "@/lib/api-utils";
-import { NotFoundError, UnauthorizedError } from "@/lib/errors";
+import { NotFoundError, UnauthorizedError, RateLimitError } from "@/lib/errors";
+import { checkVoteRateLimit } from "@/lib/contributor-rate-limit";
 
 type RouteParams = { params: Promise<{ id: string }> };
 
@@ -33,6 +34,16 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     const contributor = await getContributor();
     if (!contributor) {
       throw new UnauthorizedError("Please verify your email to vote");
+    }
+
+    // Check rate limit for voting
+    const rateLimitResult = checkVoteRateLimit(contributor.id);
+    if (!rateLimitResult.allowed) {
+      throw new RateLimitError(
+        "You're voting too quickly. Please slow down.",
+        rateLimitResult.resetAt!,
+        0
+      );
     }
 
     // Find the idea

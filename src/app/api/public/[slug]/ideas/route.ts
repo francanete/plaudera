@@ -5,7 +5,8 @@ import { ideas, votes, workspaces } from "@/lib/db/schema";
 import { eq, desc, and, inArray } from "drizzle-orm";
 import { getContributor } from "@/lib/contributor-auth";
 import { handleApiError } from "@/lib/api-utils";
-import { NotFoundError, UnauthorizedError } from "@/lib/errors";
+import { NotFoundError, UnauthorizedError, RateLimitError } from "@/lib/errors";
+import { checkIdeaRateLimit } from "@/lib/contributor-rate-limit";
 
 const createIdeaSchema = z.object({
   title: z.string().min(1, "Title is required").max(200, "Title is too long"),
@@ -96,6 +97,16 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     if (!contributor) {
       throw new UnauthorizedError(
         "Please verify your email to submit an idea"
+      );
+    }
+
+    // Check rate limit for idea submissions
+    const rateLimitResult = checkIdeaRateLimit(contributor.id);
+    if (!rateLimitResult.allowed) {
+      throw new RateLimitError(
+        "You've submitted too many ideas. Please try again later.",
+        rateLimitResult.resetAt!,
+        0
       );
     }
 

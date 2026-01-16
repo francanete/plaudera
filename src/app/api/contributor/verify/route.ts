@@ -102,7 +102,18 @@ export async function GET(request: NextRequest) {
     successUrl.searchParams.set("verified", "true");
     return NextResponse.redirect(successUrl.toString());
   } catch (error) {
-    console.error("Verification error:", error);
+    const errorMessage =
+      error instanceof Error ? error.message : "Unknown error";
+    const errorName = error instanceof Error ? error.name : "UnknownError";
+
+    // Parse URL again to check for token in logging (searchParams is out of scope)
+    const url = new URL(request.url);
+    console.error("[ContributorVerify] Verification failed:", {
+      error: errorName,
+      message: errorMessage,
+      hasToken: !!url.searchParams.get("token"),
+    });
+
     // Redirect to home with error on unexpected failure
     const errorUrl = new URL("/", process.env.NEXT_PUBLIC_APP_URL);
     errorUrl.searchParams.set("error", "verification_failed");
