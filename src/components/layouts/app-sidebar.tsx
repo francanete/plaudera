@@ -7,6 +7,7 @@ import {
   Settings,
   CreditCard,
   Shield,
+  Lightbulb,
 } from "lucide-react";
 import {
   Sidebar,
@@ -45,6 +46,7 @@ interface AppSidebarProps {
 
 const navigation = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+  { name: "Ideas", href: "/dashboard/ideas", icon: Lightbulb },
   { name: "Chat", href: "/dashboard/chat", icon: MessageSquare },
   { name: "Billing", href: "/dashboard/billing", icon: CreditCard },
   { name: "Settings", href: "/dashboard/settings", icon: Settings },

@@ -312,6 +312,7 @@ export const usersRelations = relations(users, ({ many, one }) => ({
   aiUsage: many(aiUsage),
   onboardingFlows: many(onboardingFlows),
   emailsSent: many(emailsSent),
+  workspaces: many(workspaces),
 }));
 
 export const sessionsRelations = relations(sessions, ({ one }) => ({
@@ -373,6 +374,115 @@ export const featureRateLimitsRelations = relations(
   })
 );
 
+// ============ Idea Status Enum ============
+export const ideaStatusEnum = pgEnum("idea_status", [
+  "NEW",
+  "UNDER_REVIEW",
+  "PLANNED",
+  "IN_PROGRESS",
+  "DONE",
+  "DECLINED",
+]);
+
+// ============ Workspaces Table ============
+export const workspaces = pgTable(
+  "workspaces",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => createId()),
+    name: text("name").notNull(),
+    slug: text("slug").notNull().unique(),
+    ownerId: text("owner_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at")
+      .defaultNow()
+      .notNull()
+      .$onUpdate(() => new Date()),
+  },
+  (table) => [
+    uniqueIndex("workspaces_slug_idx").on(table.slug),
+    index("workspaces_owner_id_idx").on(table.ownerId),
+  ]
+);
+
+// ============ Ideas Table ============
+export const ideas = pgTable(
+  "ideas",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => createId()),
+    workspaceId: text("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    title: text("title").notNull(),
+    description: text("description"),
+    status: ideaStatusEnum("status").default("NEW").notNull(),
+    voteCount: integer("vote_count").default(0).notNull(),
+    authorEmail: text("author_email"),
+    authorName: text("author_name"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at")
+      .defaultNow()
+      .notNull()
+      .$onUpdate(() => new Date()),
+  },
+  (table) => [
+    index("ideas_workspace_id_idx").on(table.workspaceId),
+    index("ideas_workspace_status_idx").on(table.workspaceId, table.status),
+    index("ideas_workspace_votes_idx").on(table.workspaceId, table.voteCount),
+  ]
+);
+
+// ============ Votes Table ============
+export const votes = pgTable(
+  "votes",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => createId()),
+    ideaId: text("idea_id")
+      .notNull()
+      .references(() => ideas.id, { onDelete: "cascade" }),
+    visitorId: text("visitor_id").notNull(),
+    email: text("email"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex("votes_idea_visitor_idx").on(table.ideaId, table.visitorId),
+    index("votes_idea_id_idx").on(table.ideaId),
+  ]
+);
+
+// ============ Workspaces Relations ============
+export const workspacesRelations = relations(workspaces, ({ one, many }) => ({
+  owner: one(users, {
+    fields: [workspaces.ownerId],
+    references: [users.id],
+  }),
+  ideas: many(ideas),
+}));
+
+// ============ Ideas Relations ============
+export const ideasRelations = relations(ideas, ({ one, many }) => ({
+  workspace: one(workspaces, {
+    fields: [ideas.workspaceId],
+    references: [workspaces.id],
+  }),
+  votes: many(votes),
+}));
+
+// ============ Votes Relations ============
+export const votesRelations = relations(votes, ({ one }) => ({
+  idea: one(ideas, {
+    fields: [votes.ideaId],
+    references: [ideas.id],
+  }),
+}));
+
 // ============ Type Exports ============
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
@@ -392,3 +502,16 @@ export type NewEmailSent = typeof emailsSent.$inferInsert;
 export type Plan = "FREE" | "STARTER" | "GROWTH" | "SCALE";
 export type BillingType = "recurring" | "one_time" | "none";
 export type Role = "user" | "admin";
+export type Workspace = typeof workspaces.$inferSelect;
+export type NewWorkspace = typeof workspaces.$inferInsert;
+export type Idea = typeof ideas.$inferSelect;
+export type NewIdea = typeof ideas.$inferInsert;
+export type Vote = typeof votes.$inferSelect;
+export type NewVote = typeof votes.$inferInsert;
+export type IdeaStatus =
+  | "NEW"
+  | "UNDER_REVIEW"
+  | "PLANNED"
+  | "IN_PROGRESS"
+  | "DONE"
+  | "DECLINED";
