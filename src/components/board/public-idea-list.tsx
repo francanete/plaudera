@@ -40,54 +40,8 @@ export function PublicIdeaList({
 
   const isAuthenticated = contributor !== null;
 
-  // Handle callback params from verification redirect
-  useEffect(() => {
-    const verified = searchParams.get("verified");
-    const error = searchParams.get("error");
-    const action = searchParams.get("action");
-    const ideaId = searchParams.get("ideaId");
-
-    if (verified === "true") {
-      // Refresh data to get contributor info
-      refreshData();
-
-      // Handle pending action from callback URL
-      if (action === "vote" && ideaId) {
-        // Auto-vote after verification
-        handleVoteAfterAuth(ideaId);
-      } else if (action === "submit") {
-        setSubmitDialogOpen(true);
-      }
-
-      // Clean up URL params
-      const newParams = new URLSearchParams(searchParams);
-      newParams.delete("verified");
-      newParams.delete("action");
-      newParams.delete("ideaId");
-      const newUrl = newParams.toString()
-        ? `${pathname}?${newParams.toString()}`
-        : pathname;
-      router.replace(newUrl);
-    }
-
-    if (error) {
-      if (error === "invalid_token") {
-        toast.error("Verification link expired or invalid. Please try again.");
-      } else {
-        toast.error("Verification failed. Please try again.");
-      }
-
-      // Clean up URL params
-      const newParams = new URLSearchParams(searchParams);
-      newParams.delete("error");
-      const newUrl = newParams.toString()
-        ? `${pathname}?${newParams.toString()}`
-        : pathname;
-      router.replace(newUrl);
-    }
-  }, [searchParams, pathname, router]);
-
-  const refreshData = async () => {
+  // Declare functions BEFORE the useEffect that uses them
+  const refreshData = useCallback(async () => {
     try {
       const res = await fetch(`/api/public/${workspaceSlug}/ideas`);
       if (!res.ok) {
@@ -101,9 +55,9 @@ export function PublicIdeaList({
       console.error("Failed to refresh data:", error);
       toast.error("Network error. Please check your connection.");
     }
-  };
+  }, [workspaceSlug]);
 
-  const handleVoteAfterAuth = async (ideaId: string) => {
+  const handleVoteAfterAuth = useCallback(async (ideaId: string) => {
     try {
       const res = await fetch(`/api/public/ideas/${ideaId}/vote`, {
         method: "POST",
@@ -126,7 +80,61 @@ export function PublicIdeaList({
       console.error("Vote failed:", error);
       toast.error("Network error. Please try again.");
     }
-  };
+  }, []);
+
+  // Handle callback params from verification redirect
+  useEffect(() => {
+    const verified = searchParams.get("verified");
+    const error = searchParams.get("error");
+    const action = searchParams.get("action");
+    const ideaId = searchParams.get("ideaId");
+
+    // Use async IIFE to handle async operations properly
+    const handleVerificationCallback = async () => {
+      if (verified === "true") {
+        // Refresh data to get contributor info
+        await refreshData();
+
+        // Handle pending action from callback URL
+        if (action === "vote" && ideaId) {
+          // Auto-vote after verification
+          await handleVoteAfterAuth(ideaId);
+        } else if (action === "submit") {
+          setSubmitDialogOpen(true);
+        }
+
+        // Clean up URL params
+        const newParams = new URLSearchParams(searchParams);
+        newParams.delete("verified");
+        newParams.delete("action");
+        newParams.delete("ideaId");
+        const newUrl = newParams.toString()
+          ? `${pathname}?${newParams.toString()}`
+          : pathname;
+        router.replace(newUrl);
+      }
+
+      if (error) {
+        if (error === "invalid_token") {
+          toast.error(
+            "Verification link expired or invalid. Please try again."
+          );
+        } else {
+          toast.error("Verification failed. Please try again.");
+        }
+
+        // Clean up URL params
+        const newParams = new URLSearchParams(searchParams);
+        newParams.delete("error");
+        const newUrl = newParams.toString()
+          ? `${pathname}?${newParams.toString()}`
+          : pathname;
+        router.replace(newUrl);
+      }
+    };
+
+    handleVerificationCallback();
+  }, [searchParams, pathname, router, refreshData, handleVoteAfterAuth]);
 
   const handleVote = useCallback(
     async (ideaId: string): Promise<{ voted: boolean; voteCount: number }> => {
