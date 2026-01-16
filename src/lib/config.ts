@@ -85,7 +85,7 @@ export const appConfig: AppConfig = {
   name: "Plaudera",
   description: "The complete platform for building modern applications.",
   email: {
-    from: "noreply@simplesubscriber.com",
+    from: "noreply@app.plaudera.com",
   },
   team: {
     name: "Plaudera Team",
