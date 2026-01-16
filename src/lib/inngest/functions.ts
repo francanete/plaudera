@@ -7,6 +7,7 @@ import {
   sendTransactionalEmail,
 } from "@/lib/email-sequences";
 import { syncWithPolar } from "@/lib/subscription";
+import { createUserWorkspace } from "@/lib/workspace";
 import { appConfig, type PaidTier } from "@/lib/config";
 import { z } from "zod";
 
@@ -75,6 +76,16 @@ export const welcomeSequenceJob = inngest.createFunction(
           billingType: "none",
         })
         .onConflictDoNothing(); // In case webhook already created one
+    });
+
+    // Step 1.5: Create default workspace for new user
+    // createUserWorkspace handles duplicates via onConflictDoNothing
+    await step.run("create-workspace", async () => {
+      const user = await db.query.users.findFirst({
+        where: eq(users.id, userId),
+        columns: { name: true },
+      });
+      await createUserWorkspace(userId, email, user?.name);
     });
 
     // Step 2: Get user name for emails

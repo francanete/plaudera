@@ -87,13 +87,17 @@ vi.mock("@/lib/config", () => ({
   },
 }));
 
-vi.mock("drizzle-orm", () => ({
-  eq: vi.fn(),
-  and: vi.fn(),
-  gte: vi.fn(),
-  lt: vi.fn(),
-  inArray: vi.fn(),
-}));
+vi.mock("drizzle-orm", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("drizzle-orm")>();
+  return {
+    ...actual,
+    eq: vi.fn(),
+    and: vi.fn(),
+    gte: vi.fn(),
+    lt: vi.fn(),
+    inArray: vi.fn(),
+  };
+});
 
 // Import after mocks are set up
 import {
