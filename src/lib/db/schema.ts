@@ -384,6 +384,38 @@ export const ideaStatusEnum = pgEnum("idea_status", [
   "DECLINED",
 ]);
 
+// ============ Contributors (workspace owners' customers) ============
+export const contributors = pgTable(
+  "contributors",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => createId()),
+    email: text("email").notNull().unique(),
+    name: text("name"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => [uniqueIndex("contributors_email_idx").on(table.email)]
+);
+
+// ============ Contributor Verification Tokens ============
+export const contributorTokens = pgTable(
+  "contributor_tokens",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => createId()),
+    email: text("email").notNull(),
+    token: text("token").notNull().unique(),
+    expiresAt: timestamp("expires_at").notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex("contributor_tokens_token_idx").on(table.token),
+    index("contributor_tokens_email_idx").on(table.email),
+  ]
+);
+
 // ============ Workspaces Table ============
 export const workspaces = pgTable(
   "workspaces",
@@ -418,6 +450,9 @@ export const ideas = pgTable(
     workspaceId: text("workspace_id")
       .notNull()
       .references(() => workspaces.id, { onDelete: "cascade" }),
+    contributorId: text("contributor_id").references(() => contributors.id, {
+      onDelete: "set null",
+    }),
     title: text("title").notNull(),
     description: text("description"),
     status: ideaStatusEnum("status").default("NEW").notNull(),
@@ -434,6 +469,7 @@ export const ideas = pgTable(
     index("ideas_workspace_id_idx").on(table.workspaceId),
     index("ideas_workspace_status_idx").on(table.workspaceId, table.status),
     index("ideas_workspace_votes_idx").on(table.workspaceId, table.voteCount),
+    index("ideas_contributor_id_idx").on(table.contributorId),
   ]
 );
 
@@ -447,13 +483,18 @@ export const votes = pgTable(
     ideaId: text("idea_id")
       .notNull()
       .references(() => ideas.id, { onDelete: "cascade" }),
-    visitorId: text("visitor_id").notNull(),
-    email: text("email"),
+    contributorId: text("contributor_id")
+      .notNull()
+      .references(() => contributors.id, { onDelete: "cascade" }),
     createdAt: timestamp("created_at").defaultNow().notNull(),
   },
   (table) => [
-    uniqueIndex("votes_idea_visitor_idx").on(table.ideaId, table.visitorId),
+    uniqueIndex("votes_idea_contributor_idx").on(
+      table.ideaId,
+      table.contributorId
+    ),
     index("votes_idea_id_idx").on(table.ideaId),
+    index("votes_contributor_id_idx").on(table.contributorId),
   ]
 );
 
@@ -472,6 +513,10 @@ export const ideasRelations = relations(ideas, ({ one, many }) => ({
     fields: [ideas.workspaceId],
     references: [workspaces.id],
   }),
+  contributor: one(contributors, {
+    fields: [ideas.contributorId],
+    references: [contributors.id],
+  }),
   votes: many(votes),
 }));
 
@@ -481,6 +526,16 @@ export const votesRelations = relations(votes, ({ one }) => ({
     fields: [votes.ideaId],
     references: [ideas.id],
   }),
+  contributor: one(contributors, {
+    fields: [votes.contributorId],
+    references: [contributors.id],
+  }),
+}));
+
+// ============ Contributors Relations ============
+export const contributorsRelations = relations(contributors, ({ many }) => ({
+  ideas: many(ideas),
+  votes: many(votes),
 }));
 
 // ============ Type Exports ============
@@ -508,6 +563,10 @@ export type Idea = typeof ideas.$inferSelect;
 export type NewIdea = typeof ideas.$inferInsert;
 export type Vote = typeof votes.$inferSelect;
 export type NewVote = typeof votes.$inferInsert;
+export type Contributor = typeof contributors.$inferSelect;
+export type NewContributor = typeof contributors.$inferInsert;
+export type ContributorToken = typeof contributorTokens.$inferSelect;
+export type NewContributorToken = typeof contributorTokens.$inferInsert;
 export type IdeaStatus =
   | "NEW"
   | "UNDER_REVIEW"

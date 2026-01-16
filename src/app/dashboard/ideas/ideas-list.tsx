@@ -193,10 +193,14 @@ export function IdeasList({ initialIdeas, workspaceSlug }: IdeasListProps) {
         <CardContent className="py-4">
           <p className="text-muted-foreground text-sm">
             <span className="font-medium">Public board:</span>{" "}
-            <code className="bg-muted rounded px-2 py-1 text-xs">
+            <a
+              href={`/b/${workspaceSlug}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="bg-muted hover:bg-muted/80 rounded px-2 py-1 font-mono text-xs transition-colors"
+            >
               /b/{workspaceSlug}
-            </code>
-            <span className="ml-2">(Coming soon)</span>
+            </a>
           </p>
         </CardContent>
       </Card>
