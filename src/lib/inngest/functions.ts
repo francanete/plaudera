@@ -1,5 +1,5 @@
 import { inngest } from "./client";
-import { db, users, subscriptions, workspaces } from "@/lib/db";
+import { db, users, subscriptions } from "@/lib/db";
 import { eq, and, gte, lt, inArray } from "drizzle-orm";
 import { sendAccountSetupEmail } from "@/lib/email";
 import {
@@ -79,13 +79,8 @@ export const welcomeSequenceJob = inngest.createFunction(
     });
 
     // Step 1.5: Create default workspace for new user
+    // createUserWorkspace handles duplicates via onConflictDoNothing
     await step.run("create-workspace", async () => {
-      // Check if user already has a workspace (avoid duplicates)
-      const existingWorkspace = await db.query.workspaces.findFirst({
-        where: eq(workspaces.ownerId, userId),
-      });
-      if (existingWorkspace) return;
-
       const user = await db.query.users.findFirst({
         where: eq(users.id, userId),
         columns: { name: true },

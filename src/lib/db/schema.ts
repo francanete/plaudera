@@ -404,7 +404,7 @@ export const workspaces = pgTable(
   },
   (table) => [
     uniqueIndex("workspaces_slug_idx").on(table.slug),
-    index("workspaces_owner_id_idx").on(table.ownerId),
+    uniqueIndex("workspaces_owner_id_idx").on(table.ownerId),
   ]
 );
 

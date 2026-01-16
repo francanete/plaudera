@@ -1,6 +1,7 @@
 import { db } from "./db";
 import { workspaces, type Workspace } from "./db/schema";
 import { eq } from "drizzle-orm";
+import { createId } from "@paralleldrive/cuid2";
 
 /**
  * Generate a URL-safe slug from an email address.
@@ -13,7 +14,7 @@ export function generateSlug(email: string): string {
     .replace(/[^a-z0-9]/g, "")
     .slice(0, 20);
 
-  const suffix = Math.random().toString(36).substring(2, 8);
+  const suffix = createId().slice(0, 8);
 
   return `${prefix}-${suffix}`;
 }
@@ -21,6 +22,7 @@ export function generateSlug(email: string): string {
 /**
  * Create a default workspace for a new user.
  * Uses the user's name or email prefix for the workspace name.
+ * Handles concurrent requests safely with onConflictDoNothing.
  */
 export async function createUserWorkspace(
   userId: string,
@@ -30,14 +32,24 @@ export async function createUserWorkspace(
   const workspaceName = name || email.split("@")[0];
   const slug = generateSlug(email);
 
-  const [workspace] = await db
+  // Use onConflictDoNothing to handle race conditions safely
+  await db
     .insert(workspaces)
     .values({
       name: `${workspaceName}'s Workspace`,
       slug,
       ownerId: userId,
     })
-    .returning();
+    .onConflictDoNothing();
+
+  // Always fetch after (handles both insert and conflict cases)
+  const workspace = await db.query.workspaces.findFirst({
+    where: eq(workspaces.ownerId, userId),
+  });
+
+  if (!workspace) {
+    throw new Error(`Failed to create or retrieve workspace for user ${userId}`);
+  }
 
   return workspace;
 }

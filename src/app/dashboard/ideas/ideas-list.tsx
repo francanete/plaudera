@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { toast } from "sonner";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -60,7 +61,14 @@ export function IdeasList({ initialIdeas, workspaceSlug }: IdeasListProps) {
         setIdeas([idea, ...ideas]);
         setNewTitle("");
         setIsCreating(false);
+        toast.success("Idea created successfully");
+      } else {
+        const data = await res.json().catch(() => ({}));
+        toast.error(data.error || "Failed to create idea");
       }
+    } catch (error) {
+      toast.error("Something went wrong. Please try again.");
+      console.error("Failed to create idea:", error);
     } finally {
       setIsSubmitting(false);
     }
