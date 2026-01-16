@@ -385,6 +385,19 @@ export const ideaStatusEnum = pgEnum("idea_status", [
   "DECLINED",
 ]);
 
+/**
+ * Statuses that are visible on the public feedback board.
+ * PENDING = awaiting admin approval (hidden)
+ * DECLINED = rejected ideas (hidden)
+ */
+export const PUBLIC_VISIBLE_STATUSES: IdeaStatus[] = [
+  "NEW",
+  "UNDER_REVIEW",
+  "PLANNED",
+  "IN_PROGRESS",
+  "DONE",
+] as const;
+
 // ============ Contributors (workspace owners' customers) ============
 export const contributors = pgTable(
   "contributors",

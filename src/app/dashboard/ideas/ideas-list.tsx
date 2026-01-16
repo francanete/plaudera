@@ -29,6 +29,7 @@ import type { Idea, IdeaStatus } from "@/lib/db/schema";
 interface IdeasListProps {
   initialIdeas: Idea[];
   workspaceSlug: string;
+  initialStatusFilter?: IdeaStatus;
 }
 
 const statusConfig: Record<
@@ -48,11 +49,24 @@ const statusConfig: Record<
   DECLINED: { label: "Declined", variant: "destructive", icon: XCircle },
 };
 
-export function IdeasList({ initialIdeas, workspaceSlug }: IdeasListProps) {
+export function IdeasList({
+  initialIdeas,
+  workspaceSlug,
+  initialStatusFilter,
+}: IdeasListProps) {
   const [ideas, setIdeas] = useState(initialIdeas);
   const [isCreating, setIsCreating] = useState(false);
   const [newTitle, setNewTitle] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [statusFilter, setStatusFilter] = useState<IdeaStatus | "ALL">(
+    initialStatusFilter || "ALL"
+  );
+
+  // Filter ideas by status
+  const filteredIdeas =
+    statusFilter === "ALL"
+      ? ideas
+      : ideas.filter((idea) => idea.status === statusFilter);
 
   const handleCreateIdea = async () => {
     if (!newTitle.trim() || isSubmitting) return;
@@ -131,6 +145,33 @@ export function IdeasList({ initialIdeas, workspaceSlug }: IdeasListProps) {
     "DECLINED",
   ];
 
+  // Render filter dropdown
+  const FilterDropdown = () => (
+    <Select
+      value={statusFilter}
+      onValueChange={(value) => setStatusFilter(value as IdeaStatus | "ALL")}
+    >
+      <SelectTrigger className="w-[180px]">
+        <SelectValue placeholder="Filter by status" />
+      </SelectTrigger>
+      <SelectContent>
+        <SelectItem value="ALL">All statuses</SelectItem>
+        {statusOptions.map((opt) => {
+          const cfg = statusConfig[opt];
+          const Icon = cfg.icon;
+          return (
+            <SelectItem key={opt} value={opt}>
+              <div className="flex items-center">
+                <Icon className="mr-2 h-3 w-3" />
+                {cfg.label}
+              </div>
+            </SelectItem>
+          );
+        })}
+      </SelectContent>
+    </Select>
+  );
+
   if (ideas.length === 0 && !isCreating) {
     return (
       <Card className="border-dashed">
@@ -152,46 +193,68 @@ export function IdeasList({ initialIdeas, workspaceSlug }: IdeasListProps) {
 
   return (
     <div className="space-y-4">
-      {/* Create new idea */}
-      {isCreating ? (
-        <Card>
-          <CardContent className="pt-4">
-            <div className="flex gap-2">
-              <Input
-                placeholder="What's your idea?"
-                value={newTitle}
-                onChange={(e) => setNewTitle(e.target.value)}
-                onKeyDown={handleKeyDown}
-                autoFocus
-              />
-              <Button
-                onClick={handleCreateIdea}
-                disabled={isSubmitting || !newTitle.trim()}
-              >
-                {isSubmitting ? "Adding..." : "Add"}
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setIsCreating(false);
-                  setNewTitle("");
-                }}
-              >
-                Cancel
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      ) : (
-        <Button onClick={() => setIsCreating(true)}>
-          <Plus className="mr-2 h-4 w-4" />
-          New idea
-        </Button>
-      )}
+      {/* Actions bar */}
+      <div className="flex items-center justify-between gap-4">
+        {/* Create new idea */}
+        {isCreating ? (
+          <Card className="flex-1">
+            <CardContent className="pt-4">
+              <div className="flex gap-2">
+                <Input
+                  placeholder="What's your idea?"
+                  value={newTitle}
+                  onChange={(e) => setNewTitle(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  autoFocus
+                />
+                <Button
+                  onClick={handleCreateIdea}
+                  disabled={isSubmitting || !newTitle.trim()}
+                >
+                  {isSubmitting ? "Adding..." : "Add"}
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setIsCreating(false);
+                    setNewTitle("");
+                  }}
+                >
+                  Cancel
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        ) : (
+          <>
+            <Button onClick={() => setIsCreating(true)}>
+              <Plus className="mr-2 h-4 w-4" />
+              New idea
+            </Button>
+            <FilterDropdown />
+          </>
+        )}
+      </div>
 
       {/* Ideas list */}
       <div className="space-y-3">
-        {ideas.map((idea) => {
+        {filteredIdeas.length === 0 && (
+          <Card className="border-dashed">
+            <CardContent className="py-8 text-center">
+              <p className="text-muted-foreground">
+                No ideas with {statusFilter !== "ALL" ? `"${statusConfig[statusFilter].label}"` : ""} status.
+              </p>
+              <Button
+                variant="link"
+                className="mt-2"
+                onClick={() => setStatusFilter("ALL")}
+              >
+                Show all ideas
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+        {filteredIdeas.map((idea) => {
           const status = statusConfig[idea.status];
           const StatusIcon = status.icon;
 

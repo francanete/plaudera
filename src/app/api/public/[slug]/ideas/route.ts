@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/db";
-import { ideas, votes, workspaces } from "@/lib/db/schema";
-import { eq, desc, and, inArray, ne } from "drizzle-orm";
+import { ideas, votes, workspaces, PUBLIC_VISIBLE_STATUSES } from "@/lib/db/schema";
+import { eq, desc, and, or, inArray } from "drizzle-orm";
 import { getContributor } from "@/lib/contributor-auth";
 import { handleApiError } from "@/lib/api-utils";
 import { NotFoundError, UnauthorizedError, RateLimitError } from "@/lib/errors";
@@ -33,18 +33,32 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       throw new NotFoundError("Workspace not found");
     }
 
-    // Get all ideas for the workspace, sorted by vote count
-    // Filter out PENDING ideas (they need admin approval first)
-    const workspaceIdeas = await db.query.ideas.findMany({
-      where: and(
-        eq(ideas.workspaceId, workspace.id),
-        ne(ideas.status, "PENDING")
-      ),
-      orderBy: [desc(ideas.voteCount), desc(ideas.createdAt)],
-    });
-
     // Check if contributor is authenticated
     const contributor = await getContributor();
+
+    // Build query: public-visible statuses + contributor's own PENDING ideas
+    const whereClause = contributor
+      ? and(
+          eq(ideas.workspaceId, workspace.id),
+          or(
+            // Public visible statuses (for everyone)
+            inArray(ideas.status, PUBLIC_VISIBLE_STATUSES),
+            // Contributor's own PENDING ideas (only visible to them)
+            and(
+              eq(ideas.status, "PENDING"),
+              eq(ideas.contributorId, contributor.id)
+            )
+          )
+        )
+      : and(
+          eq(ideas.workspaceId, workspace.id),
+          inArray(ideas.status, PUBLIC_VISIBLE_STATUSES)
+        );
+
+    const workspaceIdeas = await db.query.ideas.findMany({
+      where: whereClause,
+      orderBy: [desc(ideas.voteCount), desc(ideas.createdAt)],
+    });
 
     // If authenticated, get their votes to determine hasVoted
     let votedIdeaIds: Set<string> = new Set();
@@ -62,7 +76,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       votedIdeaIds = new Set(contributorVotes.map((v) => v.ideaId));
     }
 
-    // Transform ideas with hasVoted field
+    // Transform ideas with hasVoted and isOwn fields
     const ideasWithVoteStatus = workspaceIdeas.map((idea) => ({
       id: idea.id,
       title: idea.title,
@@ -71,6 +85,8 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       voteCount: idea.voteCount,
       hasVoted: votedIdeaIds.has(idea.id),
       createdAt: idea.createdAt,
+      // Mark if this is the contributor's own submission
+      isOwn: contributor ? idea.contributorId === contributor.id : false,
     }));
 
     return NextResponse.json({
@@ -151,6 +167,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
           voteCount: newIdea.voteCount,
           hasVoted: false,
           createdAt: newIdea.createdAt,
+          isOwn: true, // Always true for newly created ideas (creator is viewing)
         },
       },
       { status: 201 }

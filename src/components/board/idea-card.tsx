@@ -22,8 +22,8 @@ const statusConfig: Record<
     icon: typeof Clock;
   }
 > = {
-  // PENDING won't appear on public board (filtered by API) but TypeScript requires it
-  PENDING: { label: "Pending Review", variant: "outline", icon: AlertCircle },
+  // PENDING: visible to contributor for their own submissions
+  PENDING: { label: "Awaiting Review", variant: "outline", icon: AlertCircle },
   NEW: { label: "New", variant: "default", icon: Lightbulb },
   UNDER_REVIEW: { label: "Under Review", variant: "secondary", icon: Search },
   PLANNED: { label: "Planned", variant: "outline", icon: Clock },
@@ -40,6 +40,7 @@ export interface IdeaCardData {
   voteCount: number;
   hasVoted: boolean;
   createdAt: Date | string;
+  isOwn?: boolean;
 }
 
 interface IdeaCardProps {
@@ -57,9 +58,16 @@ export function IdeaCard({
 }: IdeaCardProps) {
   const status = statusConfig[idea.status];
   const StatusIcon = status.icon;
+  const isOwnPending = idea.isOwn && idea.status === "PENDING";
 
   return (
-    <Card className="hover:border-primary/30 transition-colors">
+    <Card
+      className={
+        isOwnPending
+          ? "border-orange-300 bg-orange-50/50 dark:border-orange-800 dark:bg-orange-950/20"
+          : "hover:border-primary/30 transition-colors"
+      }
+    >
       <CardContent className="flex items-center gap-4 py-4">
         <VoteButton
           ideaId={idea.id}
@@ -71,7 +79,14 @@ export function IdeaCard({
         />
 
         <div className="min-w-0 flex-1">
-          <h3 className="truncate font-medium">{idea.title}</h3>
+          <div className="flex items-center gap-2">
+            <h3 className="truncate font-medium">{idea.title}</h3>
+            {isOwnPending && (
+              <Badge variant="outline" className="shrink-0 border-orange-400 bg-orange-100 text-orange-700 dark:bg-orange-900/50 dark:text-orange-300 text-xs">
+                Your submission
+              </Badge>
+            )}
+          </div>
           {idea.description && (
             <p className="text-muted-foreground mt-1 line-clamp-2 text-sm">
               {idea.description}

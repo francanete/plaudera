@@ -6,8 +6,13 @@ import { eq, desc } from "drizzle-orm";
 import { getUserWorkspace, createUserWorkspace } from "@/lib/workspace";
 import { IdeasList } from "./ideas-list";
 import { Lightbulb } from "lucide-react";
+import type { IdeaStatus } from "@/lib/db/schema";
 
-export default async function IdeasPage() {
+type PageProps = {
+  searchParams: Promise<{ status?: string }>;
+};
+
+export default async function IdeasPage({ searchParams }: PageProps) {
   const session = await auth.api.getSession({
     headers: await headers(),
   });
@@ -33,6 +38,21 @@ export default async function IdeasPage() {
     orderBy: [desc(ideas.createdAt)],
   });
 
+  // Get initial status filter from URL
+  const { status } = await searchParams;
+  const validStatuses: IdeaStatus[] = [
+    "PENDING",
+    "NEW",
+    "UNDER_REVIEW",
+    "PLANNED",
+    "IN_PROGRESS",
+    "DONE",
+    "DECLINED",
+  ];
+  const initialStatusFilter = validStatuses.includes(status as IdeaStatus)
+    ? (status as IdeaStatus)
+    : undefined;
+
   return (
     <div className="space-y-8">
       <div className="flex items-center justify-between">
@@ -47,7 +67,11 @@ export default async function IdeasPage() {
         </div>
       </div>
 
-      <IdeasList initialIdeas={workspaceIdeas} workspaceSlug={workspace.slug} />
+      <IdeasList
+        initialIdeas={workspaceIdeas}
+        workspaceSlug={workspace.slug}
+        initialStatusFilter={initialStatusFilter}
+      />
     </div>
   );
 }
