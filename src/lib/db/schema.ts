@@ -376,6 +376,7 @@ export const featureRateLimitsRelations = relations(
 
 // ============ Idea Status Enum ============
 export const ideaStatusEnum = pgEnum("idea_status", [
+  "PENDING",
   "NEW",
   "UNDER_REVIEW",
   "PLANNED",
@@ -455,7 +456,7 @@ export const ideas = pgTable(
     }),
     title: text("title").notNull(),
     description: text("description"),
-    status: ideaStatusEnum("status").default("NEW").notNull(),
+    status: ideaStatusEnum("status").default("PENDING").notNull(),
     voteCount: integer("vote_count").default(0).notNull(),
     authorEmail: text("author_email"),
     authorName: text("author_name"),

@@ -6,6 +6,7 @@ import { protectedApiRouteWrapper } from "@/lib/dal";
 import { NotFoundError, ForbiddenError } from "@/lib/errors";
 
 const statusOptions: IdeaStatus[] = [
+  "PENDING",
   "NEW",
   "UNDER_REVIEW",
   "PLANNED",

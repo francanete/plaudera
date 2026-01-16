@@ -1,11 +1,18 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { toast } from "sonner";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Plus,
   ChevronUp,
@@ -15,6 +22,7 @@ import {
   XCircle,
   PlayCircle,
   Search,
+  AlertCircle,
 } from "lucide-react";
 import type { Idea, IdeaStatus } from "@/lib/db/schema";
 
@@ -31,6 +39,7 @@ const statusConfig: Record<
     icon: typeof Clock;
   }
 > = {
+  PENDING: { label: "Pending Review", variant: "outline", icon: AlertCircle },
   NEW: { label: "New", variant: "default", icon: Lightbulb },
   UNDER_REVIEW: { label: "Under Review", variant: "secondary", icon: Search },
   PLANNED: { label: "Planned", variant: "outline", icon: Clock },
@@ -84,6 +93,43 @@ export function IdeasList({ initialIdeas, workspaceSlug }: IdeasListProps) {
       setNewTitle("");
     }
   };
+
+  const handleStatusChange = async (ideaId: string, newStatus: IdeaStatus) => {
+    const previousIdeas = ideas;
+    // Optimistic update
+    setIdeas(
+      ideas.map((i) => (i.id === ideaId ? { ...i, status: newStatus } : i))
+    );
+
+    try {
+      const res = await fetch(`/api/ideas/${ideaId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: newStatus }),
+      });
+
+      if (!res.ok) {
+        throw new Error("Failed to update status");
+      }
+
+      toast.success("Status updated");
+    } catch {
+      // Rollback on error
+      setIdeas(previousIdeas);
+      toast.error("Failed to update status");
+    }
+  };
+
+  // Status options for the dropdown
+  const statusOptions: IdeaStatus[] = [
+    "PENDING",
+    "NEW",
+    "UNDER_REVIEW",
+    "PLANNED",
+    "IN_PROGRESS",
+    "DONE",
+    "DECLINED",
+  ];
 
   if (ideas.length === 0 && !isCreating) {
     return (
@@ -150,40 +196,66 @@ export function IdeasList({ initialIdeas, workspaceSlug }: IdeasListProps) {
           const StatusIcon = status.icon;
 
           return (
-            <Card
-              key={idea.id}
-              className="hover:border-primary/50 cursor-pointer transition-colors"
-            >
-              <CardContent className="flex items-center gap-4 py-4">
-                {/* Vote count */}
-                <div className="bg-muted/50 flex min-w-[60px] flex-col items-center rounded-lg px-3 py-2">
-                  <ChevronUp className="text-muted-foreground h-4 w-4" />
-                  <span className="text-lg font-semibold">
-                    {idea.voteCount}
-                  </span>
-                  <span className="text-muted-foreground text-xs">votes</span>
-                </div>
-
-                {/* Content */}
-                <div className="min-w-0 flex-1">
-                  <h3 className="truncate font-medium">{idea.title}</h3>
-                  {idea.description && (
-                    <p className="text-muted-foreground mt-1 line-clamp-1 text-sm">
-                      {idea.description}
-                    </p>
-                  )}
-                  <div className="mt-2 flex items-center gap-2">
-                    <Badge variant={status.variant} className="text-xs">
-                      <StatusIcon className="mr-1 h-3 w-3" />
-                      {status.label}
-                    </Badge>
-                    <span className="text-muted-foreground text-xs">
-                      {new Date(idea.createdAt).toLocaleDateString()}
+            <Link key={idea.id} href={`/dashboard/ideas/${idea.id}`}>
+              <Card className="hover:border-primary/50 cursor-pointer transition-colors">
+                <CardContent className="flex items-center gap-4 py-4">
+                  {/* Vote count */}
+                  <div className="bg-muted/50 flex min-w-[60px] flex-col items-center rounded-lg px-3 py-2">
+                    <ChevronUp className="text-muted-foreground h-4 w-4" />
+                    <span className="text-lg font-semibold">
+                      {idea.voteCount}
                     </span>
+                    <span className="text-muted-foreground text-xs">votes</span>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
+
+                  {/* Content */}
+                  <div className="min-w-0 flex-1">
+                    <h3 className="truncate font-medium">{idea.title}</h3>
+                    {idea.description && (
+                      <p className="text-muted-foreground mt-1 line-clamp-1 text-sm">
+                        {idea.description}
+                      </p>
+                    )}
+                    <div className="mt-2 flex items-center gap-2">
+                      {/* Status dropdown - stop propagation to prevent navigation */}
+                      <div
+                        onClick={(e) => e.preventDefault()}
+                        onKeyDown={(e) => e.stopPropagation()}
+                      >
+                        <Select
+                          value={idea.status}
+                          onValueChange={(value) =>
+                            handleStatusChange(idea.id, value as IdeaStatus)
+                          }
+                        >
+                          <SelectTrigger className="h-7 w-[140px] text-xs">
+                            <StatusIcon className="mr-1 h-3 w-3" />
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {statusOptions.map((opt) => {
+                              const cfg = statusConfig[opt];
+                              const Icon = cfg.icon;
+                              return (
+                                <SelectItem key={opt} value={opt}>
+                                  <div className="flex items-center">
+                                    <Icon className="mr-2 h-3 w-3" />
+                                    {cfg.label}
+                                  </div>
+                                </SelectItem>
+                              );
+                            })}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <span className="text-muted-foreground text-xs">
+                        {new Date(idea.createdAt).toLocaleDateString()}
+                      </span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </Link>
           );
         })}
       </div>

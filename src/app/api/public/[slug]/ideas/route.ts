@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { ideas, votes, workspaces } from "@/lib/db/schema";
-import { eq, desc, and, inArray } from "drizzle-orm";
+import { eq, desc, and, inArray, ne } from "drizzle-orm";
 import { getContributor } from "@/lib/contributor-auth";
 import { handleApiError } from "@/lib/api-utils";
 import { NotFoundError, UnauthorizedError, RateLimitError } from "@/lib/errors";
@@ -34,8 +34,12 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     }
 
     // Get all ideas for the workspace, sorted by vote count
+    // Filter out PENDING ideas (they need admin approval first)
     const workspaceIdeas = await db.query.ideas.findMany({
-      where: eq(ideas.workspaceId, workspace.id),
+      where: and(
+        eq(ideas.workspaceId, workspace.id),
+        ne(ideas.status, "PENDING")
+      ),
       orderBy: [desc(ideas.voteCount), desc(ideas.createdAt)],
     });
 
@@ -123,7 +127,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     const body = await request.json();
     const { title, description } = createIdeaSchema.parse(body);
 
-    // Create the idea
+    // Create the idea (defaults to PENDING status for admin review)
     const [newIdea] = await db
       .insert(ideas)
       .values({
@@ -131,7 +135,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         contributorId: contributor.id,
         title,
         description: description || null,
-        status: "NEW",
+        // status defaults to PENDING from schema
         voteCount: 0,
         authorEmail: contributor.email,
       })

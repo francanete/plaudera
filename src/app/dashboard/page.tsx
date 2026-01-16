@@ -1,9 +1,10 @@
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
-import { db, subscriptions } from "@/lib/db";
-import { eq } from "drizzle-orm";
+import { db, subscriptions, ideas } from "@/lib/db";
+import { eq, sql, and, gte } from "drizzle-orm";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { LayoutDashboard, MessageSquare, CreditCard, Zap } from "lucide-react";
+import { Lightbulb, ChevronUp, Calendar, CreditCard } from "lucide-react";
+import { getUserWorkspace } from "@/lib/workspace";
 
 export default async function DashboardPage() {
   const session = await auth.api.getSession({
@@ -16,20 +17,66 @@ export default async function DashboardPage() {
     .where(eq(subscriptions.userId, session!.user.id))
     .limit(1);
 
+  // Get user's workspace for analytics
+  const workspace = await getUserWorkspace(session!.user.id);
+
+  // Calculate analytics if workspace exists
+  let totalIdeas = 0;
+  let totalVotes = 0;
+  let weeklyIdeas = 0;
+
+  if (workspace) {
+    const oneWeekAgo = new Date();
+    oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+
+    // Get total ideas and votes
+    const [totals] = await db
+      .select({
+        totalIdeas: sql<number>`COUNT(*)::int`,
+        totalVotes: sql<number>`COALESCE(SUM(${ideas.voteCount}), 0)::int`,
+      })
+      .from(ideas)
+      .where(eq(ideas.workspaceId, workspace.id));
+
+    // Get ideas created this week
+    const [weekly] = await db
+      .select({
+        count: sql<number>`COUNT(*)::int`,
+      })
+      .from(ideas)
+      .where(
+        and(
+          eq(ideas.workspaceId, workspace.id),
+          gte(ideas.createdAt, oneWeekAgo)
+        )
+      );
+
+    totalIdeas = totals?.totalIdeas ?? 0;
+    totalVotes = totals?.totalVotes ?? 0;
+    weeklyIdeas = weekly?.count ?? 0;
+  }
+
   const stats = [
     {
-      title: "Projects",
-      value: "3",
-      description: "Active projects",
-      icon: LayoutDashboard,
-      tourId: "stat-projects",
+      title: "Total Ideas",
+      value: totalIdeas.toString(),
+      description: "Feature requests",
+      icon: Lightbulb,
+      tourId: "stat-ideas",
     },
     {
-      title: "Messages",
-      value: "127",
-      description: "AI conversations",
-      icon: MessageSquare,
-      tourId: "stat-messages",
+      title: "Total Votes",
+      value: totalVotes.toString(),
+      description: "Community engagement",
+      icon: ChevronUp,
+      tourId: "stat-votes",
+    },
+    {
+      title: "This Week",
+      value: weeklyIdeas.toString(),
+      description: "New ideas",
+      icon: Calendar,
+      tourId: "stat-weekly",
     },
     {
       title: "Plan",
@@ -38,13 +85,6 @@ export default async function DashboardPage() {
         subscription?.status === "TRIALING" ? "Trial active" : "Current plan",
       icon: CreditCard,
       tourId: "stat-plan",
-    },
-    {
-      title: "API Calls",
-      value: "1,234",
-      description: "This month",
-      icon: Zap,
-      tourId: "stat-api",
     },
   ];
 

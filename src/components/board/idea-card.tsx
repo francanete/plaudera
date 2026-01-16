@@ -9,6 +9,7 @@ import {
   XCircle,
   PlayCircle,
   Search,
+  AlertCircle,
 } from "lucide-react";
 import { VoteButton } from "./vote-button";
 import type { IdeaStatus } from "@/lib/db/schema";
@@ -21,6 +22,8 @@ const statusConfig: Record<
     icon: typeof Clock;
   }
 > = {
+  // PENDING won't appear on public board (filtered by API) but TypeScript requires it
+  PENDING: { label: "Pending Review", variant: "outline", icon: AlertCircle },
   NEW: { label: "New", variant: "default", icon: Lightbulb },
   UNDER_REVIEW: { label: "Under Review", variant: "secondary", icon: Search },
   PLANNED: { label: "Planned", variant: "outline", icon: Clock },
