@@ -59,7 +59,12 @@ export const getSubscriptionFromRequest = cache(
     if (subscriptionHeader) {
       try {
         return JSON.parse(subscriptionHeader) as SubscriptionStatus;
-      } catch {
+      } catch (parseError) {
+        console.warn("[DAL] Failed to parse x-subscription-status header:", {
+          headerLength: subscriptionHeader.length,
+          headerPreview: subscriptionHeader.substring(0, 50),
+          error: parseError instanceof Error ? parseError.message : "Unknown",
+        });
         // Invalid header, fall through to return null
       }
     }
