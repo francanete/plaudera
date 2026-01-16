@@ -242,7 +242,11 @@ export function IdeasList({
           <Card className="border-dashed">
             <CardContent className="py-8 text-center">
               <p className="text-muted-foreground">
-                No ideas with {statusFilter !== "ALL" ? `"${statusConfig[statusFilter].label}"` : ""} status.
+                No ideas with{" "}
+                {statusFilter !== "ALL"
+                  ? `"${statusConfig[statusFilter].label}"`
+                  : ""}{" "}
+                status.
               </p>
               <Button
                 variant="link"

@@ -1,7 +1,12 @@
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { db } from "@/lib/db";
-import { ideas, votes, workspaces, PUBLIC_VISIBLE_STATUSES } from "@/lib/db/schema";
+import {
+  ideas,
+  votes,
+  workspaces,
+  PUBLIC_VISIBLE_STATUSES,
+} from "@/lib/db/schema";
 import { eq, desc, and, or, inArray } from "drizzle-orm";
 import { getContributor } from "@/lib/contributor-auth";
 import { PublicIdeaList } from "@/components/board/public-idea-list";

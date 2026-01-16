@@ -82,7 +82,10 @@ export function IdeaCard({
           <div className="flex items-center gap-2">
             <h3 className="truncate font-medium">{idea.title}</h3>
             {isOwnPending && (
-              <Badge variant="outline" className="shrink-0 border-orange-400 bg-orange-100 text-orange-700 dark:bg-orange-900/50 dark:text-orange-300 text-xs">
+              <Badge
+                variant="outline"
+                className="shrink-0 border-orange-400 bg-orange-100 text-xs text-orange-700 dark:bg-orange-900/50 dark:text-orange-300"
+              >
                 Your submission
               </Badge>
             )}
