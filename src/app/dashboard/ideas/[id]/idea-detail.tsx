@@ -16,6 +16,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
   ArrowLeft,
   ChevronUp,
   Trash2,
@@ -67,6 +75,7 @@ export function IdeaDetail({ idea: initialIdea }: IdeaDetailProps) {
   const [isSavingTitle, setIsSavingTitle] = useState(false);
   const [isSavingDescription, setIsSavingDescription] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
   // Track if description has changed
   const descriptionChanged = description !== (idea.description || "");
@@ -137,15 +146,7 @@ export function IdeaDetail({ idea: initialIdea }: IdeaDetailProps) {
     }
   };
 
-  const handleDelete = async () => {
-    if (
-      !confirm(
-        "Are you sure you want to delete this idea? This cannot be undone."
-      )
-    ) {
-      return;
-    }
-
+  const handleDeleteConfirm = async () => {
     setIsDeleting(true);
     try {
       const res = await fetch(`/api/ideas/${idea.id}`, {
@@ -159,6 +160,7 @@ export function IdeaDetail({ idea: initialIdea }: IdeaDetailProps) {
     } catch {
       toast.error("Failed to delete idea");
       setIsDeleting(false);
+      setShowDeleteDialog(false);
     }
   };
 
@@ -279,15 +281,43 @@ export function IdeaDetail({ idea: initialIdea }: IdeaDetailProps) {
             <Button
               variant="destructive"
               size="sm"
-              onClick={handleDelete}
-              disabled={isDeleting}
+              onClick={() => setShowDeleteDialog(true)}
             >
               <Trash2 className="mr-2 h-4 w-4" />
-              {isDeleting ? "Deleting..." : "Delete Idea"}
+              Delete Idea
             </Button>
           </div>
         </CardContent>
       </Card>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Idea</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete &ldquo;{idea.title}&rdquo;? This
+              action cannot be undone and will remove all associated votes.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setShowDeleteDialog(false)}
+              disabled={isDeleting}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleDeleteConfirm}
+              disabled={isDeleting}
+            >
+              {isDeleting ? "Deleting..." : "Delete"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

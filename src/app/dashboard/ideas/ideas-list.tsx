@@ -312,7 +312,7 @@ export function IdeasList({
                         </Select>
                       </div>
                       <span className="text-muted-foreground text-xs">
-                        {new Date(idea.createdAt).toLocaleDateString()}
+                        {new Date(idea.createdAt).toLocaleDateString("en-US")}
                       </span>
                     </div>
                   </div>
