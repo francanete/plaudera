@@ -48,7 +48,9 @@ export async function createUserWorkspace(
   });
 
   if (!workspace) {
-    throw new Error(`Failed to create or retrieve workspace for user ${userId}`);
+    throw new Error(
+      `Failed to create or retrieve workspace for user ${userId}`
+    );
   }
 
   return workspace;
