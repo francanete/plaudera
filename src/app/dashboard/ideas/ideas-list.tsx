@@ -13,41 +13,18 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Plus,
-  ChevronUp,
-  Lightbulb,
-  Clock,
-  CheckCircle,
-  XCircle,
-  PlayCircle,
-  Search,
-  AlertCircle,
-} from "lucide-react";
+import { Plus, ChevronUp, Lightbulb } from "lucide-react";
 import type { Idea, IdeaStatus } from "@/lib/db/schema";
+import {
+  ALL_IDEA_STATUSES,
+  IDEA_STATUS_CONFIG,
+} from "@/lib/idea-status-config";
 
 interface IdeasListProps {
   initialIdeas: Idea[];
   workspaceSlug: string;
   initialStatusFilter?: IdeaStatus;
 }
-
-const statusConfig: Record<
-  IdeaStatus,
-  {
-    label: string;
-    variant: "default" | "secondary" | "outline" | "destructive";
-    icon: typeof Clock;
-  }
-> = {
-  PENDING: { label: "Pending Review", variant: "outline", icon: AlertCircle },
-  NEW: { label: "New", variant: "default", icon: Lightbulb },
-  UNDER_REVIEW: { label: "Under Review", variant: "secondary", icon: Search },
-  PLANNED: { label: "Planned", variant: "outline", icon: Clock },
-  IN_PROGRESS: { label: "In Progress", variant: "secondary", icon: PlayCircle },
-  DONE: { label: "Done", variant: "default", icon: CheckCircle },
-  DECLINED: { label: "Declined", variant: "destructive", icon: XCircle },
-};
 
 export function IdeasList({
   initialIdeas,
@@ -134,16 +111,6 @@ export function IdeasList({
     }
   };
 
-  // Status options for the dropdown
-  const statusOptions: IdeaStatus[] = [
-    "PENDING",
-    "NEW",
-    "UNDER_REVIEW",
-    "PLANNED",
-    "IN_PROGRESS",
-    "DONE",
-    "DECLINED",
-  ];
 
   // Render filter dropdown
   const FilterDropdown = () => (
@@ -156,8 +123,8 @@ export function IdeasList({
       </SelectTrigger>
       <SelectContent>
         <SelectItem value="ALL">All statuses</SelectItem>
-        {statusOptions.map((opt) => {
-          const cfg = statusConfig[opt];
+        {ALL_IDEA_STATUSES.map((opt) => {
+          const cfg = IDEA_STATUS_CONFIG[opt];
           const Icon = cfg.icon;
           return (
             <SelectItem key={opt} value={opt}>
@@ -242,11 +209,9 @@ export function IdeasList({
           <Card className="border-dashed">
             <CardContent className="py-8 text-center">
               <p className="text-muted-foreground">
-                No ideas with{" "}
-                {statusFilter !== "ALL"
-                  ? `"${statusConfig[statusFilter].label}"`
-                  : ""}{" "}
-                status.
+                {statusFilter === "ALL"
+                  ? "No ideas yet."
+                  : `No ideas with "${IDEA_STATUS_CONFIG[statusFilter].label}" status.`}
               </p>
               <Button
                 variant="link"
@@ -259,7 +224,7 @@ export function IdeasList({
           </Card>
         )}
         {filteredIdeas.map((idea) => {
-          const status = statusConfig[idea.status];
+          const status = IDEA_STATUS_CONFIG[idea.status];
           const StatusIcon = status.icon;
 
           return (
@@ -286,7 +251,10 @@ export function IdeasList({
                     <div className="mt-2 flex items-center gap-2">
                       {/* Status dropdown - stop propagation to prevent navigation */}
                       <div
-                        onClick={(e) => e.preventDefault()}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                        }}
                         onKeyDown={(e) => e.stopPropagation()}
                       >
                         <Select
@@ -300,8 +268,8 @@ export function IdeasList({
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
-                            {statusOptions.map((opt) => {
-                              const cfg = statusConfig[opt];
+                            {ALL_IDEA_STATUSES.map((opt) => {
+                              const cfg = IDEA_STATUS_CONFIG[opt];
                               const Icon = cfg.icon;
                               return (
                                 <SelectItem key={opt} value={opt}>

@@ -4,21 +4,12 @@ import { eq } from "drizzle-orm";
 import { db, ideas, type IdeaStatus } from "@/lib/db";
 import { protectedApiRouteWrapper } from "@/lib/dal";
 import { NotFoundError, ForbiddenError } from "@/lib/errors";
-
-const statusOptions: IdeaStatus[] = [
-  "PENDING",
-  "NEW",
-  "UNDER_REVIEW",
-  "PLANNED",
-  "IN_PROGRESS",
-  "DONE",
-  "DECLINED",
-];
+import { ALL_IDEA_STATUSES } from "@/lib/idea-status-config";
 
 const updateIdeaSchema = z.object({
   title: z.string().min(1).max(200).optional(),
   description: z.string().max(5000).optional().nullable(),
-  status: z.enum(statusOptions as [IdeaStatus, ...IdeaStatus[]]).optional(),
+  status: z.enum(ALL_IDEA_STATUSES as [IdeaStatus, ...IdeaStatus[]]).optional(),
 });
 
 type RouteParams = { id: string };
@@ -62,11 +53,15 @@ export const PATCH = protectedApiRouteWrapper<RouteParams>(
     const data = updateIdeaSchema.parse(body);
 
     // Build update object with only provided fields
+    // Always set updatedAt for explicit timestamp tracking
     const updateData: Partial<{
       title: string;
       description: string | null;
       status: IdeaStatus;
-    }> = {};
+      updatedAt: Date;
+    }> = {
+      updatedAt: new Date(),
+    };
 
     if (data.title !== undefined) updateData.title = data.title;
     if (data.description !== undefined)

@@ -23,49 +23,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  ArrowLeft,
-  ChevronUp,
-  Trash2,
-  Lightbulb,
-  Clock,
-  CheckCircle,
-  XCircle,
-  PlayCircle,
-  Search,
-  AlertCircle,
-} from "lucide-react";
+import { ArrowLeft, ChevronUp, Trash2 } from "lucide-react";
 import type { Idea, IdeaStatus } from "@/lib/db/schema";
+import {
+  ALL_IDEA_STATUSES,
+  IDEA_STATUS_CONFIG,
+} from "@/lib/idea-status-config";
 
 interface IdeaDetailProps {
   idea: Idea;
 }
-
-const statusConfig: Record<
-  IdeaStatus,
-  {
-    label: string;
-    icon: typeof Clock;
-  }
-> = {
-  PENDING: { label: "Pending Review", icon: AlertCircle },
-  NEW: { label: "New", icon: Lightbulb },
-  UNDER_REVIEW: { label: "Under Review", icon: Search },
-  PLANNED: { label: "Planned", icon: Clock },
-  IN_PROGRESS: { label: "In Progress", icon: PlayCircle },
-  DONE: { label: "Done", icon: CheckCircle },
-  DECLINED: { label: "Declined", icon: XCircle },
-};
-
-const statusOptions: IdeaStatus[] = [
-  "PENDING",
-  "NEW",
-  "UNDER_REVIEW",
-  "PLANNED",
-  "IN_PROGRESS",
-  "DONE",
-  "DECLINED",
-];
 
 export function IdeaDetail({ idea: initialIdea }: IdeaDetailProps) {
   const router = useRouter();
@@ -164,7 +131,7 @@ export function IdeaDetail({ idea: initialIdea }: IdeaDetailProps) {
     }
   };
 
-  const StatusIcon = statusConfig[idea.status].icon;
+  const StatusIcon = IDEA_STATUS_CONFIG[idea.status].icon;
 
   return (
     <div className="space-y-6">
@@ -239,8 +206,8 @@ export function IdeaDetail({ idea: initialIdea }: IdeaDetailProps) {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {statusOptions.map((opt) => {
-                  const cfg = statusConfig[opt];
+                {ALL_IDEA_STATUSES.map((opt) => {
+                  const cfg = IDEA_STATUS_CONFIG[opt];
                   const Icon = cfg.icon;
                   return (
                     <SelectItem key={opt} value={opt}>

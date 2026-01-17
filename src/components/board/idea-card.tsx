@@ -2,35 +2,9 @@
 
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import {
-  Lightbulb,
-  Clock,
-  CheckCircle,
-  XCircle,
-  PlayCircle,
-  Search,
-  AlertCircle,
-} from "lucide-react";
 import { VoteButton } from "./vote-button";
 import type { IdeaStatus } from "@/lib/db/schema";
-
-const statusConfig: Record<
-  IdeaStatus,
-  {
-    label: string;
-    variant: "default" | "secondary" | "outline" | "destructive";
-    icon: typeof Clock;
-  }
-> = {
-  // PENDING: visible to contributor for their own submissions
-  PENDING: { label: "Awaiting Review", variant: "outline", icon: AlertCircle },
-  NEW: { label: "New", variant: "default", icon: Lightbulb },
-  UNDER_REVIEW: { label: "Under Review", variant: "secondary", icon: Search },
-  PLANNED: { label: "Planned", variant: "outline", icon: Clock },
-  IN_PROGRESS: { label: "In Progress", variant: "secondary", icon: PlayCircle },
-  DONE: { label: "Done", variant: "default", icon: CheckCircle },
-  DECLINED: { label: "Declined", variant: "destructive", icon: XCircle },
-};
+import { IDEA_STATUS_CONFIG } from "@/lib/idea-status-config";
 
 export interface IdeaCardData {
   id: string;
@@ -56,7 +30,7 @@ export function IdeaCard({
   onVote,
   onRequireAuth,
 }: IdeaCardProps) {
-  const status = statusConfig[idea.status];
+  const status = IDEA_STATUS_CONFIG[idea.status];
   const StatusIcon = status.icon;
   const isOwnPending = idea.isOwn && idea.status === "PENDING";
 

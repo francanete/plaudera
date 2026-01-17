@@ -7,6 +7,7 @@ import { getUserWorkspace, createUserWorkspace } from "@/lib/workspace";
 import { IdeasList } from "./ideas-list";
 import { Lightbulb } from "lucide-react";
 import type { IdeaStatus } from "@/lib/db/schema";
+import { ALL_IDEA_STATUSES } from "@/lib/idea-status-config";
 
 type PageProps = {
   searchParams: Promise<{ status?: string }>;
@@ -40,16 +41,7 @@ export default async function IdeasPage({ searchParams }: PageProps) {
 
   // Get initial status filter from URL
   const { status } = await searchParams;
-  const validStatuses: IdeaStatus[] = [
-    "PENDING",
-    "NEW",
-    "UNDER_REVIEW",
-    "PLANNED",
-    "IN_PROGRESS",
-    "DONE",
-    "DECLINED",
-  ];
-  const initialStatusFilter = validStatuses.includes(status as IdeaStatus)
+  const initialStatusFilter = ALL_IDEA_STATUSES.includes(status as IdeaStatus)
     ? (status as IdeaStatus)
     : undefined;
 

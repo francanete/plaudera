@@ -1,7 +1,7 @@
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { db, subscriptions, ideas } from "@/lib/db";
-import { eq, sql, and, gte } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Lightbulb,
@@ -37,42 +37,21 @@ export default async function DashboardPage() {
     const oneWeekAgo = new Date();
     oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
 
-    // Get total ideas and votes
-    const [totals] = await db
+    // Single query with FILTER clauses for all analytics
+    const [analytics] = await db
       .select({
         totalIdeas: sql<number>`COUNT(*)::int`,
         totalVotes: sql<number>`COALESCE(SUM(${ideas.voteCount}), 0)::int`,
+        weeklyIdeas: sql<number>`COUNT(*) FILTER (WHERE ${ideas.createdAt} >= ${oneWeekAgo})::int`,
+        pendingIdeas: sql<number>`COUNT(*) FILTER (WHERE ${ideas.status} = 'PENDING')::int`,
       })
       .from(ideas)
       .where(eq(ideas.workspaceId, workspace.id));
 
-    // Get ideas created this week
-    const [weekly] = await db
-      .select({
-        count: sql<number>`COUNT(*)::int`,
-      })
-      .from(ideas)
-      .where(
-        and(
-          eq(ideas.workspaceId, workspace.id),
-          gte(ideas.createdAt, oneWeekAgo)
-        )
-      );
-
-    // Get pending ideas count (awaiting admin approval)
-    const [pending] = await db
-      .select({
-        count: sql<number>`COUNT(*)::int`,
-      })
-      .from(ideas)
-      .where(
-        and(eq(ideas.workspaceId, workspace.id), eq(ideas.status, "PENDING"))
-      );
-
-    totalIdeas = totals?.totalIdeas ?? 0;
-    totalVotes = totals?.totalVotes ?? 0;
-    weeklyIdeas = weekly?.count ?? 0;
-    pendingIdeas = pending?.count ?? 0;
+    totalIdeas = analytics?.totalIdeas ?? 0;
+    totalVotes = analytics?.totalVotes ?? 0;
+    weeklyIdeas = analytics?.weeklyIdeas ?? 0;
+    pendingIdeas = analytics?.pendingIdeas ?? 0;
   }
 
   const stats = [
