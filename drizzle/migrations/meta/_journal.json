@@ -5,85 +5,8 @@
     {
       "idx": 0,
       "version": "7",
-      "when": 1767092359117,
-      "tag": "0000_mixed_shaman",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "7",
-      "when": 1767103830580,
-      "tag": "0001_hesitant_starhawk",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "7",
-      "when": 1767112831727,
-      "tag": "0002_aberrant_mordo",
-      "breakpoints": true
-    },
-    {
-      "idx": 3,
-      "version": "7",
-      "when": 1767349733661,
-      "tag": "0003_wise_korath",
-      "breakpoints": true
-    },
-    {
-      "idx": 4,
-      "version": "7",
-      "when": 1767465835455,
-      "tag": "0004_colorful_magus",
-      "breakpoints": true
-    },
-    {
-      "idx": 5,
-      "version": "7",
-      "when": 1767547378418,
-      "tag": "0005_round_moira_mactaggert",
-      "breakpoints": true
-    },
-    {
-      "idx": 6,
-      "version": "7",
-      "when": 1767564058639,
-      "tag": "0006_material_shen",
-      "breakpoints": true
-    },
-    {
-      "idx": 7,
-      "version": "7",
-      "when": 1767872858801,
-      "tag": "0007_seed-tiers",
-      "breakpoints": true
-    },
-    {
-      "idx": 8,
-      "version": "7",
-      "when": 1768131584024,
-      "tag": "0008_yummy_viper",
-      "breakpoints": true
-    },
-    {
-      "idx": 9,
-      "version": "7",
-      "when": 1768139024884,
-      "tag": "0009_uneven_robin_chapel",
-      "breakpoints": true
-    },
-    {
-      "idx": 10,
-      "version": "7",
-      "when": 1768564628644,
-      "tag": "0010_flippant_corsair",
-      "breakpoints": true
-    },
-    {
-      "idx": 11,
-      "version": "7",
-      "when": 1768571473822,
-      "tag": "0011_hot_titanium_man",
+      "when": 1768604128827,
+      "tag": "0000_careless_mongu",
       "breakpoints": true
     }
   ]
