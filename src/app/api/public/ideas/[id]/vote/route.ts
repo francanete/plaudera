@@ -7,7 +7,26 @@ import { handleApiError } from "@/lib/api-utils";
 import { NotFoundError, UnauthorizedError, RateLimitError } from "@/lib/errors";
 import { checkVoteRateLimit } from "@/lib/contributor-rate-limit";
 
+// CORS headers for widget embed
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type",
+  "Access-Control-Allow-Credentials": "true",
+};
+
 type RouteParams = { params: Promise<{ id: string }> };
+
+/**
+ * OPTIONS /api/public/ideas/[id]/vote
+ * Handle CORS preflight requests for widget embed
+ */
+export async function OPTIONS() {
+  return new NextResponse(null, {
+    status: 204,
+    headers: corsHeaders,
+  });
+}
 
 /**
  * Check if an error is a PostgreSQL unique constraint violation.
@@ -125,10 +144,13 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       }
     }
 
-    return NextResponse.json({
-      voted,
-      voteCount: newVoteCount,
-    });
+    return NextResponse.json(
+      {
+        voted,
+        voteCount: newVoteCount,
+      },
+      { headers: corsHeaders }
+    );
   } catch (error) {
     return handleApiError(error);
   }

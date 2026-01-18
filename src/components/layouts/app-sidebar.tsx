@@ -8,6 +8,7 @@ import {
   CreditCard,
   Shield,
   Lightbulb,
+  Code2,
 } from "lucide-react";
 import {
   Sidebar,
@@ -47,6 +48,7 @@ interface AppSidebarProps {
 const navigation = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { name: "Ideas", href: "/dashboard/ideas", icon: Lightbulb },
+  { name: "Widget", href: "/dashboard/widget", icon: Code2 },
   { name: "Chat", href: "/dashboard/chat", icon: MessageSquare },
   { name: "Billing", href: "/dashboard/billing", icon: CreditCard },
   { name: "Settings", href: "/dashboard/settings", icon: Settings },

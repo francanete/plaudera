@@ -8,12 +8,31 @@ import { handleApiError } from "@/lib/api-utils";
 import { NotFoundError, UnauthorizedError, RateLimitError } from "@/lib/errors";
 import { checkIdeaRateLimit } from "@/lib/contributor-rate-limit";
 
+// CORS headers for widget embed
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type",
+  "Access-Control-Allow-Credentials": "true",
+};
+
 const createIdeaSchema = z.object({
   title: z.string().min(1, "Title is required").max(200, "Title is too long"),
   description: z.string().max(2000, "Description is too long").optional(),
 });
 
 type RouteParams = { params: Promise<{ slug: string }> };
+
+/**
+ * OPTIONS /api/public/[slug]/ideas
+ * Handle CORS preflight requests for widget embed
+ */
+export async function OPTIONS() {
+  return new NextResponse(null, {
+    status: 204,
+    headers: corsHeaders,
+  });
+}
 
 /**
  * GET /api/public/[slug]/ideas
@@ -89,16 +108,19 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       isOwn: contributor ? idea.contributorId === contributor.id : false,
     }));
 
-    return NextResponse.json({
-      workspace: {
-        name: workspace.name,
-        slug: workspace.slug,
+    return NextResponse.json(
+      {
+        workspace: {
+          name: workspace.name,
+          slug: workspace.slug,
+        },
+        ideas: ideasWithVoteStatus,
+        contributor: contributor
+          ? { email: contributor.email, id: contributor.id }
+          : null,
       },
-      ideas: ideasWithVoteStatus,
-      contributor: contributor
-        ? { email: contributor.email, id: contributor.id }
-        : null,
-    });
+      { headers: corsHeaders }
+    );
   } catch (error) {
     return handleApiError(error);
   }
@@ -170,7 +192,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
           isOwn: true, // Always true for newly created ideas (creator is viewing)
         },
       },
-      { status: 201 }
+      { status: 201, headers: corsHeaders }
     );
   } catch (error) {
     return handleApiError(error);

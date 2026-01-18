@@ -1,10 +1,6 @@
 import type { NextConfig } from "next";
 
-const securityHeaders = [
-  {
-    key: "X-Frame-Options",
-    value: "DENY",
-  },
+const baseSecurityHeaders = [
   {
     key: "X-Content-Type-Options",
     value: "nosniff",
@@ -16,6 +12,22 @@ const securityHeaders = [
   {
     key: "Strict-Transport-Security",
     value: "max-age=31536000; includeSubDomains",
+  },
+];
+
+const defaultSecurityHeaders = [
+  ...baseSecurityHeaders,
+  {
+    key: "X-Frame-Options",
+    value: "DENY",
+  },
+];
+
+const embedSecurityHeaders = [
+  ...baseSecurityHeaders,
+  {
+    key: "Content-Security-Policy",
+    value: "frame-ancestors *",
   },
 ];
 
@@ -55,8 +67,14 @@ const nextConfig: NextConfig = {
   async headers() {
     return [
       {
-        source: "/(.*)",
-        headers: securityHeaders,
+        // Embed routes need to be embeddable in iframes
+        source: "/embed/:path*",
+        headers: embedSecurityHeaders,
+      },
+      {
+        // All other routes get strict security headers
+        source: "/((?!embed).*)",
+        headers: defaultSecurityHeaders,
       },
     ];
   },

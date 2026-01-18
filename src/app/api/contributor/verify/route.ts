@@ -5,6 +5,25 @@ import { handleApiError } from "@/lib/api-utils";
 import { BadRequestError, RateLimitError } from "@/lib/errors";
 import { checkEmailRateLimit } from "@/lib/contributor-rate-limit";
 
+// CORS headers for widget embed
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type",
+  "Access-Control-Allow-Credentials": "true",
+};
+
+/**
+ * OPTIONS /api/contributor/verify
+ * Handle CORS preflight requests for widget embed
+ */
+export async function OPTIONS() {
+  return new NextResponse(null, {
+    status: 204,
+    headers: corsHeaders,
+  });
+}
+
 const sendVerificationSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
   callbackUrl: z.string().min(1, "Callback URL is required"),
@@ -65,7 +84,7 @@ export async function POST(request: NextRequest) {
     const safeCallbackUrl = sanitizeCallbackUrl(callbackUrl);
 
     const result = await sendVerificationEmail(email, safeCallbackUrl);
-    return NextResponse.json(result);
+    return NextResponse.json(result, { headers: corsHeaders });
   } catch (error) {
     return handleApiError(error);
   }
