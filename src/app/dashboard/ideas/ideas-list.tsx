@@ -224,9 +224,6 @@ export function IdeasList({
           </Card>
         )}
         {filteredIdeas.map((idea) => {
-          const status = IDEA_STATUS_CONFIG[idea.status];
-          const StatusIcon = status.icon;
-
           return (
             <Link key={idea.id} href={`/dashboard/ideas/${idea.id}`}>
               <Card className="hover:border-primary/50 cursor-pointer transition-colors">
@@ -263,8 +260,7 @@ export function IdeasList({
                             handleStatusChange(idea.id, value as IdeaStatus)
                           }
                         >
-                          <SelectTrigger className="h-7 w-[140px] text-xs">
-                            <StatusIcon className="mr-1 h-3 w-3" />
+                          <SelectTrigger className="h-7 w-[160px] text-xs">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
