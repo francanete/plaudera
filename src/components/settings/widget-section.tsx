@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useRef, useEffect } from "react";
 import {
   Card,
   CardContent,
@@ -28,6 +28,15 @@ export function WidgetSection({
   const [position, setPosition] = useState<WidgetPosition>(initialPosition);
   const [copied, setCopied] = useState(false);
   const [isPending, startTransition] = useTransition();
+  const copyTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (copyTimeoutRef.current) {
+        clearTimeout(copyTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const handlePositionChange = (newPosition: WidgetPosition) => {
     const previousPosition = position;
@@ -66,7 +75,10 @@ export function WidgetSection({
       await navigator.clipboard.writeText(embedCode);
       setCopied(true);
       toast.success("Copied to clipboard!");
-      setTimeout(() => setCopied(false), 2000);
+      if (copyTimeoutRef.current) {
+        clearTimeout(copyTimeoutRef.current);
+      }
+      copyTimeoutRef.current = setTimeout(() => setCopied(false), 2000);
     } catch {
       toast.error("Failed to copy");
     }
