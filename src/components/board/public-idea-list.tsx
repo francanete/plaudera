@@ -193,16 +193,17 @@ export function PublicIdeaList({
     toast.success("Idea submitted successfully!");
   };
 
-  // Build callback URL for auth dialog
+  // Build callback URL for auth dialog (SSR-safe - no window access)
   const getCallbackUrl = () => {
-    const url = new URL(pathname, window.location.origin);
+    const params = new URLSearchParams();
     if (pendingAction?.type === "vote") {
-      url.searchParams.set("action", "vote");
-      url.searchParams.set("ideaId", pendingAction.ideaId);
+      params.set("action", "vote");
+      params.set("ideaId", pendingAction.ideaId);
     } else if (pendingAction?.type === "submit") {
-      url.searchParams.set("action", "submit");
+      params.set("action", "submit");
     }
-    return url.pathname + url.search;
+    const search = params.toString();
+    return search ? `${pathname}?${search}` : pathname;
   };
 
   // Ideas are already sorted by vote count (highest first) from the server

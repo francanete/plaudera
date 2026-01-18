@@ -67,7 +67,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     let newVoteCount: number;
 
     if (existingVote) {
-      // Remove vote (toggle off) - use transaction for consistency
+      // Remove vote (toggle off) - use transaction for atomicity
       const result = await db.transaction(async (tx) => {
         await tx
           .delete(votes)
@@ -90,7 +90,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       voted = result.voted;
       newVoteCount = result.voteCount;
     } else {
-      // Add vote (toggle on) - use transaction for consistency
+      // Add vote (toggle on) - use transaction for atomicity
       try {
         const result = await db.transaction(async (tx) => {
           await tx.insert(votes).values({

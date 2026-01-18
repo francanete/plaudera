@@ -1,9 +1,17 @@
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
-import { db, subscriptions } from "@/lib/db";
-import { eq } from "drizzle-orm";
+import { db, subscriptions, ideas } from "@/lib/db";
+import { eq, sql } from "drizzle-orm";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { LayoutDashboard, MessageSquare, CreditCard, Zap } from "lucide-react";
+import {
+  Lightbulb,
+  ChevronUp,
+  Calendar,
+  CreditCard,
+  AlertCircle,
+} from "lucide-react";
+import Link from "next/link";
+import { getUserWorkspace } from "@/lib/workspace";
 
 export default async function DashboardPage() {
   const session = await auth.api.getSession({
@@ -16,20 +24,57 @@ export default async function DashboardPage() {
     .where(eq(subscriptions.userId, session!.user.id))
     .limit(1);
 
+  // Get user's workspace for analytics
+  const workspace = await getUserWorkspace(session!.user.id);
+
+  // Calculate analytics if workspace exists
+  let totalIdeas = 0;
+  let totalVotes = 0;
+  let weeklyIdeas = 0;
+  let pendingIdeas = 0;
+
+  if (workspace) {
+    const oneWeekAgo = new Date();
+    oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+
+    // Single query with FILTER clauses for all analytics
+    const [analytics] = await db
+      .select({
+        totalIdeas: sql<number>`COUNT(*)::int`,
+        totalVotes: sql<number>`COALESCE(SUM(${ideas.voteCount}), 0)::int`,
+        weeklyIdeas: sql<number>`COUNT(*) FILTER (WHERE ${ideas.createdAt} >= ${oneWeekAgo})::int`,
+        pendingIdeas: sql<number>`COUNT(*) FILTER (WHERE ${ideas.status} = 'PENDING')::int`,
+      })
+      .from(ideas)
+      .where(eq(ideas.workspaceId, workspace.id));
+
+    totalIdeas = analytics?.totalIdeas ?? 0;
+    totalVotes = analytics?.totalVotes ?? 0;
+    weeklyIdeas = analytics?.weeklyIdeas ?? 0;
+    pendingIdeas = analytics?.pendingIdeas ?? 0;
+  }
+
   const stats = [
     {
-      title: "Projects",
-      value: "3",
-      description: "Active projects",
-      icon: LayoutDashboard,
-      tourId: "stat-projects",
+      title: "Total Ideas",
+      value: totalIdeas.toString(),
+      description: "Feature requests",
+      icon: Lightbulb,
+      tourId: "stat-ideas",
     },
     {
-      title: "Messages",
-      value: "127",
-      description: "AI conversations",
-      icon: MessageSquare,
-      tourId: "stat-messages",
+      title: "Total Votes",
+      value: totalVotes.toString(),
+      description: "Community engagement",
+      icon: ChevronUp,
+      tourId: "stat-votes",
+    },
+    {
+      title: "This Week",
+      value: weeklyIdeas.toString(),
+      description: "New ideas",
+      icon: Calendar,
+      tourId: "stat-weekly",
     },
     {
       title: "Plan",
@@ -38,13 +83,6 @@ export default async function DashboardPage() {
         subscription?.status === "TRIALING" ? "Trial active" : "Current plan",
       icon: CreditCard,
       tourId: "stat-plan",
-    },
-    {
-      title: "API Calls",
-      value: "1,234",
-      description: "This month",
-      icon: Zap,
-      tourId: "stat-api",
     },
   ];
 
@@ -58,6 +96,28 @@ export default async function DashboardPage() {
           Here&apos;s what&apos;s happening with your account.
         </p>
       </div>
+
+      {/* Pending Ideas Alert */}
+      {pendingIdeas > 0 && (
+        <Link href="/dashboard/ideas?status=PENDING">
+          <Card className="cursor-pointer border-orange-500/50 bg-orange-50 transition-colors hover:border-orange-500 dark:bg-orange-950/20">
+            <CardContent className="flex items-center gap-4 py-4">
+              <div className="rounded-full bg-orange-500/20 p-3">
+                <AlertCircle className="h-6 w-6 text-orange-600 dark:text-orange-400" />
+              </div>
+              <div className="flex-1">
+                <h3 className="font-semibold text-orange-900 dark:text-orange-100">
+                  {pendingIdeas} idea{pendingIdeas > 1 ? "s" : ""} awaiting
+                  review
+                </h3>
+                <p className="text-sm text-orange-700 dark:text-orange-300">
+                  Click to review and approve new submissions
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        </Link>
+      )}
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         {stats.map((stat) => (

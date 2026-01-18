@@ -1,12 +1,11 @@
-import { drizzle } from "drizzle-orm/neon-http";
-import { neon } from "@neondatabase/serverless";
+import { drizzle } from "drizzle-orm/neon-serverless";
+import { Pool } from "@neondatabase/serverless";
 import * as schema from "./schema";
 
-// HTTP driver - optimal for serverless (single-statement transactions)
-// For full transaction support, use the WebSocket driver instead
-const sql = neon(process.env.DATABASE_URL!);
+// WebSocket driver - supports full transactions and connection pooling
+const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 
-export const db = drizzle(sql, {
+export const db = drizzle(pool, {
   schema,
   logger: process.env.NODE_ENV === "development",
 });

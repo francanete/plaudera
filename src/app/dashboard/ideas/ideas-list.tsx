@@ -1,49 +1,49 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { toast } from "sonner";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import {
-  Plus,
-  ChevronUp,
-  Lightbulb,
-  Clock,
-  CheckCircle,
-  XCircle,
-  PlayCircle,
-  Search,
-} from "lucide-react";
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Plus, ChevronUp, Lightbulb } from "lucide-react";
 import type { Idea, IdeaStatus } from "@/lib/db/schema";
+import {
+  ALL_IDEA_STATUSES,
+  IDEA_STATUS_CONFIG,
+} from "@/lib/idea-status-config";
 
 interface IdeasListProps {
   initialIdeas: Idea[];
   workspaceSlug: string;
+  initialStatusFilter?: IdeaStatus;
 }
 
-const statusConfig: Record<
-  IdeaStatus,
-  {
-    label: string;
-    variant: "default" | "secondary" | "outline" | "destructive";
-    icon: typeof Clock;
-  }
-> = {
-  NEW: { label: "New", variant: "default", icon: Lightbulb },
-  UNDER_REVIEW: { label: "Under Review", variant: "secondary", icon: Search },
-  PLANNED: { label: "Planned", variant: "outline", icon: Clock },
-  IN_PROGRESS: { label: "In Progress", variant: "secondary", icon: PlayCircle },
-  DONE: { label: "Done", variant: "default", icon: CheckCircle },
-  DECLINED: { label: "Declined", variant: "destructive", icon: XCircle },
-};
-
-export function IdeasList({ initialIdeas, workspaceSlug }: IdeasListProps) {
+export function IdeasList({
+  initialIdeas,
+  workspaceSlug,
+  initialStatusFilter,
+}: IdeasListProps) {
   const [ideas, setIdeas] = useState(initialIdeas);
   const [isCreating, setIsCreating] = useState(false);
   const [newTitle, setNewTitle] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [statusFilter, setStatusFilter] = useState<IdeaStatus | "ALL">(
+    initialStatusFilter || "ALL"
+  );
+
+  // Filter ideas by status
+  const filteredIdeas =
+    statusFilter === "ALL"
+      ? ideas
+      : ideas.filter((idea) => idea.status === statusFilter);
 
   const handleCreateIdea = async () => {
     if (!newTitle.trim() || isSubmitting) return;
@@ -85,6 +85,59 @@ export function IdeasList({ initialIdeas, workspaceSlug }: IdeasListProps) {
     }
   };
 
+  const handleStatusChange = async (ideaId: string, newStatus: IdeaStatus) => {
+    const previousIdeas = ideas;
+    // Optimistic update
+    setIdeas(
+      ideas.map((i) => (i.id === ideaId ? { ...i, status: newStatus } : i))
+    );
+
+    try {
+      const res = await fetch(`/api/ideas/${ideaId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: newStatus }),
+      });
+
+      if (!res.ok) {
+        throw new Error("Failed to update status");
+      }
+
+      toast.success("Status updated");
+    } catch {
+      // Rollback on error
+      setIdeas(previousIdeas);
+      toast.error("Failed to update status");
+    }
+  };
+
+  // Render filter dropdown
+  const FilterDropdown = () => (
+    <Select
+      value={statusFilter}
+      onValueChange={(value) => setStatusFilter(value as IdeaStatus | "ALL")}
+    >
+      <SelectTrigger className="w-[180px]">
+        <SelectValue placeholder="Filter by status" />
+      </SelectTrigger>
+      <SelectContent>
+        <SelectItem value="ALL">All statuses</SelectItem>
+        {ALL_IDEA_STATUSES.map((opt) => {
+          const cfg = IDEA_STATUS_CONFIG[opt];
+          const Icon = cfg.icon;
+          return (
+            <SelectItem key={opt} value={opt}>
+              <div className="flex items-center">
+                <Icon className="mr-2 h-3 w-3" />
+                {cfg.label}
+              </div>
+            </SelectItem>
+          );
+        })}
+      </SelectContent>
+    </Select>
+  );
+
   if (ideas.length === 0 && !isCreating) {
     return (
       <Card className="border-dashed">
@@ -106,84 +159,133 @@ export function IdeasList({ initialIdeas, workspaceSlug }: IdeasListProps) {
 
   return (
     <div className="space-y-4">
-      {/* Create new idea */}
-      {isCreating ? (
-        <Card>
-          <CardContent className="pt-4">
-            <div className="flex gap-2">
-              <Input
-                placeholder="What's your idea?"
-                value={newTitle}
-                onChange={(e) => setNewTitle(e.target.value)}
-                onKeyDown={handleKeyDown}
-                autoFocus
-              />
-              <Button
-                onClick={handleCreateIdea}
-                disabled={isSubmitting || !newTitle.trim()}
-              >
-                {isSubmitting ? "Adding..." : "Add"}
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setIsCreating(false);
-                  setNewTitle("");
-                }}
-              >
-                Cancel
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      ) : (
-        <Button onClick={() => setIsCreating(true)}>
-          <Plus className="mr-2 h-4 w-4" />
-          New idea
-        </Button>
-      )}
+      {/* Actions bar */}
+      <div className="flex items-center justify-between gap-4">
+        {/* Create new idea */}
+        {isCreating ? (
+          <Card className="flex-1">
+            <CardContent className="pt-4">
+              <div className="flex gap-2">
+                <Input
+                  placeholder="What's your idea?"
+                  value={newTitle}
+                  onChange={(e) => setNewTitle(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  autoFocus
+                />
+                <Button
+                  onClick={handleCreateIdea}
+                  disabled={isSubmitting || !newTitle.trim()}
+                >
+                  {isSubmitting ? "Adding..." : "Add"}
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setIsCreating(false);
+                    setNewTitle("");
+                  }}
+                >
+                  Cancel
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        ) : (
+          <>
+            <Button onClick={() => setIsCreating(true)}>
+              <Plus className="mr-2 h-4 w-4" />
+              New idea
+            </Button>
+            <FilterDropdown />
+          </>
+        )}
+      </div>
 
       {/* Ideas list */}
       <div className="space-y-3">
-        {ideas.map((idea) => {
-          const status = statusConfig[idea.status];
-          const StatusIcon = status.icon;
-
+        {filteredIdeas.length === 0 && (
+          <Card className="border-dashed">
+            <CardContent className="py-8 text-center">
+              <p className="text-muted-foreground">
+                {statusFilter === "ALL"
+                  ? "No ideas yet."
+                  : `No ideas with "${IDEA_STATUS_CONFIG[statusFilter].label}" status.`}
+              </p>
+              <Button
+                variant="link"
+                className="mt-2"
+                onClick={() => setStatusFilter("ALL")}
+              >
+                Show all ideas
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+        {filteredIdeas.map((idea) => {
           return (
-            <Card
-              key={idea.id}
-              className="hover:border-primary/50 cursor-pointer transition-colors"
-            >
-              <CardContent className="flex items-center gap-4 py-4">
-                {/* Vote count */}
-                <div className="bg-muted/50 flex min-w-[60px] flex-col items-center rounded-lg px-3 py-2">
-                  <ChevronUp className="text-muted-foreground h-4 w-4" />
-                  <span className="text-lg font-semibold">
-                    {idea.voteCount}
-                  </span>
-                  <span className="text-muted-foreground text-xs">votes</span>
-                </div>
-
-                {/* Content */}
-                <div className="min-w-0 flex-1">
-                  <h3 className="truncate font-medium">{idea.title}</h3>
-                  {idea.description && (
-                    <p className="text-muted-foreground mt-1 line-clamp-1 text-sm">
-                      {idea.description}
-                    </p>
-                  )}
-                  <div className="mt-2 flex items-center gap-2">
-                    <Badge variant={status.variant} className="text-xs">
-                      <StatusIcon className="mr-1 h-3 w-3" />
-                      {status.label}
-                    </Badge>
-                    <span className="text-muted-foreground text-xs">
-                      {new Date(idea.createdAt).toLocaleDateString()}
+            <Link key={idea.id} href={`/dashboard/ideas/${idea.id}`}>
+              <Card className="hover:border-primary/50 cursor-pointer transition-colors">
+                <CardContent className="flex items-center gap-4 py-4">
+                  {/* Vote count */}
+                  <div className="bg-muted/50 flex min-w-[60px] flex-col items-center rounded-lg px-3 py-2">
+                    <ChevronUp className="text-muted-foreground h-4 w-4" />
+                    <span className="text-lg font-semibold">
+                      {idea.voteCount}
                     </span>
+                    <span className="text-muted-foreground text-xs">votes</span>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
+
+                  {/* Content */}
+                  <div className="min-w-0 flex-1">
+                    <h3 className="truncate font-medium">{idea.title}</h3>
+                    {idea.description && (
+                      <p className="text-muted-foreground mt-1 line-clamp-1 text-sm">
+                        {idea.description}
+                      </p>
+                    )}
+                    <div className="mt-2 flex items-center gap-2">
+                      {/* Status dropdown - stop propagation to prevent navigation */}
+                      <div
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                        }}
+                        onKeyDown={(e) => e.stopPropagation()}
+                      >
+                        <Select
+                          value={idea.status}
+                          onValueChange={(value) =>
+                            handleStatusChange(idea.id, value as IdeaStatus)
+                          }
+                        >
+                          <SelectTrigger className="h-7 w-[160px] text-xs">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {ALL_IDEA_STATUSES.map((opt) => {
+                              const cfg = IDEA_STATUS_CONFIG[opt];
+                              const Icon = cfg.icon;
+                              return (
+                                <SelectItem key={opt} value={opt}>
+                                  <div className="flex items-center">
+                                    <Icon className="mr-2 h-3 w-3" />
+                                    {cfg.label}
+                                  </div>
+                                </SelectItem>
+                              );
+                            })}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <span className="text-muted-foreground text-xs">
+                        {new Date(idea.createdAt).toLocaleDateString("en-US")}
+                      </span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </Link>
           );
         })}
       </div>

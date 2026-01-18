@@ -5,6 +5,7 @@ import { db, ideas, type IdeaStatus } from "@/lib/db";
 import { protectedApiRouteWrapper } from "@/lib/dal";
 import { getUserWorkspace } from "@/lib/workspace";
 import { NotFoundError } from "@/lib/errors";
+import { ALL_IDEA_STATUSES } from "@/lib/idea-status-config";
 
 const createIdeaSchema = z.object({
   title: z.string().min(1, "Title is required").max(200, "Title too long"),
@@ -12,15 +13,6 @@ const createIdeaSchema = z.object({
 });
 
 type SortOption = "newest" | "oldest" | "votes";
-
-const statusOptions: IdeaStatus[] = [
-  "NEW",
-  "UNDER_REVIEW",
-  "PLANNED",
-  "IN_PROGRESS",
-  "DONE",
-  "DECLINED",
-];
 
 // GET /api/ideas - List ideas for user's workspace
 export const GET = protectedApiRouteWrapper(
@@ -50,7 +42,7 @@ export const GET = protectedApiRouteWrapper(
 
     // Build where clause
     const whereConditions = [eq(ideas.workspaceId, workspace.id)];
-    if (status && statusOptions.includes(status)) {
+    if (status && ALL_IDEA_STATUSES.includes(status)) {
       whereConditions.push(eq(ideas.status, status));
     }
 
