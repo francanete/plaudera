@@ -1,16 +1,10 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { workspaces } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { handleApiError } from "@/lib/api-utils";
 import { NotFoundError } from "@/lib/errors";
-
-// CORS headers for widget embed
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "GET, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type",
-};
+import { getCorsHeaders, applyCorsHeaders } from "@/lib/cors";
 
 type RouteParams = { params: Promise<{ slug: string }> };
 
@@ -18,10 +12,11 @@ type RouteParams = { params: Promise<{ slug: string }> };
  * OPTIONS /api/public/[slug]/settings
  * Handle CORS preflight requests for widget embed
  */
-export async function OPTIONS() {
+export async function OPTIONS(request: NextRequest) {
+  const origin = request.headers.get("origin");
   return new NextResponse(null, {
     status: 204,
-    headers: corsHeaders,
+    headers: getCorsHeaders(origin, "GET, OPTIONS"),
   });
 }
 
@@ -30,7 +25,7 @@ export async function OPTIONS() {
  * Get widget settings for a workspace (public)
  * Used by widget.js to fetch configuration at runtime
  */
-export async function GET(_request: Request, { params }: RouteParams) {
+export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
     const { slug } = await params;
 
@@ -46,19 +41,19 @@ export async function GET(_request: Request, { params }: RouteParams) {
       throw new NotFoundError("Workspace not found");
     }
 
+    const origin = request.headers.get("origin");
     // Return settings (default to bottom-right if no settings exist yet)
     return NextResponse.json(
       {
         position: workspace.widgetSettings?.position ?? "bottom-right",
       },
-      { headers: corsHeaders }
+      { headers: getCorsHeaders(origin, "GET, OPTIONS") }
     );
   } catch (error) {
+    const origin = request.headers.get("origin");
     const errorResponse = handleApiError(error);
     // Add CORS headers to error responses for widget compatibility
-    Object.entries(corsHeaders).forEach(([key, value]) => {
-      errorResponse.headers.set(key, value);
-    });
+    applyCorsHeaders(errorResponse, origin, "GET, OPTIONS");
     return errorResponse;
   }
 }

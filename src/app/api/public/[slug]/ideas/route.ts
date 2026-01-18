@@ -7,14 +7,7 @@ import { getContributor } from "@/lib/contributor-auth";
 import { handleApiError } from "@/lib/api-utils";
 import { NotFoundError, UnauthorizedError, RateLimitError } from "@/lib/errors";
 import { checkIdeaRateLimit } from "@/lib/contributor-rate-limit";
-
-// CORS headers for widget embed
-// Note: Cannot use Allow-Credentials with wildcard origin (browsers reject this)
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type",
-};
+import { getCorsHeaders, applyCorsHeaders } from "@/lib/cors";
 
 const createIdeaSchema = z.object({
   title: z.string().min(1, "Title is required").max(200, "Title is too long"),
@@ -27,10 +20,11 @@ type RouteParams = { params: Promise<{ slug: string }> };
  * OPTIONS /api/public/[slug]/ideas
  * Handle CORS preflight requests for widget embed
  */
-export async function OPTIONS() {
+export async function OPTIONS(request: NextRequest) {
+  const origin = request.headers.get("origin");
   return new NextResponse(null, {
     status: 204,
-    headers: corsHeaders,
+    headers: getCorsHeaders(origin, "GET, POST, OPTIONS"),
   });
 }
 
@@ -108,6 +102,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       isOwn: contributor ? idea.contributorId === contributor.id : false,
     }));
 
+    const origin = request.headers.get("origin");
     return NextResponse.json(
       {
         workspace: {
@@ -119,14 +114,13 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
           ? { email: contributor.email, id: contributor.id }
           : null,
       },
-      { headers: corsHeaders }
+      { headers: getCorsHeaders(origin, "GET, POST, OPTIONS") }
     );
   } catch (error) {
+    const origin = request.headers.get("origin");
     const errorResponse = handleApiError(error);
     // Add CORS headers to error responses for widget compatibility
-    Object.entries(corsHeaders).forEach(([key, value]) => {
-      errorResponse.headers.set(key, value);
-    });
+    applyCorsHeaders(errorResponse, origin, "GET, POST, OPTIONS");
     return errorResponse;
   }
 }
@@ -184,6 +178,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       })
       .returning();
 
+    const origin = request.headers.get("origin");
     return NextResponse.json(
       {
         idea: {
@@ -197,14 +192,13 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
           isOwn: true, // Always true for newly created ideas (creator is viewing)
         },
       },
-      { status: 201, headers: corsHeaders }
+      { status: 201, headers: getCorsHeaders(origin, "GET, POST, OPTIONS") }
     );
   } catch (error) {
+    const origin = request.headers.get("origin");
     const errorResponse = handleApiError(error);
     // Add CORS headers to error responses for widget compatibility
-    Object.entries(corsHeaders).forEach(([key, value]) => {
-      errorResponse.headers.set(key, value);
-    });
+    applyCorsHeaders(errorResponse, origin, "GET, POST, OPTIONS");
     return errorResponse;
   }
 }

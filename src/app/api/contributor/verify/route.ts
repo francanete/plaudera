@@ -4,23 +4,17 @@ import { sendVerificationEmail, verifyToken } from "@/lib/contributor-auth";
 import { handleApiError } from "@/lib/api-utils";
 import { BadRequestError, RateLimitError } from "@/lib/errors";
 import { checkEmailRateLimit } from "@/lib/contributor-rate-limit";
-
-// CORS headers for widget embed
-// Note: Cannot use Allow-Credentials with wildcard origin (browsers reject this)
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type",
-};
+import { getCorsHeaders, applyCorsHeaders } from "@/lib/cors";
 
 /**
  * OPTIONS /api/contributor/verify
  * Handle CORS preflight requests for widget embed
  */
-export async function OPTIONS() {
+export async function OPTIONS(request: NextRequest) {
+  const origin = request.headers.get("origin");
   return new NextResponse(null, {
     status: 204,
-    headers: corsHeaders,
+    headers: getCorsHeaders(origin, "GET, POST, OPTIONS"),
   });
 }
 
@@ -32,18 +26,25 @@ const sendVerificationSchema = z.object({
 /**
  * Validate that a callback URL is safe (same-origin or relative path).
  * Prevents open redirect vulnerabilities.
+ *
+ * Security considerations:
+ * - Paths like `/\example.com` or `/\\example.com` could be interpreted
+ *   as protocol-relative URLs in some browsers
+ * - We use a strict regex to only allow safe characters in relative paths
  */
 function isValidCallbackUrl(callback: string): boolean {
-  // Allow relative paths that start with /
-  if (callback.startsWith("/") && !callback.startsWith("//")) {
+  // Strict regex: only allow alphanumeric, dash, underscore, forward slash, and query params
+  // This prevents paths like `/\example.com` which some browsers interpret as redirects
+  if (/^\/[a-zA-Z0-9\/_-]*(\?[a-zA-Z0-9=&_%-]*)?$/.test(callback)) {
     return true;
   }
 
-  // Check if absolute URL matches our app host
+  // For absolute URLs, strictly validate same origin (not just host)
   try {
     const appUrl = new URL(process.env.NEXT_PUBLIC_APP_URL!);
-    const callbackUrl = new URL(callback, process.env.NEXT_PUBLIC_APP_URL);
-    return callbackUrl.host === appUrl.host;
+    const callbackUrl = new URL(callback);
+    // Use origin comparison (includes protocol) for stricter validation
+    return callbackUrl.origin === appUrl.origin;
   } catch {
     return false;
   }
@@ -83,14 +84,14 @@ export async function POST(request: NextRequest) {
     // Sanitize callback URL before use
     const safeCallbackUrl = sanitizeCallbackUrl(callbackUrl);
 
+    const origin = request.headers.get("origin");
     const result = await sendVerificationEmail(email, safeCallbackUrl);
-    return NextResponse.json(result, { headers: corsHeaders });
+    return NextResponse.json(result, { headers: getCorsHeaders(origin, "GET, POST, OPTIONS") });
   } catch (error) {
+    const origin = request.headers.get("origin");
     const errorResponse = handleApiError(error);
     // Add CORS headers to error responses for widget compatibility
-    Object.entries(corsHeaders).forEach(([key, value]) => {
-      errorResponse.headers.set(key, value);
-    });
+    applyCorsHeaders(errorResponse, origin, "GET, POST, OPTIONS");
     return errorResponse;
   }
 }

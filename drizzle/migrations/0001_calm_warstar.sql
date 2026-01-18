@@ -1,2 +1,0 @@
-CREATE TYPE "public"."widget_position" AS ENUM('bottom-right', 'bottom-left');--> statement-breakpoint
-ALTER TABLE "workspaces" ADD COLUMN "widget_position" "widget_position" DEFAULT 'bottom-right' NOT NULL;

@@ -1,5 +1,5 @@
 {
-  "id": "28ca5048-e7bd-450f-a84c-a85eb3670722",
+  "id": "686c10f3-48e4-45c9-bfd8-f057f821c0ae",
   "prevId": "e2f02c9c-7398-43db-b1a7-f01c9eb59efd",
   "version": "7",
   "dialect": "postgresql",
@@ -1554,6 +1554,91 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
+    "public.widget_settings": {
+      "name": "widget_settings",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "workspace_id": {
+          "name": "workspace_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "position": {
+          "name": "position",
+          "type": "widget_position",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'bottom-right'"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "widget_settings_workspace_id_idx": {
+          "name": "widget_settings_workspace_id_idx",
+          "columns": [
+            {
+              "expression": "workspace_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "widget_settings_workspace_id_workspaces_id_fk": {
+          "name": "widget_settings_workspace_id_workspaces_id_fk",
+          "tableFrom": "widget_settings",
+          "tableTo": "workspaces",
+          "columnsFrom": [
+            "workspace_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "widget_settings_workspace_id_unique": {
+          "name": "widget_settings_workspace_id_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "workspace_id"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
     "public.workspaces": {
       "name": "workspaces",
       "schema": "",
@@ -1581,14 +1666,6 @@
           "type": "text",
           "primaryKey": false,
           "notNull": true
-        },
-        "widget_position": {
-          "name": "widget_position",
-          "type": "widget_position",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'bottom-right'"
         },
         "created_at": {
           "name": "created_at",

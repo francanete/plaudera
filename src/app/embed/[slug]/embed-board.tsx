@@ -64,8 +64,9 @@ export function EmbedBoard({
       if (data.contributor) {
         setContributor(data.contributor);
       }
-    } catch {
-      // Silently fail - user can refresh manually
+    } catch (error) {
+      // Log error for debugging but don't disrupt UX - user can refresh manually
+      console.error("[EmbedBoard] Failed to refresh data:", error);
     }
   }, [workspaceSlug]);
 
@@ -162,9 +163,23 @@ export function EmbedBoard({
   };
 
   // Notify parent window
+  // Security: Use document.referrer to determine parent origin instead of wildcard
   const notifyParent = (message: { type: string; [key: string]: unknown }) => {
     if (window.parent !== window) {
-      window.parent.postMessage(message, "*");
+      // Get parent origin from referrer for secure messaging
+      // This prevents message leakage to potentially malicious parent frames
+      const parentOrigin = document.referrer
+        ? new URL(document.referrer).origin
+        : null;
+
+      if (parentOrigin) {
+        window.parent.postMessage(message, parentOrigin);
+      } else {
+        // Fallback: if no referrer (privacy settings), log but don't send to wildcard
+        console.warn(
+          "[Plaudera] Cannot determine parent origin, skipping postMessage"
+        );
+      }
     }
   };
 

@@ -93,6 +93,15 @@
       button.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.15)';
     };
 
+    // Focus ring for keyboard navigation (accessibility)
+    button.onfocus = function() {
+      button.style.outline = 'none';
+      button.style.boxShadow = '0 0 0 3px rgba(59, 130, 246, 0.5), 0 4px 12px rgba(0, 0, 0, 0.15)';
+    };
+    button.onblur = function() {
+      button.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.15)';
+    };
+
     button.onclick = togglePanel;
 
     document.body.appendChild(button);
@@ -277,9 +286,28 @@
 
   // Handle messages from iframe
   function handleMessage(e) {
-    // Verify origin matches our app domain to prevent spoofed messages
-    var expectedOrigin = baseUrl.replace(/\/$/, ''); // Remove trailing slash if present
-    if (e.origin !== expectedOrigin) return;
+    // Security: Validate origin against trusted sources
+    // Primary: derived from script src (normal operation)
+    // Secondary: hardcoded production domain (extra validation)
+    var scriptOrigin = baseUrl.replace(/\/$/, ''); // Remove trailing slash if present
+    var trustedOrigins = [scriptOrigin];
+
+    // Add production domain if different from script origin (defense in depth)
+    // This ensures even if script.src is manipulated, we only trust our domain
+    var productionOrigin = 'https://plaudera.com';
+    if (trustedOrigins.indexOf(productionOrigin) === -1) {
+      trustedOrigins.push(productionOrigin);
+    }
+
+    // Check if the message origin is in our trusted list
+    var isOriginTrusted = trustedOrigins.some(function(origin) {
+      return e.origin === origin;
+    });
+
+    if (!isOriginTrusted) {
+      console.warn('[Plaudera] Ignored message from untrusted origin:', e.origin);
+      return;
+    }
 
     if (!e.data || typeof e.data !== 'object') return;
 

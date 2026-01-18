@@ -55,7 +55,8 @@ export function WidgetSection({
         }
 
         toast.success("Position saved");
-      } catch {
+      } catch (error) {
+        console.error("[WidgetSection] Failed to update position:", error);
         setPosition(previousPosition); // Revert on error
         toast.error("Failed to save position");
       }
@@ -79,7 +80,8 @@ export function WidgetSection({
         clearTimeout(copyTimeoutRef.current);
       }
       copyTimeoutRef.current = setTimeout(() => setCopied(false), 2000);
-    } catch {
+    } catch (error) {
+      console.error("[WidgetSection] Failed to copy to clipboard:", error);
       toast.error("Failed to copy");
     }
   };

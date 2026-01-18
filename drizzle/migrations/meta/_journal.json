@@ -12,15 +12,8 @@
     {
       "idx": 1,
       "version": "7",
-      "when": 1768738595413,
-      "tag": "0001_calm_warstar",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "7",
-      "when": 1768740305795,
-      "tag": "0002_damp_thunderbolts",
+      "when": 1768772300314,
+      "tag": "0001_yellow_phalanx",
       "breakpoints": true
     }
   ]
