@@ -51,13 +51,15 @@ export function EmbedBoard({
       if (!res.ok) return;
       const data = await res.json();
       setIdeas(
-        data.ideas.slice(0, 10).map((idea: CompactIdea & { description?: string }) => ({
-          id: idea.id,
-          title: idea.title,
-          status: idea.status,
-          voteCount: idea.voteCount,
-          hasVoted: idea.hasVoted,
-        }))
+        data.ideas
+          .slice(0, 10)
+          .map((idea: CompactIdea & { description?: string }) => ({
+            id: idea.id,
+            title: idea.title,
+            status: idea.status,
+            voteCount: idea.voteCount,
+            hasVoted: idea.hasVoted,
+          }))
       );
       if (data.contributor) {
         setContributor(data.contributor);
@@ -74,7 +76,9 @@ export function EmbedBoard({
       // Clear the query param and refresh data
       const newParams = new URLSearchParams(searchParams);
       newParams.delete("verified");
-      const newUrl = newParams.toString() ? `${pathname}?${newParams.toString()}` : pathname;
+      const newUrl = newParams.toString()
+        ? `${pathname}?${newParams.toString()}`
+        : pathname;
       router.replace(newUrl);
       refreshData();
       toast.success("Email verified! You can now vote and submit ideas.");

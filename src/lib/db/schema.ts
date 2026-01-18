@@ -482,7 +482,9 @@ export const widgetSettings = pgTable(
       .notNull()
       .$onUpdate(() => new Date()),
   },
-  (table) => [uniqueIndex("widget_settings_workspace_id_idx").on(table.workspaceId)]
+  (table) => [
+    uniqueIndex("widget_settings_workspace_id_idx").on(table.workspaceId),
+  ]
 );
 
 // ============ Ideas Table ============

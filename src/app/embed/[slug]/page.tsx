@@ -91,10 +91,7 @@ function EmbedSkeleton() {
       <div className="bg-muted h-10 w-full animate-pulse rounded" />
       <div className="space-y-2">
         {[1, 2, 3, 4, 5].map((i) => (
-          <div
-            key={i}
-            className="bg-muted h-12 w-full animate-pulse rounded"
-          />
+          <div key={i} className="bg-muted h-12 w-full animate-pulse rounded" />
         ))}
       </div>
     </div>

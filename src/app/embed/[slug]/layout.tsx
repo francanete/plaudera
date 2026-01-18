@@ -10,7 +10,7 @@ export default function EmbedLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex min-h-screen flex-col bg-background">
+    <div className="bg-background flex min-h-screen flex-col">
       <main className="flex-1 overflow-auto p-4">{children}</main>
       <footer className="border-t py-3 text-center">
         <a
