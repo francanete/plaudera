@@ -54,6 +54,11 @@ export async function GET(_request: Request, { params }: RouteParams) {
       { headers: corsHeaders }
     );
   } catch (error) {
-    return handleApiError(error);
+    const errorResponse = handleApiError(error);
+    // Add CORS headers to error responses for widget compatibility
+    Object.entries(corsHeaders).forEach(([key, value]) => {
+      errorResponse.headers.set(key, value);
+    });
+    return errorResponse;
   }
 }

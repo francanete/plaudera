@@ -59,10 +59,10 @@
     button.setAttribute('aria-label', 'Open feedback');
 
     // Base styles
+    var buttonSide = position === 'bottom-left' ? 'left' : 'right';
     Object.assign(button.style, {
       position: 'fixed',
       bottom: '20px',
-      [position === 'bottom-left' ? 'left' : 'right']: '20px',
       width: BUTTON_SIZE + 'px',
       height: BUTTON_SIZE + 'px',
       borderRadius: '50%',
@@ -78,6 +78,7 @@
       transition: 'transform 0.2s ease, box-shadow 0.2s ease',
       fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
     });
+    button.style[buttonSide] = '20px';
 
     // Icon (lightbulb emoji or SVG)
     button.innerHTML = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg>';
@@ -125,11 +126,11 @@
     panel.id = 'plaudera-widget-panel';
 
     var isLeft = position === 'bottom-left';
+    var panelSide = isLeft ? 'left' : 'right';
 
     Object.assign(panel.style, {
       position: 'fixed',
       top: '0',
-      [isLeft ? 'left' : 'right']: '0',
       width: PANEL_WIDTH + 'px',
       height: '100%',
       maxHeight: '100vh',
@@ -144,6 +145,7 @@
       flexDirection: 'column',
       overflow: 'hidden',
     });
+    panel.style[panelSide] = '0';
 
     // Header with close button
     var header = document.createElement('div');
@@ -275,7 +277,10 @@
 
   // Handle messages from iframe
   function handleMessage(e) {
-    // Verify origin (in production, check against your domain)
+    // Verify origin matches our app domain to prevent spoofed messages
+    var expectedOrigin = baseUrl.replace(/\/$/, ''); // Remove trailing slash if present
+    if (e.origin !== expectedOrigin) return;
+
     if (!e.data || typeof e.data !== 'object') return;
 
     switch (e.data.type) {

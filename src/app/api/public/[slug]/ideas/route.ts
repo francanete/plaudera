@@ -9,11 +9,11 @@ import { NotFoundError, UnauthorizedError, RateLimitError } from "@/lib/errors";
 import { checkIdeaRateLimit } from "@/lib/contributor-rate-limit";
 
 // CORS headers for widget embed
+// Note: Cannot use Allow-Credentials with wildcard origin (browsers reject this)
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
   "Access-Control-Allow-Headers": "Content-Type",
-  "Access-Control-Allow-Credentials": "true",
 };
 
 const createIdeaSchema = z.object({
@@ -122,7 +122,12 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       { headers: corsHeaders }
     );
   } catch (error) {
-    return handleApiError(error);
+    const errorResponse = handleApiError(error);
+    // Add CORS headers to error responses for widget compatibility
+    Object.entries(corsHeaders).forEach(([key, value]) => {
+      errorResponse.headers.set(key, value);
+    });
+    return errorResponse;
   }
 }
 
@@ -195,6 +200,11 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       { status: 201, headers: corsHeaders }
     );
   } catch (error) {
-    return handleApiError(error);
+    const errorResponse = handleApiError(error);
+    // Add CORS headers to error responses for widget compatibility
+    Object.entries(corsHeaders).forEach(([key, value]) => {
+      errorResponse.headers.set(key, value);
+    });
+    return errorResponse;
   }
 }

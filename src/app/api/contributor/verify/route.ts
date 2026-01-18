@@ -6,11 +6,11 @@ import { BadRequestError, RateLimitError } from "@/lib/errors";
 import { checkEmailRateLimit } from "@/lib/contributor-rate-limit";
 
 // CORS headers for widget embed
+// Note: Cannot use Allow-Credentials with wildcard origin (browsers reject this)
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
   "Access-Control-Allow-Headers": "Content-Type",
-  "Access-Control-Allow-Credentials": "true",
 };
 
 /**
@@ -86,7 +86,12 @@ export async function POST(request: NextRequest) {
     const result = await sendVerificationEmail(email, safeCallbackUrl);
     return NextResponse.json(result, { headers: corsHeaders });
   } catch (error) {
-    return handleApiError(error);
+    const errorResponse = handleApiError(error);
+    // Add CORS headers to error responses for widget compatibility
+    Object.entries(corsHeaders).forEach(([key, value]) => {
+      errorResponse.headers.set(key, value);
+    });
+    return errorResponse;
   }
 }
 

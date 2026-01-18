@@ -8,11 +8,11 @@ import { NotFoundError, UnauthorizedError, RateLimitError } from "@/lib/errors";
 import { checkVoteRateLimit } from "@/lib/contributor-rate-limit";
 
 // CORS headers for widget embed
+// Note: Cannot use Allow-Credentials with wildcard origin (browsers reject this)
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
   "Access-Control-Allow-Headers": "Content-Type",
-  "Access-Control-Allow-Credentials": "true",
 };
 
 type RouteParams = { params: Promise<{ id: string }> };
@@ -152,6 +152,11 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       { headers: corsHeaders }
     );
   } catch (error) {
-    return handleApiError(error);
+    const errorResponse = handleApiError(error);
+    // Add CORS headers to error responses for widget compatibility
+    Object.entries(corsHeaders).forEach(([key, value]) => {
+      errorResponse.headers.set(key, value);
+    });
+    return errorResponse;
   }
 }
