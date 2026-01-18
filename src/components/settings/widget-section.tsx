@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import {
   Card,
   CardContent,
@@ -11,19 +11,47 @@ import {
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Check, Copy, Code2 } from "lucide-react";
+import { Check, Copy, Code2, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { appConfig } from "@/lib/config";
+import type { WidgetPosition } from "@/lib/db/schema";
 
 interface WidgetSectionProps {
   workspaceSlug: string;
+  initialPosition: WidgetPosition;
 }
 
-type Position = "bottom-right" | "bottom-left";
-
-export function WidgetSection({ workspaceSlug }: WidgetSectionProps) {
-  const [position, setPosition] = useState<Position>("bottom-right");
+export function WidgetSection({
+  workspaceSlug,
+  initialPosition,
+}: WidgetSectionProps) {
+  const [position, setPosition] = useState<WidgetPosition>(initialPosition);
   const [copied, setCopied] = useState(false);
+  const [isPending, startTransition] = useTransition();
+
+  const handlePositionChange = (newPosition: WidgetPosition) => {
+    const previousPosition = position;
+    setPosition(newPosition); // Optimistic update
+
+    startTransition(async () => {
+      try {
+        const res = await fetch("/api/widget/settings", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ position: newPosition }),
+        });
+
+        if (!res.ok) {
+          throw new Error("Failed to save");
+        }
+
+        toast.success("Position saved");
+      } catch {
+        setPosition(previousPosition); // Revert on error
+        toast.error("Failed to save position");
+      }
+    });
+  };
 
   const siteUrl = appConfig.seo.siteUrl;
   const embedCode = `<script
@@ -59,21 +87,16 @@ export function WidgetSection({ workspaceSlug }: WidgetSectionProps) {
       <CardContent className="space-y-6">
         {/* Position selector */}
         <div className="space-y-3">
-          <Label>Button Position</Label>
+          <div className="flex items-center gap-2">
+            <Label>Button Position</Label>
+            {isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+          </div>
           <RadioGroup
             value={position}
-            onValueChange={(v) => setPosition(v as Position)}
+            onValueChange={(v) => handlePositionChange(v as WidgetPosition)}
             className="flex gap-4"
+            disabled={isPending}
           >
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="bottom-right" id="bottom-right" />
-              <Label
-                htmlFor="bottom-right"
-                className="cursor-pointer font-normal"
-              >
-                Bottom Right
-              </Label>
-            </div>
             <div className="flex items-center space-x-2">
               <RadioGroupItem value="bottom-left" id="bottom-left" />
               <Label
@@ -81,6 +104,15 @@ export function WidgetSection({ workspaceSlug }: WidgetSectionProps) {
                 className="cursor-pointer font-normal"
               >
                 Bottom Left
+              </Label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="bottom-right" id="bottom-right" />
+              <Label
+                htmlFor="bottom-right"
+                className="cursor-pointer font-normal"
+              >
+                Bottom Right
               </Label>
             </div>
           </RadioGroup>

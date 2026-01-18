@@ -430,6 +430,12 @@ export const contributorTokens = pgTable(
   ]
 );
 
+// ============ Widget Position Enum ============
+export const widgetPositionEnum = pgEnum("widget_position", [
+  "bottom-right",
+  "bottom-left",
+]);
+
 // ============ Workspaces Table ============
 export const workspaces = pgTable(
   "workspaces",
@@ -452,6 +458,31 @@ export const workspaces = pgTable(
     uniqueIndex("workspaces_slug_idx").on(table.slug),
     uniqueIndex("workspaces_owner_id_idx").on(table.ownerId),
   ]
+);
+
+// ============ Widget Settings Table ============
+export const widgetSettings = pgTable(
+  "widget_settings",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => createId()),
+    workspaceId: text("workspace_id")
+      .notNull()
+      .unique()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    // Position
+    position: widgetPositionEnum("position").default("bottom-right").notNull(),
+    // Future settings (ready for expansion)
+    // theme: text("theme").default("light"),
+    // primaryColor: text("primary_color"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at")
+      .defaultNow()
+      .notNull()
+      .$onUpdate(() => new Date()),
+  },
+  (table) => [uniqueIndex("widget_settings_workspace_id_idx").on(table.workspaceId)]
 );
 
 // ============ Ideas Table ============
@@ -519,6 +550,15 @@ export const workspacesRelations = relations(workspaces, ({ one, many }) => ({
     references: [users.id],
   }),
   ideas: many(ideas),
+  widgetSettings: one(widgetSettings),
+}));
+
+// ============ Widget Settings Relations ============
+export const widgetSettingsRelations = relations(widgetSettings, ({ one }) => ({
+  workspace: one(workspaces, {
+    fields: [widgetSettings.workspaceId],
+    references: [workspaces.id],
+  }),
 }));
 
 // ============ Ideas Relations ============
@@ -581,5 +621,8 @@ export type Contributor = typeof contributors.$inferSelect;
 export type NewContributor = typeof contributors.$inferInsert;
 export type ContributorToken = typeof contributorTokens.$inferSelect;
 export type NewContributorToken = typeof contributorTokens.$inferInsert;
+export type WidgetSettings = typeof widgetSettings.$inferSelect;
+export type NewWidgetSettings = typeof widgetSettings.$inferInsert;
 // Derive IdeaStatus type from the enum to keep them in sync
 export type IdeaStatus = (typeof ideaStatusEnum.enumValues)[number];
+export type WidgetPosition = (typeof widgetPositionEnum.enumValues)[number];

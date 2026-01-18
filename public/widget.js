@@ -9,7 +9,8 @@
   }
 
   var workspace = script.dataset.workspace;
-  var position = script.dataset.position || 'bottom-right';
+  var fallbackPosition = script.dataset.position || 'bottom-right';
+  var position = fallbackPosition; // Will be updated from API
 
   if (!workspace) {
     console.error('[Plaudera] Missing data-workspace attribute');
@@ -31,6 +32,25 @@
   var BUTTON_SIZE = 56;
   var PANEL_WIDTH = 400;
   var Z_INDEX = 2147483647; // Max z-index
+
+  // Fetch widget settings from API
+  function fetchSettings() {
+    return fetch(baseUrl + '/api/public/' + workspace + '/settings')
+      .then(function(response) {
+        if (!response.ok) {
+          throw new Error('Failed to fetch settings');
+        }
+        return response.json();
+      })
+      .then(function(data) {
+        if (data.position) {
+          position = data.position;
+        }
+      })
+      .catch(function(error) {
+        console.warn('[Plaudera] Could not fetch settings, using fallback:', error.message);
+      });
+  }
 
   // Create floating button
   function createButton() {
@@ -272,10 +292,15 @@
   function init() {
     // Wait for DOM ready
     if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', setup);
+      document.addEventListener('DOMContentLoaded', loadAndSetup);
     } else {
-      setup();
+      loadAndSetup();
     }
+  }
+
+  function loadAndSetup() {
+    // Fetch settings from API first, then setup
+    fetchSettings().then(setup);
   }
 
   function setup() {

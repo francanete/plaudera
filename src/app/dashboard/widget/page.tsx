@@ -1,5 +1,6 @@
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
+import { eq } from "drizzle-orm";
 import {
   Card,
   CardContent,
@@ -9,6 +10,8 @@ import {
 } from "@/components/ui/card";
 import { WidgetSection } from "@/components/settings/widget-section";
 import { getUserWorkspace } from "@/lib/workspace";
+import { db, widgetSettings } from "@/lib/db";
+import type { WidgetPosition } from "@/lib/db/schema";
 
 export default async function WidgetPage() {
   const session = await auth.api.getSession({
@@ -16,6 +19,15 @@ export default async function WidgetPage() {
   });
 
   const workspace = await getUserWorkspace(session!.user.id);
+
+  // Fetch widget settings if workspace exists
+  let initialPosition: WidgetPosition = "bottom-right";
+  if (workspace) {
+    const settings = await db.query.widgetSettings.findFirst({
+      where: eq(widgetSettings.workspaceId, workspace.id),
+    });
+    initialPosition = settings?.position ?? "bottom-right";
+  }
 
   return (
     <div className="space-y-6">
@@ -28,7 +40,10 @@ export default async function WidgetPage() {
       </div>
 
       {workspace ? (
-        <WidgetSection workspaceSlug={workspace.slug} />
+        <WidgetSection
+          workspaceSlug={workspace.slug}
+          initialPosition={initialPosition}
+        />
       ) : (
         <Card>
           <CardHeader>
