@@ -111,7 +111,6 @@ export function IdeasList({
     }
   };
 
-
   // Render filter dropdown
   const FilterDropdown = () => (
     <Select
