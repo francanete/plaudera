@@ -473,6 +473,8 @@ export const widgetSettings = pgTable(
       .references(() => workspaces.id, { onDelete: "cascade" }),
     // Position
     position: widgetPositionEnum("position").default("bottom-right").notNull(),
+    // CORS allowlist for widget embed
+    allowedOrigins: text("allowed_origins").array().default([]),
     // Future settings (ready for expansion)
     // theme: text("theme").default("light"),
     // primaryColor: text("primary_color"),

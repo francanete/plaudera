@@ -3,6 +3,7 @@ CREATE TABLE "widget_settings" (
 	"id" text PRIMARY KEY NOT NULL,
 	"workspace_id" text NOT NULL,
 	"position" "widget_position" DEFAULT 'bottom-right' NOT NULL,
+	"allowed_origins" text[] DEFAULT '{}',
 	"created_at" timestamp DEFAULT now() NOT NULL,
 	"updated_at" timestamp DEFAULT now() NOT NULL,
 	CONSTRAINT "widget_settings_workspace_id_unique" UNIQUE("workspace_id")

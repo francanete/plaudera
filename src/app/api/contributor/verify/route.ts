@@ -4,17 +4,36 @@ import { sendVerificationEmail, verifyToken } from "@/lib/contributor-auth";
 import { handleApiError } from "@/lib/api-utils";
 import { BadRequestError, RateLimitError } from "@/lib/errors";
 import { checkEmailRateLimit } from "@/lib/contributor-rate-limit";
-import { getCorsHeaders, applyCorsHeaders } from "@/lib/cors";
+import { getWorkspaceSlugCorsHeaders } from "@/lib/cors";
+
+/**
+ * Extract workspace slug from a callback URL like "/b/{slug}" or "/b/{slug}?params"
+ */
+function extractWorkspaceSlug(callbackUrl: string): string | null {
+  const match = callbackUrl.match(/^\/b\/([a-zA-Z0-9_-]+)/);
+  return match ? match[1] : null;
+}
 
 /**
  * OPTIONS /api/contributor/verify
- * Handle CORS preflight requests for widget embed
+ * Handle CORS preflight requests for widget embed.
+ *
+ * Note: We check workspace CORS in POST (where we have callbackUrl).
+ * OPTIONS is permissive because we don't have the body yet.
+ * The actual security check happens in POST.
  */
 export async function OPTIONS(request: NextRequest) {
   const origin = request.headers.get("origin");
+  // Allow the preflight - actual CORS validation happens in POST
+  // where we can extract workspace from callbackUrl
   return new NextResponse(null, {
     status: 204,
-    headers: getCorsHeaders(origin, "GET, POST, OPTIONS"),
+    headers: {
+      "Access-Control-Allow-Origin": origin || "null",
+      "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+      "Access-Control-Allow-Headers": "Content-Type",
+      Vary: "Origin",
+    },
   });
 }
 
@@ -62,6 +81,8 @@ function sanitizeCallbackUrl(callback: string): string {
  * Send a verification email to a contributor
  */
 export async function POST(request: NextRequest) {
+  const origin = request.headers.get("origin");
+
   try {
     // Check rate limit before processing
     const ip =
@@ -81,17 +102,65 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { email, callbackUrl } = sendVerificationSchema.parse(body);
 
+    // Extract workspace slug from callbackUrl for CORS validation
+    const workspaceSlug = extractWorkspaceSlug(callbackUrl);
+
+    // If we can identify the workspace, use workspace-aware CORS
+    let corsHeaders: Record<string, string>;
+    if (workspaceSlug) {
+      corsHeaders = await getWorkspaceSlugCorsHeaders(
+        origin,
+        workspaceSlug,
+        "GET, POST, OPTIONS"
+      );
+    } else {
+      // Fallback: allow app's own origin only (for direct access from our app)
+      const appOrigin = process.env.NEXT_PUBLIC_APP_URL
+        ? new URL(process.env.NEXT_PUBLIC_APP_URL).origin
+        : null;
+      const isAllowed =
+        origin === appOrigin ||
+        (process.env.NODE_ENV === "development" &&
+          origin?.startsWith("http://localhost"));
+
+      corsHeaders = {
+        "Access-Control-Allow-Origin": isAllowed && origin ? origin : "null",
+        "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type",
+        Vary: "Origin",
+      };
+    }
+
     // Sanitize callback URL before use
     const safeCallbackUrl = sanitizeCallbackUrl(callbackUrl);
 
-    const origin = request.headers.get("origin");
     const result = await sendVerificationEmail(email, safeCallbackUrl);
-    return NextResponse.json(result, { headers: getCorsHeaders(origin, "GET, POST, OPTIONS") });
+    return NextResponse.json(result, { headers: corsHeaders });
   } catch (error) {
-    const origin = request.headers.get("origin");
+    // For errors, try to extract workspace from body if possible
+    // Otherwise fall back to restrictive CORS
     const errorResponse = handleApiError(error);
-    // Add CORS headers to error responses for widget compatibility
-    applyCorsHeaders(errorResponse, origin, "GET, POST, OPTIONS");
+
+    // Apply restrictive CORS on error (we may not have parsed the body successfully)
+    const appOrigin = process.env.NEXT_PUBLIC_APP_URL
+      ? new URL(process.env.NEXT_PUBLIC_APP_URL).origin
+      : null;
+    const isAllowed =
+      origin === appOrigin ||
+      (process.env.NODE_ENV === "development" &&
+        origin?.startsWith("http://localhost"));
+
+    errorResponse.headers.set(
+      "Access-Control-Allow-Origin",
+      isAllowed && origin ? origin : "null"
+    );
+    errorResponse.headers.set(
+      "Access-Control-Allow-Methods",
+      "GET, POST, OPTIONS"
+    );
+    errorResponse.headers.set("Access-Control-Allow-Headers", "Content-Type");
+    errorResponse.headers.set("Vary", "Origin");
+
     return errorResponse;
   }
 }

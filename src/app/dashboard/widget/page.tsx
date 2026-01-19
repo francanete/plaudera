@@ -22,11 +22,13 @@ export default async function WidgetPage() {
 
   // Fetch widget settings if workspace exists
   let initialPosition: WidgetPosition = "bottom-right";
+  let initialAllowedOrigins: string[] = [];
   if (workspace) {
     const settings = await db.query.widgetSettings.findFirst({
       where: eq(widgetSettings.workspaceId, workspace.id),
     });
     initialPosition = settings?.position ?? "bottom-right";
+    initialAllowedOrigins = settings?.allowedOrigins ?? [];
   }
 
   return (
@@ -43,6 +45,7 @@ export default async function WidgetPage() {
         <WidgetSection
           workspaceSlug={workspace.slug}
           initialPosition={initialPosition}
+          initialAllowedOrigins={initialAllowedOrigins}
         />
       ) : (
         <Card>

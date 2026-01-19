@@ -4,7 +4,10 @@ import { workspaces } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { handleApiError } from "@/lib/api-utils";
 import { NotFoundError } from "@/lib/errors";
-import { getCorsHeaders, applyCorsHeaders } from "@/lib/cors";
+import {
+  getWorkspaceSlugCorsHeaders,
+  applyWorkspaceSlugCorsHeaders,
+} from "@/lib/cors";
 
 type RouteParams = { params: Promise<{ slug: string }> };
 
@@ -12,11 +15,16 @@ type RouteParams = { params: Promise<{ slug: string }> };
  * OPTIONS /api/public/[slug]/settings
  * Handle CORS preflight requests for widget embed
  */
-export async function OPTIONS(request: NextRequest) {
+export async function OPTIONS(
+  request: NextRequest,
+  { params }: RouteParams
+) {
+  const { slug } = await params;
   const origin = request.headers.get("origin");
+  const headers = await getWorkspaceSlugCorsHeaders(origin, slug, "GET, OPTIONS");
   return new NextResponse(null, {
     status: 204,
-    headers: getCorsHeaders(origin, "GET, OPTIONS"),
+    headers,
   });
 }
 
@@ -42,18 +50,20 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     }
 
     const origin = request.headers.get("origin");
+    const corsHeaders = await getWorkspaceSlugCorsHeaders(origin, slug, "GET, OPTIONS");
     // Return settings (default to bottom-right if no settings exist yet)
     return NextResponse.json(
       {
         position: workspace.widgetSettings?.position ?? "bottom-right",
       },
-      { headers: getCorsHeaders(origin, "GET, OPTIONS") }
+      { headers: corsHeaders }
     );
   } catch (error) {
+    const { slug } = await params;
     const origin = request.headers.get("origin");
     const errorResponse = handleApiError(error);
     // Add CORS headers to error responses for widget compatibility
-    applyCorsHeaders(errorResponse, origin, "GET, OPTIONS");
+    await applyWorkspaceSlugCorsHeaders(errorResponse, origin, slug, "GET, OPTIONS");
     return errorResponse;
   }
 }
