@@ -107,7 +107,10 @@ export async function validateRequestOrigin(
   }
 
   // Check against workspace's allowed origins
-  const isAllowed = await isWorkspaceOriginAllowed(effectiveOrigin, workspaceId);
+  const isAllowed = await isWorkspaceOriginAllowed(
+    effectiveOrigin,
+    workspaceId
+  );
 
   if (!isAllowed) {
     console.warn("[CSRF] Request from unauthorized origin:", {

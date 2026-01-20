@@ -66,16 +66,20 @@ function isValidCallbackUrl(callback: string): boolean {
     callback.includes("%5c") ||
     callback.includes("%5C")
   ) {
-    console.warn("[ContributorVerify] Blocked dangerous callback URL pattern:", {
-      callback: callback.substring(0, 100), // Truncate for logging
-    });
+    console.warn(
+      "[ContributorVerify] Blocked dangerous callback URL pattern:",
+      {
+        callback: callback.substring(0, 100), // Truncate for logging
+      }
+    );
     return false;
   }
 
   // Strict regex: require at least one valid character after the leading /
   // This prevents empty paths like "/" from being considered as valid callbacks
   // and ensures we have a meaningful path
-  const relativePathRegex = /^\/[a-zA-Z0-9][a-zA-Z0-9\/_-]*(\?[a-zA-Z0-9=&_%-]*)?$/;
+  const relativePathRegex =
+    /^\/[a-zA-Z0-9][a-zA-Z0-9\/_-]*(\?[a-zA-Z0-9=&_%-]*)?$/;
   if (relativePathRegex.test(callback)) {
     return true;
   }
