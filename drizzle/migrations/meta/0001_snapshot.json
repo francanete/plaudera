@@ -1578,6 +1578,13 @@
           "notNull": true,
           "default": "'bottom-right'"
         },
+        "allowed_origins": {
+          "name": "allowed_origins",
+          "type": "text[]",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'{}'"
+        },
         "created_at": {
           "name": "created_at",
           "type": "timestamp",

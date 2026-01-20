@@ -155,6 +155,7 @@ export async function getWorkspaceCorsHeaders(
       allowed && requestOrigin ? requestOrigin : "null",
     "Access-Control-Allow-Methods": methods,
     "Access-Control-Allow-Headers": "Content-Type",
+    "Access-Control-Allow-Credentials": "true",
     Vary: "Origin",
   };
 }
@@ -175,6 +176,7 @@ export async function getWorkspaceSlugCorsHeaders(
       allowed && requestOrigin ? requestOrigin : "null",
     "Access-Control-Allow-Methods": methods,
     "Access-Control-Allow-Headers": "Content-Type",
+    "Access-Control-Allow-Credentials": "true",
     Vary: "Origin",
   };
 }

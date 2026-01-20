@@ -286,25 +286,12 @@
 
   // Handle messages from iframe
   function handleMessage(e) {
-    // Security: Validate origin against trusted sources
-    // Primary: derived from script src (normal operation)
-    // Secondary: hardcoded production domain (extra validation)
+    // Security: Only trust the origin that served this script
+    // The scriptOrigin is derived from script.src, which is the source of truth
     var scriptOrigin = baseUrl.replace(/\/$/, ''); // Remove trailing slash if present
-    var trustedOrigins = [scriptOrigin];
 
-    // Add production domain if different from script origin (defense in depth)
-    // This ensures even if script.src is manipulated, we only trust our domain
-    var productionOrigin = 'https://plaudera.com';
-    if (trustedOrigins.indexOf(productionOrigin) === -1) {
-      trustedOrigins.push(productionOrigin);
-    }
-
-    // Check if the message origin is in our trusted list
-    var isOriginTrusted = trustedOrigins.some(function(origin) {
-      return e.origin === origin;
-    });
-
-    if (!isOriginTrusted) {
+    // Validate that message comes from the same origin as the script
+    if (e.origin !== scriptOrigin) {
       console.warn('[Plaudera] Ignored message from untrusted origin:', e.origin);
       return;
     }

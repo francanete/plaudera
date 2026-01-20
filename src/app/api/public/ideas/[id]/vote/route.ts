@@ -4,7 +4,8 @@ import { ideas, votes } from "@/lib/db/schema";
 import { eq, and, sql } from "drizzle-orm";
 import { getContributor } from "@/lib/contributor-auth";
 import { handleApiError } from "@/lib/api-utils";
-import { NotFoundError, UnauthorizedError, RateLimitError } from "@/lib/errors";
+import { NotFoundError, UnauthorizedError, RateLimitError, ForbiddenError } from "@/lib/errors";
+import { validateRequestOrigin } from "@/lib/csrf";
 import { checkVoteRateLimit } from "@/lib/contributor-rate-limit";
 import {
   getWorkspaceCorsHeaders,
@@ -71,6 +72,21 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
   try {
     const { id: ideaId } = await params;
 
+    // Find the idea first (used for CSRF validation and vote logic)
+    const idea = await db.query.ideas.findFirst({
+      where: eq(ideas.id, ideaId),
+    });
+
+    if (!idea) {
+      throw new NotFoundError("Idea not found");
+    }
+
+    // CSRF protection: Validate request origin against workspace allowlist
+    const csrfResult = await validateRequestOrigin(request, idea.workspaceId);
+    if (!csrfResult.valid) {
+      throw new ForbiddenError("Request origin not allowed");
+    }
+
     // Check contributor authentication
     const contributor = await getContributor();
     if (!contributor) {
@@ -85,15 +101,6 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         rateLimitResult.resetAt!,
         0
       );
-    }
-
-    // Find the idea
-    const idea = await db.query.ideas.findFirst({
-      where: eq(ideas.id, ideaId),
-    });
-
-    if (!idea) {
-      throw new NotFoundError("Idea not found");
     }
 
     // Check if already voted

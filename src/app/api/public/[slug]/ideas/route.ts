@@ -5,7 +5,8 @@ import { ideas, votes, workspaces, PUBLIC_VISIBLE_STATUSES } from "@/lib/db/sche
 import { eq, desc, and, or, inArray } from "drizzle-orm";
 import { getContributor } from "@/lib/contributor-auth";
 import { handleApiError } from "@/lib/api-utils";
-import { NotFoundError, UnauthorizedError, RateLimitError } from "@/lib/errors";
+import { NotFoundError, UnauthorizedError, RateLimitError, ForbiddenError } from "@/lib/errors";
+import { validateRequestOriginBySlug } from "@/lib/csrf";
 import { checkIdeaRateLimit } from "@/lib/contributor-rate-limit";
 import {
   getWorkspaceSlugCorsHeaders,
@@ -142,6 +143,12 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 export async function POST(request: NextRequest, { params }: RouteParams) {
   try {
     const { slug } = await params;
+
+    // CSRF protection: Validate request origin against workspace allowlist
+    const csrfResult = await validateRequestOriginBySlug(request, slug);
+    if (!csrfResult.valid) {
+      throw new ForbiddenError("Request origin not allowed");
+    }
 
     // Check contributor authentication
     const contributor = await getContributor();

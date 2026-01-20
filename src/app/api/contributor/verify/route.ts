@@ -49,12 +49,34 @@ const sendVerificationSchema = z.object({
  * Security considerations:
  * - Paths like `/\example.com` or `/\\example.com` could be interpreted
  *   as protocol-relative URLs in some browsers
+ * - Protocol-relative URLs (`//evil.com`) redirect to attacker domains
+ * - Null bytes and encoded backslashes can bypass naive validation
  * - We use a strict regex to only allow safe characters in relative paths
  */
 function isValidCallbackUrl(callback: string): boolean {
-  // Strict regex: only allow alphanumeric, dash, underscore, forward slash, and query params
-  // This prevents paths like `/\example.com` which some browsers interpret as redirects
-  if (/^\/[a-zA-Z0-9\/_-]*(\?[a-zA-Z0-9=&_%-]*)?$/.test(callback)) {
+  // Block dangerous patterns first (defense in depth)
+  // - Protocol-relative URLs: //evil.com
+  // - Backslashes: /\evil.com (some browsers interpret as redirect)
+  // - Null bytes: can truncate/bypass validation
+  if (
+    callback.startsWith("//") ||
+    callback.includes("\\") ||
+    callback.includes("\x00") ||
+    callback.includes("%00") ||
+    callback.includes("%5c") ||
+    callback.includes("%5C")
+  ) {
+    console.warn("[ContributorVerify] Blocked dangerous callback URL pattern:", {
+      callback: callback.substring(0, 100), // Truncate for logging
+    });
+    return false;
+  }
+
+  // Strict regex: require at least one valid character after the leading /
+  // This prevents empty paths like "/" from being considered as valid callbacks
+  // and ensures we have a meaningful path
+  const relativePathRegex = /^\/[a-zA-Z0-9][a-zA-Z0-9\/_-]*(\?[a-zA-Z0-9=&_%-]*)?$/;
+  if (relativePathRegex.test(callback)) {
     return true;
   }
 
