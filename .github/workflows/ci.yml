@@ -30,3 +30,49 @@ jobs:
 
       - name: Test
         run: npm run test:run
+
+  db-migrations:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: plaudera_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/plaudera_test
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run database migrations
+        run: npm run db:migrate:deploy
+
+      - name: Check for schema drift
+        run: |
+          npx drizzle-kit generate
+          if [ -n "$(git status --porcelain drizzle/migrations/)" ]; then
+            echo "::error::Schema drift detected! Run 'npm run db:generate' and commit the changes."
+            git diff drizzle/migrations/
+            exit 1
+          fi
+          echo "No schema drift detected."
