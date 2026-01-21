@@ -3,6 +3,7 @@ CREATE TYPE "public"."idea_status" AS ENUM('PENDING', 'NEW', 'UNDER_REVIEW', 'PL
 CREATE TYPE "public"."plan" AS ENUM('FREE', 'STARTER', 'GROWTH', 'SCALE');--> statement-breakpoint
 CREATE TYPE "public"."role" AS ENUM('user', 'admin');--> statement-breakpoint
 CREATE TYPE "public"."subscription_status" AS ENUM('ACTIVE', 'CANCELED', 'PAST_DUE', 'TRIALING');--> statement-breakpoint
+CREATE TYPE "public"."widget_position" AS ENUM('bottom-right', 'bottom-left');--> statement-breakpoint
 CREATE TABLE "accounts" (
 	"id" text PRIMARY KEY NOT NULL,
 	"user_id" text NOT NULL,
@@ -163,6 +164,16 @@ CREATE TABLE "votes" (
 	"created_at" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
+CREATE TABLE "widget_settings" (
+	"id" text PRIMARY KEY NOT NULL,
+	"workspace_id" text NOT NULL,
+	"position" "widget_position" DEFAULT 'bottom-right' NOT NULL,
+	"allowed_origins" text[] DEFAULT '{}',
+	"created_at" timestamp DEFAULT now() NOT NULL,
+	"updated_at" timestamp DEFAULT now() NOT NULL,
+	CONSTRAINT "widget_settings_workspace_id_unique" UNIQUE("workspace_id")
+);
+--> statement-breakpoint
 CREATE TABLE "workspaces" (
 	"id" text PRIMARY KEY NOT NULL,
 	"name" text NOT NULL,
@@ -183,6 +194,7 @@ ALTER TABLE "sessions" ADD CONSTRAINT "sessions_user_id_users_id_fk" FOREIGN KEY
 ALTER TABLE "subscriptions" ADD CONSTRAINT "subscriptions_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "votes" ADD CONSTRAINT "votes_idea_id_ideas_id_fk" FOREIGN KEY ("idea_id") REFERENCES "public"."ideas"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "votes" ADD CONSTRAINT "votes_contributor_id_contributors_id_fk" FOREIGN KEY ("contributor_id") REFERENCES "public"."contributors"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "widget_settings" ADD CONSTRAINT "widget_settings_workspace_id_workspaces_id_fk" FOREIGN KEY ("workspace_id") REFERENCES "public"."workspaces"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "workspaces" ADD CONSTRAINT "workspaces_owner_id_users_id_fk" FOREIGN KEY ("owner_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 CREATE UNIQUE INDEX "accounts_provider_account_idx" ON "accounts" USING btree ("provider_id","account_id");--> statement-breakpoint
 CREATE INDEX "accounts_user_id_idx" ON "accounts" USING btree ("user_id");--> statement-breakpoint
@@ -210,5 +222,6 @@ CREATE UNIQUE INDEX "verifications_identifier_value_idx" ON "verifications" USIN
 CREATE UNIQUE INDEX "votes_idea_contributor_idx" ON "votes" USING btree ("idea_id","contributor_id");--> statement-breakpoint
 CREATE INDEX "votes_idea_id_idx" ON "votes" USING btree ("idea_id");--> statement-breakpoint
 CREATE INDEX "votes_contributor_id_idx" ON "votes" USING btree ("contributor_id");--> statement-breakpoint
+CREATE UNIQUE INDEX "widget_settings_workspace_id_idx" ON "widget_settings" USING btree ("workspace_id");--> statement-breakpoint
 CREATE UNIQUE INDEX "workspaces_slug_idx" ON "workspaces" USING btree ("slug");--> statement-breakpoint
 CREATE UNIQUE INDEX "workspaces_owner_id_idx" ON "workspaces" USING btree ("owner_id");

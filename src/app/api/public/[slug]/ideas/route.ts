@@ -5,8 +5,13 @@ import { ideas, votes, workspaces, PUBLIC_VISIBLE_STATUSES } from "@/lib/db/sche
 import { eq, desc, and, or, inArray } from "drizzle-orm";
 import { getContributor } from "@/lib/contributor-auth";
 import { handleApiError } from "@/lib/api-utils";
-import { NotFoundError, UnauthorizedError, RateLimitError } from "@/lib/errors";
+import { NotFoundError, UnauthorizedError, RateLimitError, ForbiddenError } from "@/lib/errors";
+import { validateRequestOriginBySlug } from "@/lib/csrf";
 import { checkIdeaRateLimit } from "@/lib/contributor-rate-limit";
+import {
+  getWorkspaceSlugCorsHeaders,
+  applyWorkspaceSlugCorsHeaders,
+} from "@/lib/cors";
 
 const createIdeaSchema = z.object({
   title: z.string().min(1, "Title is required").max(200, "Title is too long"),
@@ -14,6 +19,23 @@ const createIdeaSchema = z.object({
 });
 
 type RouteParams = { params: Promise<{ slug: string }> };
+
+/**
+ * OPTIONS /api/public/[slug]/ideas
+ * Handle CORS preflight requests for widget embed
+ */
+export async function OPTIONS(
+  request: NextRequest,
+  { params }: RouteParams
+) {
+  const { slug } = await params;
+  const origin = request.headers.get("origin");
+  const headers = await getWorkspaceSlugCorsHeaders(origin, slug, "GET, POST, OPTIONS");
+  return new NextResponse(null, {
+    status: 204,
+    headers,
+  });
+}
 
 /**
  * GET /api/public/[slug]/ideas
@@ -89,18 +111,28 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       isOwn: contributor ? idea.contributorId === contributor.id : false,
     }));
 
-    return NextResponse.json({
-      workspace: {
-        name: workspace.name,
-        slug: workspace.slug,
+    const origin = request.headers.get("origin");
+    const corsHeaders = await getWorkspaceSlugCorsHeaders(origin, slug, "GET, POST, OPTIONS");
+    return NextResponse.json(
+      {
+        workspace: {
+          name: workspace.name,
+          slug: workspace.slug,
+        },
+        ideas: ideasWithVoteStatus,
+        contributor: contributor
+          ? { email: contributor.email, id: contributor.id }
+          : null,
       },
-      ideas: ideasWithVoteStatus,
-      contributor: contributor
-        ? { email: contributor.email, id: contributor.id }
-        : null,
-    });
+      { headers: corsHeaders }
+    );
   } catch (error) {
-    return handleApiError(error);
+    const { slug } = await params;
+    const origin = request.headers.get("origin");
+    const errorResponse = handleApiError(error);
+    // Add CORS headers to error responses for widget compatibility
+    await applyWorkspaceSlugCorsHeaders(errorResponse, origin, slug, "GET, POST, OPTIONS");
+    return errorResponse;
   }
 }
 
@@ -111,6 +143,12 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 export async function POST(request: NextRequest, { params }: RouteParams) {
   try {
     const { slug } = await params;
+
+    // CSRF protection: Validate request origin against workspace allowlist
+    const csrfResult = await validateRequestOriginBySlug(request, slug);
+    if (!csrfResult.valid) {
+      throw new ForbiddenError("Request origin not allowed");
+    }
 
     // Check contributor authentication
     const contributor = await getContributor();
@@ -157,6 +195,8 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       })
       .returning();
 
+    const origin = request.headers.get("origin");
+    const corsHeaders = await getWorkspaceSlugCorsHeaders(origin, slug, "GET, POST, OPTIONS");
     return NextResponse.json(
       {
         idea: {
@@ -170,9 +210,14 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
           isOwn: true, // Always true for newly created ideas (creator is viewing)
         },
       },
-      { status: 201 }
+      { status: 201, headers: corsHeaders }
     );
   } catch (error) {
-    return handleApiError(error);
+    const { slug } = await params;
+    const origin = request.headers.get("origin");
+    const errorResponse = handleApiError(error);
+    // Add CORS headers to error responses for widget compatibility
+    await applyWorkspaceSlugCorsHeaders(errorResponse, origin, slug, "GET, POST, OPTIONS");
+    return errorResponse;
   }
 }

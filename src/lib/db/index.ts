@@ -1,8 +1,8 @@
-import { drizzle } from "drizzle-orm/neon-serverless";
-import { Pool } from "@neondatabase/serverless";
+import { drizzle } from "drizzle-orm/node-postgres";
+import { Pool } from "pg";
 import * as schema from "./schema";
 
-// WebSocket driver - supports full transactions and connection pooling
+// Standard PostgreSQL driver - works with any PostgreSQL provider
 const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 
 export const db = drizzle(pool, {
