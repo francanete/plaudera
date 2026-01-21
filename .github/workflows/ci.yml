@@ -31,7 +31,24 @@ jobs:
       - name: Test
         run: npm run test:run
 
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      db: ${{ steps.filter.outputs.db }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            db:
+              - 'src/lib/db/schema.ts'
+              - 'drizzle/**'
+              - 'drizzle.config.ts'
+
   db-migrations:
+    needs: changes
+    if: needs.changes.outputs.db == 'true'
     runs-on: ubuntu-latest
 
     services:
