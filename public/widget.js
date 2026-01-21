@@ -219,6 +219,8 @@
     });
     iframe.setAttribute('title', 'Feedback Widget');
     iframe.setAttribute('loading', 'lazy');
+    // Security: Sandbox restricts iframe capabilities to only what's needed
+    iframe.setAttribute('sandbox', 'allow-same-origin allow-scripts allow-forms allow-popups');
 
     iframeContainer.appendChild(iframe);
     panel.appendChild(iframeContainer);
