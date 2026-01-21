@@ -2,15 +2,15 @@
   'use strict';
 
   // Get config from script tag
-  var script = document.currentScript;
+  const script = document.currentScript;
   if (!script) {
     console.error('[Plaudera] Could not find script element');
     return;
   }
 
-  var workspace = script.dataset.workspace;
-  var fallbackPosition = script.dataset.position || 'bottom-right';
-  var position = fallbackPosition; // Will be updated from API
+  const workspace = script.dataset.workspace;
+  const fallbackPosition = script.dataset.position || 'bottom-right';
+  let position = fallbackPosition; // Will be updated from API
 
   if (!workspace) {
     console.error('[Plaudera] Missing data-workspace attribute');
@@ -18,20 +18,20 @@
   }
 
   // Derive the base URL from the script src
-  var scriptSrc = script.src;
-  var baseUrl = scriptSrc.substring(0, scriptSrc.lastIndexOf('/'));
+  const scriptSrc = script.src;
+  const baseUrl = scriptSrc.substring(0, scriptSrc.lastIndexOf('/'));
 
   // State
-  var isOpen = false;
-  var button = null;
-  var panel = null;
-  var backdrop = null;
-  var iframe = null;
+  let isOpen = false;
+  let button = null;
+  let panel = null;
+  let backdrop = null;
+  let iframe = null;
 
   // Styles
-  var BUTTON_SIZE = 56;
-  var PANEL_WIDTH = 400;
-  var Z_INDEX = 2147483647; // Max z-index
+  const BUTTON_SIZE = 56;
+  const PANEL_WIDTH = 400;
+  const Z_INDEX = 2147483647; // Max z-index
 
   // Fetch widget settings from API
   function fetchSettings() {
@@ -59,7 +59,7 @@
     button.setAttribute('aria-label', 'Open feedback');
 
     // Base styles
-    var buttonSide = position === 'bottom-left' ? 'left' : 'right';
+    const buttonSide = position === 'bottom-left' ? 'left' : 'right';
     Object.assign(button.style, {
       position: 'fixed',
       bottom: '20px',
@@ -134,8 +134,8 @@
     panel = document.createElement('div');
     panel.id = 'plaudera-widget-panel';
 
-    var isLeft = position === 'bottom-left';
-    var panelSide = isLeft ? 'left' : 'right';
+    const isLeft = position === 'bottom-left';
+    const panelSide = isLeft ? 'left' : 'right';
 
     Object.assign(panel.style, {
       position: 'fixed',
@@ -157,7 +157,7 @@
     panel.style[panelSide] = '0';
 
     // Header with close button
-    var header = document.createElement('div');
+    const header = document.createElement('div');
     Object.assign(header.style, {
       display: 'flex',
       alignItems: 'center',
@@ -167,7 +167,7 @@
       backgroundColor: '#fafafa',
     });
 
-    var title = document.createElement('span');
+    const title = document.createElement('span');
     title.textContent = 'Feedback';
     Object.assign(title.style, {
       fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
@@ -176,7 +176,7 @@
       color: '#18181b',
     });
 
-    var closeBtn = document.createElement('button');
+    const closeBtn = document.createElement('button');
     closeBtn.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>';
     closeBtn.setAttribute('aria-label', 'Close');
     Object.assign(closeBtn.style, {
@@ -203,7 +203,7 @@
     panel.appendChild(header);
 
     // Iframe container
-    var iframeContainer = document.createElement('div');
+    const iframeContainer = document.createElement('div');
     Object.assign(iframeContainer.style, {
       flex: '1',
       overflow: 'hidden',
@@ -262,7 +262,7 @@
     if (!isOpen) return;
     isOpen = false;
 
-    var isLeft = position === 'bottom-left';
+    const isLeft = position === 'bottom-left';
 
     // Hide backdrop
     backdrop.style.pointerEvents = 'none';
@@ -290,7 +290,7 @@
   function handleMessage(e) {
     // Security: Only trust the origin that served this script
     // The scriptOrigin is derived from script.src, which is the source of truth
-    var scriptOrigin = baseUrl.replace(/\/$/, ''); // Remove trailing slash if present
+    const scriptOrigin = baseUrl.replace(/\/$/, ''); // Remove trailing slash if present
 
     // Validate that message comes from the same origin as the script
     if (e.origin !== scriptOrigin) {
