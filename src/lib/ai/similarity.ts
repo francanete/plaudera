@@ -44,9 +44,7 @@ export async function findDuplicatesInWorkspace(
     .where(eq(duplicateSuggestions.workspaceId, workspaceId));
 
   const existingPairs = new Set(
-    existingSuggestions.map(
-      (s) => `${s.sourceIdeaId}:${s.duplicateIdeaId}`
-    )
+    existingSuggestions.map((s) => `${s.sourceIdeaId}:${s.duplicateIdeaId}`)
   );
 
   const pairs: DuplicatePair[] = [];
@@ -75,7 +73,11 @@ export async function findDuplicatesInWorkspace(
           )
         )
       )
-      .orderBy(desc(sql`1 - (${cosineDistance(ideaEmbeddings.embedding, ideaA.embedding)})`));
+      .orderBy(
+        desc(
+          sql`1 - (${cosineDistance(ideaEmbeddings.embedding, ideaA.embedding)})`
+        )
+      );
 
     for (const similar of similarIdeas) {
       // Determine source (older) and duplicate (newer)

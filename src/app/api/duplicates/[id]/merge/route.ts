@@ -1,7 +1,13 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { eq, sql, or, and, ne } from "drizzle-orm";
-import { db, duplicateSuggestions, ideas, votes, ideaEmbeddings } from "@/lib/db";
+import {
+  db,
+  duplicateSuggestions,
+  ideas,
+  votes,
+  ideaEmbeddings,
+} from "@/lib/db";
 import { protectedApiRouteWrapper } from "@/lib/dal";
 import { getUserWorkspace } from "@/lib/workspace";
 import { NotFoundError, BadRequestError } from "@/lib/errors";
@@ -44,7 +50,9 @@ export const POST = protectedApiRouteWrapper<{ id: string }>(
     // Validate that keepIdeaId is one of the two ideas
     const validIds = [suggestion.sourceIdeaId, suggestion.duplicateIdeaId];
     if (!validIds.includes(keepIdeaId)) {
-      throw new BadRequestError("keepIdeaId must be one of the suggested ideas");
+      throw new BadRequestError(
+        "keepIdeaId must be one of the suggested ideas"
+      );
     }
 
     // Determine which idea to merge (the one NOT being kept)

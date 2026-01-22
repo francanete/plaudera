@@ -131,14 +131,18 @@ export function DuplicatesList({ initialSuggestions }: DuplicatesListProps) {
                 <IdeaCard
                   idea={suggestion.sourceIdea}
                   label="Original"
-                  onKeep={() => handleMerge(suggestion.id, suggestion.sourceIdea.id)}
+                  onKeep={() =>
+                    handleMerge(suggestion.id, suggestion.sourceIdea.id)
+                  }
                   isLoading={isLoading}
                   isKeeping={loadingAction === "merge"}
                 />
                 <IdeaCard
                   idea={suggestion.duplicateIdea}
                   label="Potential Duplicate"
-                  onKeep={() => handleMerge(suggestion.id, suggestion.duplicateIdea.id)}
+                  onKeep={() =>
+                    handleMerge(suggestion.id, suggestion.duplicateIdea.id)
+                  }
                   isLoading={isLoading}
                   isKeeping={loadingAction === "merge"}
                 />
@@ -180,7 +184,13 @@ interface IdeaCardProps {
   isKeeping: boolean;
 }
 
-function IdeaCard({ idea, label, onKeep, isLoading, isKeeping }: IdeaCardProps) {
+function IdeaCard({
+  idea,
+  label,
+  onKeep,
+  isLoading,
+  isKeeping,
+}: IdeaCardProps) {
   return (
     <div className="bg-muted/30 rounded-lg border p-4">
       <div className="mb-2 flex items-center justify-between">

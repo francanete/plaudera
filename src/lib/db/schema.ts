@@ -551,11 +551,10 @@ export const votes = pgTable(
 );
 
 // ============ Duplicate Suggestion Status Enum ============
-export const duplicateSuggestionStatusEnum = pgEnum("duplicate_suggestion_status", [
-  "PENDING",
-  "MERGED",
-  "DISMISSED",
-]);
+export const duplicateSuggestionStatusEnum = pgEnum(
+  "duplicate_suggestion_status",
+  ["PENDING", "MERGED", "DISMISSED"]
+);
 
 // ============ Idea Embeddings Table ============
 export const ideaEmbeddings = pgTable(
@@ -602,7 +601,9 @@ export const duplicateSuggestions = pgTable(
       .notNull()
       .references(() => ideas.id, { onDelete: "cascade" }),
     similarity: integer("similarity").notNull(), // 0-100 percentage
-    status: duplicateSuggestionStatusEnum("status").default("PENDING").notNull(),
+    status: duplicateSuggestionStatusEnum("status")
+      .default("PENDING")
+      .notNull(),
     reviewedAt: timestamp("reviewed_at"),
     createdAt: timestamp("created_at").defaultNow().notNull(),
   },
