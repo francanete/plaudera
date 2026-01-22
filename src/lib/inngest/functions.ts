@@ -1,4 +1,5 @@
-import { inngest } from "./client";
+import { inngest, type InngestStepLike } from "./client";
+import { detectDuplicatesJob } from "./functions/detect-duplicates";
 import { db, users, subscriptions } from "@/lib/db";
 import { eq, and, gte, lt, inArray } from "drizzle-orm";
 import { sendAccountSetupEmail } from "@/lib/email";
@@ -263,12 +264,6 @@ function formatDate(date: Date): string {
   });
 }
 
-// Step type for testability (subset of Inngest step methods we use)
-export type InngestStepLike = {
-  run: <T>(name: string, fn: () => Promise<T>) => Promise<T>;
-  sleep: (name: string, duration: number) => Promise<void>;
-};
-
 // Extracted handler for testability
 export async function trialEndingReminderHandler(step: InngestStepLike) {
   // Step 1: Find trials ending in 24-48 hours
@@ -416,4 +411,5 @@ export const functions = [
   syncAllSubscriptions,
   paidSignupEmailJob,
   trialEndingReminderJob,
+  detectDuplicatesJob,
 ];
