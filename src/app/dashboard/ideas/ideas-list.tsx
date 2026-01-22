@@ -254,13 +254,16 @@ export function IdeasList({
                         <TooltipProvider>
                           <Tooltip>
                             <TooltipTrigger asChild>
-                              <span className="bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium">
+                              <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
                                 <Copy className="h-3 w-3" />
                                 Duplicate?
                               </span>
                             </TooltipTrigger>
                             <TooltipContent>
-                              <p>Potential duplicate detected. Review in Duplicates page.</p>
+                              <p>
+                                Potential duplicate detected. Review in
+                                Duplicates page.
+                              </p>
                             </TooltipContent>
                           </Tooltip>
                         </TooltipProvider>

@@ -4,7 +4,11 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { eq, and, count } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { onboardingFlows, duplicateSuggestions, workspaces } from "@/lib/db/schema";
+import {
+  onboardingFlows,
+  duplicateSuggestions,
+  workspaces,
+} from "@/lib/db/schema";
 import { getSubscriptionStatus } from "@/lib/subscription";
 import { getSubscriptionFromRequest, isUserAdmin } from "@/lib/dal";
 import { appConfig } from "@/lib/config";
