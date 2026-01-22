@@ -2,7 +2,8 @@ import { cosineDistance, sql, eq, and, ne, desc, gt } from "drizzle-orm";
 import { db, ideaEmbeddings, ideas, duplicateSuggestions } from "@/lib/db";
 
 // Configuration
-export const SIMILARITY_THRESHOLD = 0.82; // 82% similarity (cosine distance < 0.18)
+// 65% threshold works well for short titles; higher values miss similar ideas
+export const SIMILARITY_THRESHOLD = 0.55;
 export const MIN_IDEAS_FOR_DETECTION = 5;
 
 export interface DuplicatePair {

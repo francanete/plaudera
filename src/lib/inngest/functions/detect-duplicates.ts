@@ -114,5 +114,6 @@ export async function detectDuplicatesHandler(step: InngestStepLike) {
 export const detectDuplicatesJob = inngest.createFunction(
   { id: "detect-duplicates" },
   { cron: "0 3 * * *" }, // Daily at 3 AM UTC
+  // { cron: "* * * * *" }, // Daily at 3 AM UTC
   async ({ step }) => detectDuplicatesHandler(step as InngestStepLike)
 );

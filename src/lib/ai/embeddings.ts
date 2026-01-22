@@ -20,17 +20,15 @@ export async function generateEmbedding(text: string): Promise<number[]> {
 
 /**
  * Create or update the embedding for an idea.
- * Combines title and description into a single text for embedding.
+ * Uses title only for consistent duplicate detection across all ideas.
  */
 export async function updateIdeaEmbedding(
   ideaId: string,
   title: string,
-  description: string | null
+  _description: string | null
 ): Promise<void> {
-  // Combine title and description for richer semantic representation
-  const text = description ? `${title}\n\n${description}` : title;
-
-  const embedding = await generateEmbedding(text);
+  // Title-only embedding for consistent apples-to-apples comparison
+  const embedding = await generateEmbedding(title);
 
   // Upsert the embedding
   await db

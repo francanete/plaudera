@@ -44,6 +44,7 @@ interface AppSidebarProps {
   subscriptionStatus?: SubscriptionStatus;
   expiresAt?: Date | null;
   isAdmin?: boolean;
+  pendingDuplicatesCount?: number;
 }
 
 const navigation = [
@@ -66,7 +67,13 @@ export function AppSidebar({
   subscriptionStatus,
   expiresAt,
   isAdmin,
+  pendingDuplicatesCount = 0,
 }: AppSidebarProps) {
+  // Build badges map for nav items with counts
+  const badges: Record<string, number> = {};
+  if (pendingDuplicatesCount > 0) {
+    badges["/dashboard/duplicates"] = pendingDuplicatesCount;
+  }
   return (
     <Sidebar collapsible="icon">
       <SidebarHeader>
@@ -94,7 +101,7 @@ export function AppSidebar({
       </SidebarHeader>
 
       <SidebarContent>
-        <NavMain items={navigation} />
+        <NavMain items={navigation} badges={badges} />
         {isAdmin && (
           <>
             <SidebarSeparator />

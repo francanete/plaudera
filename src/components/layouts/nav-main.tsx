@@ -8,6 +8,7 @@ import {
   SidebarGroupContent,
   SidebarGroupLabel,
   SidebarMenu,
+  SidebarMenuBadge,
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
@@ -21,9 +22,10 @@ interface NavItem {
 interface NavMainProps {
   items: NavItem[];
   label?: string;
+  badges?: Record<string, number>;
 }
 
-export function NavMain({ items, label }: NavMainProps) {
+export function NavMain({ items, label, badges = {} }: NavMainProps) {
   const pathname = usePathname();
 
   return (
@@ -33,6 +35,7 @@ export function NavMain({ items, label }: NavMainProps) {
         <SidebarMenu>
           {items.map((item) => {
             const isActive = pathname === item.href;
+            const badgeCount = badges[item.href];
             return (
               <SidebarMenuItem key={item.name}>
                 <SidebarMenuButton
@@ -46,6 +49,9 @@ export function NavMain({ items, label }: NavMainProps) {
                     <span>{item.name}</span>
                   </Link>
                 </SidebarMenuButton>
+                {badgeCount !== undefined && badgeCount > 0 && (
+                  <SidebarMenuBadge>{badgeCount}</SidebarMenuBadge>
+                )}
               </SidebarMenuItem>
             );
           })}

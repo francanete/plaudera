@@ -13,7 +13,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Plus, ChevronUp, Lightbulb } from "lucide-react";
+import { Plus, ChevronUp, Lightbulb, Copy } from "lucide-react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import type { Idea, IdeaStatus } from "@/lib/db/schema";
 import {
   ALL_IDEA_STATUSES,
@@ -24,14 +30,17 @@ interface IdeasListProps {
   initialIdeas: Idea[];
   workspaceSlug: string;
   initialStatusFilter?: IdeaStatus;
+  ideasWithDuplicates?: string[];
 }
 
 export function IdeasList({
   initialIdeas,
   workspaceSlug,
   initialStatusFilter,
+  ideasWithDuplicates = [],
 }: IdeasListProps) {
   const [ideas, setIdeas] = useState(initialIdeas);
+  const duplicateIdeaIds = new Set(ideasWithDuplicates);
   const [isCreating, setIsCreating] = useState(false);
   const [newTitle, setNewTitle] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -223,6 +232,7 @@ export function IdeasList({
           </Card>
         )}
         {filteredIdeas.map((idea) => {
+          const hasDuplicate = duplicateIdeaIds.has(idea.id);
           return (
             <Link key={idea.id} href={`/dashboard/ideas/${idea.id}`}>
               <Card className="hover:border-primary/50 cursor-pointer transition-colors">
@@ -238,7 +248,24 @@ export function IdeasList({
 
                   {/* Content */}
                   <div className="min-w-0 flex-1">
-                    <h3 className="truncate font-medium">{idea.title}</h3>
+                    <div className="flex items-center gap-2">
+                      <h3 className="truncate font-medium">{idea.title}</h3>
+                      {hasDuplicate && (
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className="bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium">
+                                <Copy className="h-3 w-3" />
+                                Duplicate?
+                              </span>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Potential duplicate detected. Review in Duplicates page.</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      )}
+                    </div>
                     {idea.description && (
                       <p className="text-muted-foreground mt-1 line-clamp-1 text-sm">
                         {idea.description}
