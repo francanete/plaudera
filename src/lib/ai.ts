@@ -16,3 +16,19 @@ export const models = {
 };
 
 export type ModelName = keyof typeof models;
+
+// Re-export AI services for embeddings and similarity
+export {
+  generateEmbedding,
+  updateIdeaEmbedding,
+  deleteIdeaEmbedding,
+  syncWorkspaceEmbeddings,
+} from "./ai/embeddings";
+
+export {
+  findDuplicatesInWorkspace,
+  createDuplicateSuggestions,
+  SIMILARITY_THRESHOLD,
+  MIN_IDEAS_FOR_DETECTION,
+  type DuplicatePair,
+} from "./ai/similarity";

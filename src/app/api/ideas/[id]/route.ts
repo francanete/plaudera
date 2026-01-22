@@ -5,6 +5,7 @@ import { db, ideas, type IdeaStatus } from "@/lib/db";
 import { protectedApiRouteWrapper } from "@/lib/dal";
 import { NotFoundError, ForbiddenError } from "@/lib/errors";
 import { ALL_IDEA_STATUSES } from "@/lib/idea-status-config";
+import { updateIdeaEmbedding } from "@/lib/ai/embeddings";
 
 const updateIdeaSchema = z.object({
   title: z.string().min(1).max(200).optional(),
@@ -73,6 +74,17 @@ export const PATCH = protectedApiRouteWrapper<RouteParams>(
       .set(updateData)
       .where(eq(ideas.id, params.id))
       .returning();
+
+    // Regenerate embedding if title or description changed (fire-and-forget)
+    if (data.title !== undefined || data.description !== undefined) {
+      updateIdeaEmbedding(
+        updatedIdea.id,
+        updatedIdea.title,
+        updatedIdea.description
+      ).catch((err) =>
+        console.error("Failed to update embedding for idea:", err)
+      );
+    }
 
     return NextResponse.json({ idea: updatedIdea });
   },

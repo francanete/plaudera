@@ -3,6 +3,7 @@ import {
   AlertCircle,
   CheckCircle,
   Clock,
+  GitMerge,
   Lightbulb,
   PlayCircle,
   Search,
@@ -21,6 +22,7 @@ export const ALL_IDEA_STATUSES: IdeaStatus[] = [
   "IN_PROGRESS",
   "DONE",
   "DECLINED",
+  "MERGED",
 ];
 
 /**
@@ -42,4 +44,5 @@ export const IDEA_STATUS_CONFIG: Record<
   IN_PROGRESS: { label: "In Progress", variant: "secondary", icon: PlayCircle },
   DONE: { label: "Done", variant: "default", icon: CheckCircle },
   DECLINED: { label: "Declined", variant: "destructive", icon: XCircle },
+  MERGED: { label: "Merged", variant: "secondary", icon: GitMerge },
 };
