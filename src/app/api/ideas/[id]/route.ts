@@ -91,12 +91,15 @@ export const PATCH = protectedApiRouteWrapper<RouteParams>(
   { requirePaid: false }
 );
 
-// DELETE /api/ideas/[id] - Delete an idea
+// DELETE /api/ideas/[id] - Soft-delete an idea (set status to DECLINED)
 export const DELETE = protectedApiRouteWrapper<RouteParams>(
   async (_request, { session, params }) => {
     await getIdeaWithOwnerCheck(params.id, session.user.id);
 
-    await db.delete(ideas).where(eq(ideas.id, params.id));
+    await db
+      .update(ideas)
+      .set({ status: "DECLINED", updatedAt: new Date() })
+      .where(eq(ideas.id, params.id));
 
     return NextResponse.json({ success: true });
   },

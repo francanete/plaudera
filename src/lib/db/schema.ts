@@ -377,28 +377,20 @@ export const featureRateLimitsRelations = relations(
 
 // ============ Idea Status Enum ============
 export const ideaStatusEnum = pgEnum("idea_status", [
-  "PENDING",
-  "NEW",
   "UNDER_REVIEW",
-  "PLANNED",
-  "IN_PROGRESS",
-  "DONE",
+  "PUBLISHED",
   "DECLINED",
   "MERGED",
 ]);
 
 /**
  * Statuses that are visible on the public feedback board.
- * PENDING = awaiting admin approval (hidden)
- * DECLINED = rejected ideas (hidden)
+ * Only PUBLISHED ideas are visible to everyone.
+ * UNDER_REVIEW = awaiting owner approval (hidden, except to submitter)
+ * DECLINED = rejected (hidden, soft-delete)
+ * MERGED = duplicate merged into another (hidden)
  */
-export const PUBLIC_VISIBLE_STATUSES: IdeaStatus[] = [
-  "NEW",
-  "UNDER_REVIEW",
-  "PLANNED",
-  "IN_PROGRESS",
-  "DONE",
-] as const;
+export const PUBLIC_VISIBLE_STATUSES: IdeaStatus[] = ["PUBLISHED"] as const;
 
 // ============ Contributors (workspace owners' customers) ============
 export const contributors = pgTable(
@@ -506,7 +498,7 @@ export const ideas = pgTable(
     }),
     title: text("title").notNull(),
     description: text("description"),
-    status: ideaStatusEnum("status").default("PENDING").notNull(),
+    status: ideaStatusEnum("status").default("UNDER_REVIEW").notNull(),
     voteCount: integer("vote_count").default(0).notNull(),
     mergedIntoId: text("merged_into_id"),
     authorEmail: text("author_email"),

@@ -83,7 +83,7 @@ export const POST = protectedApiRouteWrapper(
         workspaceId: workspace.id,
         title: data.title,
         description: data.description || null,
-        status: "NEW",
+        status: "PUBLISHED",
         voteCount: 0,
       })
       .returning();

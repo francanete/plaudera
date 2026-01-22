@@ -53,9 +53,9 @@ async function BoardContent({ slug }: { slug: string }) {
         or(
           // Public visible statuses (for everyone)
           inArray(ideas.status, PUBLIC_VISIBLE_STATUSES),
-          // Contributor's own PENDING ideas (only visible to them)
+          // Contributor's own UNDER_REVIEW ideas (only visible to them)
           and(
-            eq(ideas.status, "PENDING"),
+            eq(ideas.status, "UNDER_REVIEW"),
             eq(ideas.contributorId, contributor.id)
           )
         )
