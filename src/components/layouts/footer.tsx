@@ -38,9 +38,6 @@ export function Footer() {
             </div>
             <p className="max-w-xs text-sm leading-relaxed text-gray-500">
               {appConfig.description}
-              <br />
-              Building the future of digital experiences with confidence and
-              security.
             </p>
             <div className="flex space-x-5">
               <a

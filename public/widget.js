@@ -29,9 +29,70 @@
   let iframe = null;
 
   // Styles
-  const BUTTON_SIZE = 56;
+  const BUTTON_HEIGHT = 44;
   const PANEL_WIDTH = 400;
   const Z_INDEX = 2147483647; // Max z-index
+
+  // Page rules (populated from API)
+  let pageRules = [];
+  let showLabel = true; // Whether to show "Feedback" text on hover
+
+  // Convert a glob pattern to a RegExp
+  const MAX_DOUBLE_STARS = 2;
+
+  function globToRegex(pattern) {
+    let result = '';
+    let i = 0;
+    let doubleStarCount = 0;
+
+    while (i < pattern.length) {
+      const ch = pattern[i];
+
+      if (ch === '*' && pattern[i + 1] === '*') {
+        // ** matches any path segments including /
+        doubleStarCount++;
+        i += 2;
+        if (pattern[i] === '/') i++;
+
+        if (doubleStarCount > MAX_DOUBLE_STARS) {
+          // Degrade to single-segment match to prevent ReDoS
+          result += '[^/]*';
+        } else if (result.length > 0 && result[result.length - 1] === '/') {
+          // /docs/** → also matches /docs (make trailing segments optional)
+          result = result.slice(0, -1);
+          result += '(?:/.*)?';
+        } else {
+          result += '.*';
+        }
+      } else if (ch === '*') {
+        // * matches any characters except /
+        result += '[^/]*';
+        i++;
+      } else if (ch === '?') {
+        // ? matches any single character except /
+        result += '[^/]';
+        i++;
+      } else if ('^$.|+()[]{}\\'.indexOf(ch) !== -1) {
+        // Escape regex special characters (? excluded — handled above)
+        result += '\\' + ch;
+        i++;
+      } else {
+        result += ch;
+        i++;
+      }
+    }
+
+    return new RegExp('^' + result + '$');
+  }
+
+  // Check if current page matches any page rule
+  function matchesPageRules(rules) {
+    if (!rules || rules.length === 0) return true;
+    const pathname = window.location.pathname;
+    return rules.some(function(rule) {
+      return globToRegex(rule).test(pathname);
+    });
+  }
 
   // Fetch widget settings from API
   function fetchSettings() {
@@ -46,59 +107,112 @@
         if (data.position) {
           position = data.position;
         }
+        if (data.pageRules) {
+          pageRules = data.pageRules;
+        }
+        if (data.showLabel !== undefined) {
+          showLabel = data.showLabel;
+        }
       })
       .catch(function(error) {
         console.warn('[Plaudera] Could not fetch settings, using fallback:', error.message);
       });
   }
 
-  // Create floating button
+  // Create floating button (pill shape, expands on hover to show label)
   function createButton() {
     button = document.createElement('button');
     button.id = 'plaudera-widget-button';
     button.setAttribute('aria-label', 'Open feedback');
 
-    // Base styles
-    const buttonSide = position === 'bottom-left' ? 'left' : 'right';
+    var collapsedWidth = BUTTON_HEIGHT; // Circular when collapsed
+    var expandedWidth = 140; // Pill width when expanded with text
+
+    // Base styles - starts as a circle (icon only)
+    var buttonSide = position === 'bottom-left' ? 'left' : 'right';
     Object.assign(button.style, {
       position: 'fixed',
       bottom: '20px',
-      width: BUTTON_SIZE + 'px',
-      height: BUTTON_SIZE + 'px',
-      borderRadius: '50%',
+      width: collapsedWidth + 'px',
+      height: BUTTON_HEIGHT + 'px',
+      borderRadius: (BUTTON_HEIGHT / 2) + 'px',
       border: 'none',
-      backgroundColor: '#18181b', // zinc-900
+      backgroundColor: '#18181b',
       color: '#ffffff',
       cursor: 'pointer',
       boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
       zIndex: Z_INDEX,
       display: 'flex',
       alignItems: 'center',
-      justifyContent: 'center',
-      transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+      justifyContent: showLabel ? 'flex-start' : 'center',
+      gap: '8px',
+      paddingLeft: showLabel ? '12px' : '0',
+      paddingRight: showLabel ? '12px' : '0',
+      overflow: 'hidden',
+      whiteSpace: 'nowrap',
+      transition: 'width 0.3s ease, box-shadow 0.2s ease, transform 0.2s ease',
       fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
     });
     button.style[buttonSide] = '20px';
 
-    // Icon (lightbulb emoji or SVG)
-    button.innerHTML = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg>';
+    // Icon
+    var iconSpan = document.createElement('span');
+    Object.assign(iconSpan.style, {
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      flexShrink: '0',
+      width: '20px',
+      height: '20px',
+    });
+    iconSpan.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg>';
 
-    // Hover effect
+    // Label text (hidden initially, revealed on hover)
+    var labelSpan = document.createElement('span');
+    labelSpan.textContent = 'Feedback';
+    Object.assign(labelSpan.style, {
+      fontSize: '14px',
+      fontWeight: '500',
+      opacity: '0',
+      transition: 'opacity 0.2s ease 0.1s',
+      pointerEvents: 'none',
+    });
+
+    button.appendChild(iconSpan);
+    if (showLabel) {
+      button.appendChild(labelSpan);
+    }
+
+    // Hover: expand to show label
     button.onmouseenter = function() {
-      button.style.transform = 'scale(1.05)';
+      if (showLabel) {
+        button.style.width = expandedWidth + 'px';
+        labelSpan.style.opacity = '1';
+      }
       button.style.boxShadow = '0 6px 16px rgba(0, 0, 0, 0.2)';
     };
     button.onmouseleave = function() {
-      button.style.transform = 'scale(1)';
+      if (showLabel) {
+        button.style.width = collapsedWidth + 'px';
+        labelSpan.style.opacity = '0';
+      }
       button.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.15)';
     };
 
     // Focus ring for keyboard navigation (accessibility)
     button.onfocus = function() {
       button.style.outline = 'none';
+      if (showLabel) {
+        button.style.width = expandedWidth + 'px';
+        labelSpan.style.opacity = '1';
+      }
       button.style.boxShadow = '0 0 0 3px rgba(59, 130, 246, 0.5), 0 4px 12px rgba(0, 0, 0, 0.15)';
     };
     button.onblur = function() {
+      if (showLabel) {
+        button.style.width = collapsedWidth + 'px';
+        labelSpan.style.opacity = '0';
+      }
       button.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.15)';
     };
 
@@ -321,8 +435,11 @@
   }
 
   function loadAndSetup() {
-    // Fetch settings from API first, then setup
-    fetchSettings().then(setup);
+    // Fetch settings from API first, then check page rules before setup
+    fetchSettings().then(function() {
+      if (!matchesPageRules(pageRules)) return;
+      setup();
+    });
   }
 
   function setup() {

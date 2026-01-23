@@ -12,12 +12,24 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Check, Copy, Code2, Loader2, Plus, X, Globe } from "lucide-react";
+import {
+  Check,
+  Copy,
+  Code2,
+  Loader2,
+  Plus,
+  X,
+  Globe,
+  Route,
+  Type,
+} from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { appConfig } from "@/lib/config";
 import type { WidgetPosition } from "@/lib/db/schema";
 
 const MAX_ALLOWED_ORIGINS = 10;
+const MAX_PAGE_RULES = 20;
 
 /**
  * Validate and normalize an origin URL (client-side).
@@ -39,22 +51,32 @@ interface WidgetSectionProps {
   workspaceSlug: string;
   initialPosition: WidgetPosition;
   initialAllowedOrigins: string[];
+  initialPageRules: string[];
+  initialShowLabel: boolean;
 }
 
 export function WidgetSection({
   workspaceSlug,
   initialPosition,
   initialAllowedOrigins,
+  initialPageRules,
+  initialShowLabel,
 }: WidgetSectionProps) {
   const [position, setPosition] = useState<WidgetPosition>(initialPosition);
+  const [showLabel, setShowLabel] = useState(initialShowLabel);
   const [allowedOrigins, setAllowedOrigins] = useState<string[]>(
     initialAllowedOrigins
   );
   const [newOrigin, setNewOrigin] = useState("");
   const [originError, setOriginError] = useState<string | null>(null);
+  const [pageRules, setPageRules] = useState<string[]>(initialPageRules);
+  const [newRule, setNewRule] = useState("");
+  const [ruleError, setRuleError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [isPending, startTransition] = useTransition();
   const [isOriginPending, startOriginTransition] = useTransition();
+  const [isRulePending, startRuleTransition] = useTransition();
+  const [isLabelPending, startLabelTransition] = useTransition();
   const copyTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
@@ -86,6 +108,31 @@ export function WidgetSection({
         console.error("[WidgetSection] Failed to update position:", error);
         setPosition(previousPosition); // Revert on error
         toast.error("Failed to save position");
+      }
+    });
+  };
+
+  const handleShowLabelChange = (checked: boolean) => {
+    const previousValue = showLabel;
+    setShowLabel(checked);
+
+    startLabelTransition(async () => {
+      try {
+        const res = await fetch("/api/widget/settings", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ showLabel: checked }),
+        });
+
+        if (!res.ok) {
+          throw new Error("Failed to save");
+        }
+
+        toast.success("Label setting saved");
+      } catch (error) {
+        console.error("[WidgetSection] Failed to update showLabel:", error);
+        setShowLabel(previousValue);
+        toast.error("Failed to save label setting");
       }
     });
   };
@@ -197,6 +244,106 @@ export function WidgetSection({
     });
   };
 
+  const handleAddRule = () => {
+    setRuleError(null);
+
+    const trimmed = newRule.trim();
+    if (!trimmed) {
+      setRuleError("Please enter a path pattern");
+      return;
+    }
+
+    if (!trimmed.startsWith("/")) {
+      setRuleError("Pattern must start with /");
+      return;
+    }
+
+    if (trimmed.length > 200) {
+      setRuleError("Pattern must be 200 characters or less");
+      return;
+    }
+
+    const validPattern = /^[a-zA-Z0-9\-._~:@!$&'()+,;=%/\*\?]+$/;
+    if (!validPattern.test(trimmed)) {
+      setRuleError("Pattern contains invalid characters");
+      return;
+    }
+
+    if (trimmed.includes("***")) {
+      setRuleError("Use * or ** for wildcards, not ***");
+      return;
+    }
+
+    if (trimmed.includes("//")) {
+      setRuleError("Pattern must not contain consecutive slashes");
+      return;
+    }
+
+    if (pageRules.includes(trimmed)) {
+      setRuleError("This pattern is already added");
+      return;
+    }
+
+    if (pageRules.length >= MAX_PAGE_RULES) {
+      setRuleError(`Maximum ${MAX_PAGE_RULES} page rules allowed`);
+      return;
+    }
+
+    const previousRules = pageRules;
+    const updatedRules = [...pageRules, trimmed];
+    setPageRules(updatedRules);
+    setNewRule("");
+
+    startRuleTransition(async () => {
+      try {
+        const res = await fetch("/api/widget/settings", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ pageRules: updatedRules }),
+        });
+
+        if (!res.ok) {
+          const data = await res.json();
+          throw new Error(data.error || "Failed to save");
+        }
+
+        toast.success("Page rule added");
+      } catch (error) {
+        console.error("[WidgetSection] Failed to add page rule:", error);
+        setPageRules(previousRules);
+        toast.error(
+          error instanceof Error ? error.message : "Failed to add page rule"
+        );
+      }
+    });
+  };
+
+  const handleRemoveRule = (ruleToRemove: string) => {
+    const previousRules = pageRules;
+    const updatedRules = pageRules.filter((r) => r !== ruleToRemove);
+    setPageRules(updatedRules);
+
+    startRuleTransition(async () => {
+      try {
+        const res = await fetch("/api/widget/settings", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ pageRules: updatedRules }),
+        });
+
+        if (!res.ok) {
+          throw new Error("Failed to save");
+        }
+
+        toast.success("Page rule removed");
+      } catch (error) {
+        console.error("[WidgetSection] Failed to remove page rule:", error);
+        setPageRules(previousRules);
+        toast.error("Failed to remove page rule");
+      }
+    });
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -241,6 +388,29 @@ export function WidgetSection({
               </Label>
             </div>
           </RadioGroup>
+        </div>
+
+        {/* Show Label toggle */}
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Type className="h-4 w-4" />
+              <Label htmlFor="show-label">
+                Show &quot;Feedback&quot; label
+              </Label>
+              {isLabelPending && <Loader2 className="h-4 w-4 animate-spin" />}
+            </div>
+            <Switch
+              id="show-label"
+              checked={showLabel}
+              onCheckedChange={handleShowLabelChange}
+              disabled={isLabelPending}
+            />
+          </div>
+          <p className="text-muted-foreground text-sm">
+            When enabled, the widget button expands on hover to show
+            &quot;Feedback&quot; text. When disabled, only the icon is shown.
+          </p>
         </div>
 
         {/* Allowed Domains */}
@@ -323,6 +493,79 @@ export function WidgetSection({
           </p>
         </div>
 
+        {/* Page Targeting */}
+        <div className="space-y-3">
+          <div className="flex items-center gap-2">
+            <Route className="h-4 w-4" />
+            <Label>Page Targeting</Label>
+            {isRulePending && <Loader2 className="h-4 w-4 animate-spin" />}
+          </div>
+          <p className="text-muted-foreground text-sm">
+            Specify which pages should show the widget using path patterns.
+            Leave empty to show the widget on all pages.
+          </p>
+
+          {/* Add rule input */}
+          <div className="flex gap-2">
+            <Input
+              placeholder="/pricing, /docs/**, /blog/*"
+              value={newRule}
+              onChange={(e) => {
+                setNewRule(e.target.value);
+                setRuleError(null);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  handleAddRule();
+                }
+              }}
+              disabled={isRulePending || pageRules.length >= MAX_PAGE_RULES}
+              className="flex-1"
+            />
+            <Button
+              onClick={handleAddRule}
+              disabled={isRulePending || pageRules.length >= MAX_PAGE_RULES}
+              size="sm"
+            >
+              <Plus className="mr-1 h-4 w-4" />
+              Add
+            </Button>
+          </div>
+          {ruleError && <p className="text-destructive text-sm">{ruleError}</p>}
+
+          {/* Rules list */}
+          {pageRules.length > 0 ? (
+            <ul className="space-y-2">
+              {pageRules.map((rule) => (
+                <li
+                  key={rule}
+                  className="bg-muted flex items-center justify-between rounded-md px-3 py-2"
+                >
+                  <span className="truncate font-mono text-sm">{rule}</span>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleRemoveRule(rule)}
+                    disabled={isRulePending}
+                    className="hover:bg-destructive/10 h-6 w-6 p-0"
+                  >
+                    <X className="h-4 w-4" />
+                    <span className="sr-only">Remove {rule}</span>
+                  </Button>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-muted-foreground border-muted rounded-md border border-dashed p-4 text-center text-sm">
+              No page rules configured. The widget will show on all pages.
+            </p>
+          )}
+          <p className="text-muted-foreground text-xs">
+            {pageRules.length}/{MAX_PAGE_RULES} page rules configured
+          </p>
+        </div>
+
         {/* Embed code */}
         <div className="space-y-3">
           <Label>Your Embed Code</Label>
@@ -358,6 +601,11 @@ export function WidgetSection({
         {/* Preview */}
         <div className="space-y-3">
           <Label>Preview</Label>
+          <p className="text-muted-foreground text-sm">
+            {showLabel
+              ? 'The button starts as an icon and expands on hover to show "Feedback".'
+              : "The button shows only the lightbulb icon."}
+          </p>
           <div className="bg-muted relative h-40 overflow-hidden rounded-lg border">
             {/* Mock browser content */}
             <div className="text-muted-foreground flex h-full items-center justify-center text-sm">
@@ -365,13 +613,31 @@ export function WidgetSection({
             </div>
             {/* Floating button preview */}
             <div
-              className={`absolute bottom-4 ${
+              className={`group absolute bottom-4 ${
                 position === "bottom-right" ? "right-4" : "left-4"
               }`}
             >
-              <div className="bg-primary text-primary-foreground flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium shadow-lg">
-                <span>💡</span>
-                <span>Feedback</span>
+              <div className="flex h-11 items-center gap-2 rounded-full bg-zinc-900 px-3 text-sm font-medium text-white shadow-lg transition-all duration-300 group-hover:shadow-xl">
+                <svg
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="shrink-0"
+                >
+                  <path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5" />
+                  <path d="M9 18h6" />
+                  <path d="M10 22h4" />
+                </svg>
+                {showLabel && (
+                  <span className="max-w-0 overflow-hidden opacity-0 transition-all duration-300 group-hover:max-w-[80px] group-hover:opacity-100">
+                    Feedback
+                  </span>
+                )}
               </div>
             </div>
           </div>
