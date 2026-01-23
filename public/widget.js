@@ -38,23 +38,42 @@
   let showLabel = true; // Whether to show "Feedback" text on hover
 
   // Convert a glob pattern to a RegExp
+  const MAX_DOUBLE_STARS = 2;
+
   function globToRegex(pattern) {
-    var result = '';
-    var i = 0;
+    let result = '';
+    let i = 0;
+    let doubleStarCount = 0;
+
     while (i < pattern.length) {
-      var ch = pattern[i];
+      const ch = pattern[i];
+
       if (ch === '*' && pattern[i + 1] === '*') {
-        // ** matches any path segments (including /)
-        result += '.*';
+        // ** matches any path segments including /
+        doubleStarCount++;
         i += 2;
-        // Skip trailing slash after ** if present
         if (pattern[i] === '/') i++;
+
+        if (doubleStarCount > MAX_DOUBLE_STARS) {
+          // Degrade to single-segment match to prevent ReDoS
+          result += '[^/]*';
+        } else if (result.length > 0 && result[result.length - 1] === '/') {
+          // /docs/** → also matches /docs (make trailing segments optional)
+          result = result.slice(0, -1);
+          result += '(?:/.*)?';
+        } else {
+          result += '.*';
+        }
       } else if (ch === '*') {
         // * matches any characters except /
         result += '[^/]*';
         i++;
-      } else if ('^$.|+?()[]{}\\'.indexOf(ch) !== -1) {
-        // Escape regex special characters
+      } else if (ch === '?') {
+        // ? matches any single character except /
+        result += '[^/]';
+        i++;
+      } else if ('^$.|+()[]{}\\'.indexOf(ch) !== -1) {
+        // Escape regex special characters (? excluded — handled above)
         result += '\\' + ch;
         i++;
       } else {
@@ -62,17 +81,17 @@
         i++;
       }
     }
+
     return new RegExp('^' + result + '$');
   }
 
   // Check if current page matches any page rule
   function matchesPageRules(rules) {
     if (!rules || rules.length === 0) return true;
-    var pathname = window.location.pathname;
-    for (var i = 0; i < rules.length; i++) {
-      if (globToRegex(rules[i]).test(pathname)) return true;
-    }
-    return false;
+    const pathname = window.location.pathname;
+    return rules.some(function(rule) {
+      return globToRegex(rule).test(pathname);
+    });
   }
 
   // Fetch widget settings from API

@@ -15,7 +15,10 @@ const updateSettingsSchema = z.object({
   allowedOrigins: z.array(z.string()).max(MAX_ALLOWED_ORIGINS).optional(),
   pageRules: z
     .array(
-      z.string().refine((s) => s.startsWith("/"), "Pattern must start with /")
+      z
+        .string()
+        .max(200, "Pattern must be 200 characters or less")
+        .refine((s) => s.startsWith("/"), "Pattern must start with /")
     )
     .max(MAX_PAGE_RULES)
     .optional(),

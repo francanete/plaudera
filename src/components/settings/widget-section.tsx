@@ -258,6 +258,27 @@ export function WidgetSection({
       return;
     }
 
+    if (trimmed.length > 200) {
+      setRuleError("Pattern must be 200 characters or less");
+      return;
+    }
+
+    const validPattern = /^[a-zA-Z0-9\-._~:@!$&'()+,;=%/\*\?]+$/;
+    if (!validPattern.test(trimmed)) {
+      setRuleError("Pattern contains invalid characters");
+      return;
+    }
+
+    if (trimmed.includes("***")) {
+      setRuleError("Use * or ** for wildcards, not ***");
+      return;
+    }
+
+    if (trimmed.includes("//")) {
+      setRuleError("Pattern must not contain consecutive slashes");
+      return;
+    }
+
     if (pageRules.includes(trimmed)) {
       setRuleError("This pattern is already added");
       return;
