@@ -21,12 +21,16 @@ export async function findDuplicatesInWorkspace(
   workspaceId: string
 ): Promise<DuplicatePair[]> {
   // Quick count check to avoid expensive self-join on small workspaces
-  const [{ count }] = await db.execute(sql`
+  const [{ count }] = await db
+    .execute(
+      sql`
     SELECT count(*)::int AS count
     FROM ideas i
     INNER JOIN idea_embeddings ie ON ie.idea_id = i.id
     WHERE i.workspace_id = ${workspaceId} AND i.status != 'MERGED'
-  `).then((r) => r.rows as { count: number }[]);
+  `
+    )
+    .then((r) => r.rows as { count: number }[]);
 
   if (count < MIN_IDEAS_FOR_DETECTION) {
     return [];
