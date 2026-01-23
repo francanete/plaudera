@@ -20,49 +20,57 @@ export interface BenefitComparisonConfig {
 
 export const benefitComparisonConfig: BenefitComparisonConfig = {
   header: {
-    title: "The cost of staying put",
+    title: "The cost of ignoring feedback",
     subtitle:
-      "Every day without the right infrastructure means lost revenue, frustrated teams, and mounting technical debt.",
+      "Every feature request lost in a Slack thread or buried in a support ticket is a missed opportunity to build what your users actually want.",
   },
   oldWay: {
-    label: "The old way",
+    label: "Without Plaudera",
     items: [
       {
-        title: "Manual reconciliation",
-        description: "Hours lost to spreadsheets and data mismatches",
+        title: "Feedback scattered everywhere",
+        description:
+          "Ideas buried in emails, Slack, support tickets, and spreadsheets nobody maintains",
       },
       {
-        title: "Fragmented tools",
-        description: "Data scattered across disconnected systems",
+        title: "No way to prioritize",
+        description:
+          "Guessing which features matter most without data to back it up",
       },
       {
-        title: "Slow onboarding",
-        description: "Days of setup before customers see value",
+        title: "Duplicate requests pile up",
+        description:
+          "The same idea submitted ten different ways, inflating your backlog",
       },
       {
-        title: "Security gaps",
-        description: "Patchwork compliance that keeps you up at night",
+        title: "Users feel unheard",
+        description:
+          "No visibility into what's planned, so customers stop sharing feedback entirely",
       },
     ],
   },
   modernApproach: {
-    label: "The modern approach",
+    label: "With Plaudera",
     items: [
       {
-        title: "Real-time sync",
-        description: "Automated accuracy across every platform",
+        title: "One place for all feedback",
+        description:
+          "A public board where users submit, vote, and track ideas in real time",
       },
       {
-        title: "Single source of truth",
-        description: "One unified view for confident decisions",
+        title: "Data-driven prioritization",
+        description:
+          "See exactly which features have the most votes and engagement",
       },
       {
-        title: "Instant provisioning",
-        description: "Customers live in under 60 seconds",
+        title: "AI-powered deduplication",
+        description:
+          "Automatically detect and merge similar ideas to keep your board clean",
       },
       {
-        title: "Enterprise security",
-        description: "SOC 2 compliant infrastructure from day one",
+        title: "Users stay in the loop",
+        description:
+          "Status updates and an embeddable widget keep the feedback flowing",
       },
     ],
   },
