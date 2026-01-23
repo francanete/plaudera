@@ -12,6 +12,7 @@ import { HeroSection } from "@/components/hero/hero-section";
 import { BenefitComparison } from "@/components/benefit-comparison/benefit-comparison";
 import { PricingSection } from "@/components/pricing/pricing-section";
 import { TestimonialSection } from "@/components/testimonials/testimonial-section";
+import { HowItWorksSection } from "@/components/how-it-works/how-it-works-section";
 
 export const metadata: Metadata = seo.page({
   title: "Customer Feedback & Idea Management for Product Teams",
@@ -36,8 +37,11 @@ export default function HomePage() {
         {/* Benefit Comparison */}
         <BenefitComparison />
 
-        {/* Testimonials */}
-        <TestimonialSection />
+        {/* How It Works */}
+        <HowItWorksSection />
+
+        {/* Testimonials - uncomment when real testimonials are available */}
+        {/* <TestimonialSection /> */}
 
         {/* Pricing */}
         <PricingSection />
