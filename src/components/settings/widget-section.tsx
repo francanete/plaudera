@@ -12,7 +12,8 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Check, Copy, Code2, Loader2, Plus, X, Globe, Route } from "lucide-react";
+import { Check, Copy, Code2, Loader2, Plus, X, Globe, Route, Type } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { appConfig } from "@/lib/config";
 import type { WidgetPosition } from "@/lib/db/schema";
@@ -41,6 +42,7 @@ interface WidgetSectionProps {
   initialPosition: WidgetPosition;
   initialAllowedOrigins: string[];
   initialPageRules: string[];
+  initialShowLabel: boolean;
 }
 
 export function WidgetSection({
@@ -48,8 +50,10 @@ export function WidgetSection({
   initialPosition,
   initialAllowedOrigins,
   initialPageRules,
+  initialShowLabel,
 }: WidgetSectionProps) {
   const [position, setPosition] = useState<WidgetPosition>(initialPosition);
+  const [showLabel, setShowLabel] = useState(initialShowLabel);
   const [allowedOrigins, setAllowedOrigins] = useState<string[]>(
     initialAllowedOrigins
   );
@@ -62,6 +66,7 @@ export function WidgetSection({
   const [isPending, startTransition] = useTransition();
   const [isOriginPending, startOriginTransition] = useTransition();
   const [isRulePending, startRuleTransition] = useTransition();
+  const [isLabelPending, startLabelTransition] = useTransition();
   const copyTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
@@ -93,6 +98,31 @@ export function WidgetSection({
         console.error("[WidgetSection] Failed to update position:", error);
         setPosition(previousPosition); // Revert on error
         toast.error("Failed to save position");
+      }
+    });
+  };
+
+  const handleShowLabelChange = (checked: boolean) => {
+    const previousValue = showLabel;
+    setShowLabel(checked);
+
+    startLabelTransition(async () => {
+      try {
+        const res = await fetch("/api/widget/settings", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ showLabel: checked }),
+        });
+
+        if (!res.ok) {
+          throw new Error("Failed to save");
+        }
+
+        toast.success("Label setting saved");
+      } catch (error) {
+        console.error("[WidgetSection] Failed to update showLabel:", error);
+        setShowLabel(previousValue);
+        toast.error("Failed to save label setting");
       }
     });
   };
@@ -329,6 +359,27 @@ export function WidgetSection({
           </RadioGroup>
         </div>
 
+        {/* Show Label toggle */}
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Type className="h-4 w-4" />
+              <Label htmlFor="show-label">Show &quot;Feedback&quot; label</Label>
+              {isLabelPending && <Loader2 className="h-4 w-4 animate-spin" />}
+            </div>
+            <Switch
+              id="show-label"
+              checked={showLabel}
+              onCheckedChange={handleShowLabelChange}
+              disabled={isLabelPending}
+            />
+          </div>
+          <p className="text-muted-foreground text-sm">
+            When enabled, the widget button expands on hover to show
+            &quot;Feedback&quot; text. When disabled, only the icon is shown.
+          </p>
+        </div>
+
         {/* Allowed Domains */}
         <div className="space-y-3">
           <div className="flex items-center gap-2">
@@ -519,6 +570,11 @@ export function WidgetSection({
         {/* Preview */}
         <div className="space-y-3">
           <Label>Preview</Label>
+          <p className="text-muted-foreground text-sm">
+            {showLabel
+              ? "The button starts as an icon and expands on hover to show \"Feedback\"."
+              : "The button shows only the lightbulb icon."}
+          </p>
           <div className="bg-muted relative h-40 overflow-hidden rounded-lg border">
             {/* Mock browser content */}
             <div className="text-muted-foreground flex h-full items-center justify-center text-sm">
@@ -526,13 +582,31 @@ export function WidgetSection({
             </div>
             {/* Floating button preview */}
             <div
-              className={`absolute bottom-4 ${
+              className={`group absolute bottom-4 ${
                 position === "bottom-right" ? "right-4" : "left-4"
               }`}
             >
-              <div className="bg-primary text-primary-foreground flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium shadow-lg">
-                <span>💡</span>
-                <span>Feedback</span>
+              <div className="flex h-11 items-center gap-2 rounded-full bg-zinc-900 px-3 text-sm font-medium text-white shadow-lg transition-all duration-300 group-hover:shadow-xl">
+                <svg
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="shrink-0"
+                >
+                  <path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5" />
+                  <path d="M9 18h6" />
+                  <path d="M10 22h4" />
+                </svg>
+                {showLabel && (
+                  <span className="max-w-0 overflow-hidden opacity-0 transition-all duration-300 group-hover:max-w-[80px] group-hover:opacity-100">
+                    Feedback
+                  </span>
+                )}
               </div>
             </div>
           </div>

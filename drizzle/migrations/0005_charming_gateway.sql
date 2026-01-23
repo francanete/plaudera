@@ -1,0 +1,1 @@
+ALTER TABLE "widget_settings" ADD COLUMN "show_label" boolean DEFAULT true NOT NULL;
