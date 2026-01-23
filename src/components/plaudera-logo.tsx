@@ -6,7 +6,7 @@ interface PlauderaLogoProps {
 
 /**
  * Custom Plaudera logo — stacked diamond planes inspired by the
- * Lucide Layers icon, with a cleaner, more refined look.
+ * Lucide Layers icon, with a cleaner, more refined look
  */
 export function PlauderaLogo({ className }: PlauderaLogoProps) {
   return (
