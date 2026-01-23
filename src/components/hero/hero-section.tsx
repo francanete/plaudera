@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { ArrowRight, CheckCircle2, ChevronRight } from "lucide-react";
+import { ArrowRight, CheckCircle2, ChevronRight, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { HeroDashboardMockup } from "./hero-dashboard-mockup";
@@ -64,19 +64,20 @@ export function HeroSection({ className }: HeroSectionProps) {
                 isInView ? "opacity-100" : "opacity-0"
               )}
             >
-              <span className="flex h-5 items-center rounded-full bg-slate-900 px-2 text-[10px] font-bold text-white uppercase">
+              <span className="flex h-5 items-center gap-1 rounded-full bg-slate-900 px-2 text-[10px] font-bold text-white uppercase">
+                <Sparkles className="h-2.5 w-2.5" />
                 New
               </span>
               <span className="text-sm font-medium text-slate-600">
-                AI-powered development tools
+                AI duplicate detection is here
               </span>
               <ChevronRight className="h-3 w-3 text-slate-400" />
             </div>
 
             {/* Headline */}
             <h1 className="mb-8 text-5xl font-bold tracking-tight text-slate-900 sm:text-6xl lg:text-7xl">
-              Build Your SaaS <br />
-              <span className="text-slate-400">Faster Than Ever</span>
+              Your customers know <br />
+              <span className="text-slate-400">what to build next</span>
             </h1>
 
             {/* Subheadline */}
@@ -89,9 +90,9 @@ export function HeroSection({ className }: HeroSectionProps) {
                   : "translate-y-8 opacity-0"
               )}
             >
-              A modern, production-ready boilerplate with authentication,
-              payments, AI integration, and everything you need to launch your
-              next project.
+              Collect feedback with public boards and embeddable widgets.
+              Let users vote on ideas, and let AI surface duplicates — so you
+              focus on shipping what matters.
             </p>
 
             {/* CTAs */}
@@ -110,7 +111,7 @@ export function HeroSection({ className }: HeroSectionProps) {
                 className="h-12 rounded-full bg-slate-900 px-8 text-base font-semibold text-white shadow-lg shadow-slate-900/20 transition-all hover:-translate-y-0.5 hover:bg-slate-800 hover:shadow-xl hover:shadow-slate-900/30"
               >
                 <Link href="/register">
-                  Get Started
+                  Start Collecting Feedback
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Link>
               </Button>
@@ -128,7 +129,7 @@ export function HeroSection({ className }: HeroSectionProps) {
             {/* Trust Indicators */}
             <div
               className={cn(
-                "mt-12 flex items-center gap-6 text-sm font-medium text-slate-500",
+                "mt-12 flex flex-wrap items-center gap-6 text-sm font-medium text-slate-500",
                 "transition-all delay-500 duration-700",
                 isInView
                   ? "translate-y-0 opacity-100"
@@ -137,11 +138,15 @@ export function HeroSection({ className }: HeroSectionProps) {
             >
               <div className="flex items-center gap-2">
                 <CheckCircle2 className="h-4 w-4 text-slate-400" />
-                <span>No credit card required</span>
+                <span>Free plan available</span>
               </div>
               <div className="flex items-center gap-2">
                 <CheckCircle2 className="h-4 w-4 text-slate-400" />
-                <span>14-day free trial</span>
+                <span>5-minute setup</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="h-4 w-4 text-slate-400" />
+                <span>No code required</span>
               </div>
             </div>
           </div>
