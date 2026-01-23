@@ -14,7 +14,9 @@ const updateSettingsSchema = z.object({
   position: z.enum(["bottom-right", "bottom-left"]).optional(),
   allowedOrigins: z.array(z.string()).max(MAX_ALLOWED_ORIGINS).optional(),
   pageRules: z
-    .array(z.string().refine((s) => s.startsWith("/"), "Pattern must start with /"))
+    .array(
+      z.string().refine((s) => s.startsWith("/"), "Pattern must start with /")
+    )
     .max(MAX_PAGE_RULES)
     .optional(),
   showLabel: z.boolean().optional(),

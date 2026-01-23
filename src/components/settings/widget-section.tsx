@@ -12,7 +12,17 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Check, Copy, Code2, Loader2, Plus, X, Globe, Route, Type } from "lucide-react";
+import {
+  Check,
+  Copy,
+  Code2,
+  Loader2,
+  Plus,
+  X,
+  Globe,
+  Route,
+  Type,
+} from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { appConfig } from "@/lib/config";
@@ -364,7 +374,9 @@ export function WidgetSection({
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Type className="h-4 w-4" />
-              <Label htmlFor="show-label">Show &quot;Feedback&quot; label</Label>
+              <Label htmlFor="show-label">
+                Show &quot;Feedback&quot; label
+              </Label>
               {isLabelPending && <Loader2 className="h-4 w-4 animate-spin" />}
             </div>
             <Switch
@@ -468,8 +480,8 @@ export function WidgetSection({
             {isRulePending && <Loader2 className="h-4 w-4 animate-spin" />}
           </div>
           <p className="text-muted-foreground text-sm">
-            Specify which pages should show the widget using path patterns. Leave
-            empty to show the widget on all pages.
+            Specify which pages should show the widget using path patterns.
+            Leave empty to show the widget on all pages.
           </p>
 
           {/* Add rule input */}
@@ -499,9 +511,7 @@ export function WidgetSection({
               Add
             </Button>
           </div>
-          {ruleError && (
-            <p className="text-destructive text-sm">{ruleError}</p>
-          )}
+          {ruleError && <p className="text-destructive text-sm">{ruleError}</p>}
 
           {/* Rules list */}
           {pageRules.length > 0 ? (
@@ -572,7 +582,7 @@ export function WidgetSection({
           <Label>Preview</Label>
           <p className="text-muted-foreground text-sm">
             {showLabel
-              ? "The button starts as an icon and expands on hover to show \"Feedback\"."
+              ? 'The button starts as an icon and expands on hover to show "Feedback".'
               : "The button shows only the lightbulb icon."}
           </p>
           <div className="bg-muted relative h-40 overflow-hidden rounded-lg border">
