@@ -14,7 +14,17 @@ vi.mock("@/lib/db", () => ({
 }));
 
 vi.mock("@/lib/db/schema", () => ({
-  workspaces: { ownerId: "ownerId", slug: "slug" },
+  workspaces: {
+    ownerId: "ownerId",
+    slug: "slug",
+    previousSlug: "previousSlug",
+  },
+  slugChangeHistory: { workspaceId: "workspaceId", changedAt: "changedAt" },
+}));
+
+vi.mock("@/lib/slug-validation", () => ({
+  MAX_DAILY_SLUG_CHANGES: 3,
+  MAX_LIFETIME_SLUG_CHANGES: 10,
 }));
 
 // Mock cuid2 with predictable output for testing
@@ -241,7 +251,7 @@ describe("workspace", () => {
   });
 
   describe("getWorkspaceBySlug", () => {
-    it("returns workspace when slug matches", async () => {
+    it("returns workspace with isRedirect false when current slug matches", async () => {
       const mockWorkspace = {
         id: "workspace-456",
         name: "Public Workspace",
@@ -257,7 +267,31 @@ describe("workspace", () => {
 
       const result = await getWorkspaceBySlug("public-xyz98765");
 
-      expect(result).toEqual(mockWorkspace);
+      expect(result).toEqual({ workspace: mockWorkspace, isRedirect: false });
+    });
+
+    it("returns workspace with isRedirect true when previousSlug matches", async () => {
+      const mockWorkspace = {
+        id: "workspace-456",
+        name: "Public Workspace",
+        slug: "new-slug",
+        previousSlug: "old-slug",
+        ownerId: "user-456",
+        createdAt: new Date(),
+      };
+
+      // First call (current slug check) returns nothing
+      // Second call (previousSlug check) returns the workspace
+      mockFindFirst
+        .mockResolvedValueOnce(undefined)
+        .mockResolvedValueOnce(mockWorkspace);
+
+      vi.resetModules();
+      const { getWorkspaceBySlug } = await import("@/lib/workspace");
+
+      const result = await getWorkspaceBySlug("old-slug");
+
+      expect(result).toEqual({ workspace: mockWorkspace, isRedirect: true });
     });
 
     it("returns null when slug not found", async () => {

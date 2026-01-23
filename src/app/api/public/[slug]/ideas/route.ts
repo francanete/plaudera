@@ -46,9 +46,9 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
     const { slug } = await params;
 
-    // Find the workspace
+    // Find the workspace (check both current and previous slug for widget compatibility)
     const workspace = await db.query.workspaces.findFirst({
-      where: eq(workspaces.slug, slug),
+      where: or(eq(workspaces.slug, slug), eq(workspaces.previousSlug, slug)),
     });
 
     if (!workspace) {
@@ -168,9 +168,9 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    // Find the workspace
+    // Find the workspace (check both current and previous slug for widget compatibility)
     const workspace = await db.query.workspaces.findFirst({
-      where: eq(workspaces.slug, slug),
+      where: or(eq(workspaces.slug, slug), eq(workspaces.previousSlug, slug)),
     });
 
     if (!workspace) {

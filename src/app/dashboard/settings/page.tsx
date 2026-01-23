@@ -1,7 +1,7 @@
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
-import { db, subscriptions } from "@/lib/db";
-import { eq } from "drizzle-orm";
+import { db, subscriptions, slugChangeHistory } from "@/lib/db";
+import { eq, count } from "drizzle-orm";
 import {
   Card,
   CardContent,
@@ -14,17 +14,32 @@ import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ProfileForm } from "@/components/settings/profile-form";
 import { BillingSection } from "@/components/settings/billing-section";
+import { WorkspaceSlugForm } from "@/components/settings/workspace-slug-form";
+import { getUserWorkspace } from "@/lib/workspace";
 
 export default async function SettingsPage() {
   const session = await auth.api.getSession({
     headers: await headers(),
   });
 
-  const [subscription] = await db
-    .select()
-    .from(subscriptions)
-    .where(eq(subscriptions.userId, session!.user.id))
-    .limit(1);
+  const [[subscription], workspace] = await Promise.all([
+    db
+      .select()
+      .from(subscriptions)
+      .where(eq(subscriptions.userId, session!.user.id))
+      .limit(1),
+    getUserWorkspace(session!.user.id),
+  ]);
+
+  // Get slug change count for the workspace
+  let slugChangesUsed = 0;
+  if (workspace) {
+    const [result] = await db
+      .select({ count: count() })
+      .from(slugChangeHistory)
+      .where(eq(slugChangeHistory.workspaceId, workspace.id));
+    slugChangesUsed = result?.count ?? 0;
+  }
 
   const user = session!.user;
   const initials = user.name
@@ -47,6 +62,7 @@ export default async function SettingsPage() {
       <Tabs defaultValue="profile" className="space-y-6">
         <TabsList id="tour-settings-tabs">
           <TabsTrigger value="profile">Profile</TabsTrigger>
+          <TabsTrigger value="workspace">Workspace</TabsTrigger>
           <TabsTrigger value="billing">Billing</TabsTrigger>
         </TabsList>
 
@@ -92,6 +108,29 @@ export default async function SettingsPage() {
               <Separator />
 
               <ProfileForm defaultValues={{ name: user.name || "" }} />
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="workspace" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Public Board URL</CardTitle>
+              <CardDescription>
+                Customize the slug for your public feedback board.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {workspace ? (
+                <WorkspaceSlugForm
+                  currentSlug={workspace.slug}
+                  changesUsed={slugChangesUsed}
+                />
+              ) : (
+                <p className="text-muted-foreground text-sm">
+                  No workspace found. Please create one first.
+                </p>
+              )}
             </CardContent>
           </Card>
         </TabsContent>

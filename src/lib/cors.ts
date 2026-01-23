@@ -12,7 +12,7 @@
 
 import { db } from "@/lib/db";
 import { widgetSettings, workspaces } from "@/lib/db/schema";
-import { eq } from "drizzle-orm";
+import { eq, or } from "drizzle-orm";
 
 // ============ Origin Validation Utilities ============
 
@@ -127,9 +127,9 @@ export async function isWorkspaceSlugOriginAllowed(
     return true;
   }
 
-  // Find workspace and its settings by slug
+  // Find workspace and its settings by slug (check both current and previous slug)
   const workspace = await db.query.workspaces.findFirst({
-    where: eq(workspaces.slug, slug),
+    where: or(eq(workspaces.slug, slug), eq(workspaces.previousSlug, slug)),
     with: { widgetSettings: { columns: { allowedOrigins: true } } },
   });
 

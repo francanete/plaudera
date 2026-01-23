@@ -441,6 +441,7 @@ export const workspaces = pgTable(
       .$defaultFn(() => createId()),
     name: text("name").notNull(),
     slug: text("slug").notNull().unique(),
+    previousSlug: text("previous_slug"),
     ownerId: text("owner_id")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
@@ -453,6 +454,25 @@ export const workspaces = pgTable(
   (table) => [
     uniqueIndex("workspaces_slug_idx").on(table.slug),
     uniqueIndex("workspaces_owner_id_idx").on(table.ownerId),
+  ]
+);
+
+// ============ Slug Change History Table ============
+export const slugChangeHistory = pgTable(
+  "slug_change_history",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => createId()),
+    workspaceId: text("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    oldSlug: text("old_slug").notNull(),
+    newSlug: text("new_slug").notNull(),
+    changedAt: timestamp("changed_at").defaultNow().notNull(),
+  },
+  (table) => [
+    index("slug_change_history_workspace_id_idx").on(table.workspaceId),
   ]
 );
 
@@ -631,7 +651,19 @@ export const workspacesRelations = relations(workspaces, ({ one, many }) => ({
   ideas: many(ideas),
   widgetSettings: one(widgetSettings),
   duplicateSuggestions: many(duplicateSuggestions),
+  slugChangeHistory: many(slugChangeHistory),
 }));
+
+// ============ Slug Change History Relations ============
+export const slugChangeHistoryRelations = relations(
+  slugChangeHistory,
+  ({ one }) => ({
+    workspace: one(workspaces, {
+      fields: [slugChangeHistory.workspaceId],
+      references: [workspaces.id],
+    }),
+  })
+);
 
 // ============ Widget Settings Relations ============
 export const widgetSettingsRelations = relations(widgetSettings, ({ one }) => ({
@@ -751,3 +783,5 @@ export type DuplicateSuggestion = typeof duplicateSuggestions.$inferSelect;
 export type NewDuplicateSuggestion = typeof duplicateSuggestions.$inferInsert;
 export type DuplicateSuggestionStatus =
   (typeof duplicateSuggestionStatusEnum.enumValues)[number];
+export type SlugChangeHistory = typeof slugChangeHistory.$inferSelect;
+export type NewSlugChangeHistory = typeof slugChangeHistory.$inferInsert;

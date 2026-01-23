@@ -1,7 +1,64 @@
 import { db } from "./db";
-import { workspaces, type Workspace } from "./db/schema";
-import { eq } from "drizzle-orm";
+import { workspaces, slugChangeHistory, type Workspace } from "./db/schema";
+import { eq, and, gt, count } from "drizzle-orm";
 import { createId } from "@paralleldrive/cuid2";
+import {
+  MAX_DAILY_SLUG_CHANGES,
+  MAX_LIFETIME_SLUG_CHANGES,
+  type SlugRateLimitResult,
+} from "./slug-validation";
+
+async function checkSlugChangeRateLimit(
+  workspaceId: string
+): Promise<SlugRateLimitResult> {
+  const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+
+  const [dailyResult, lifetimeResult] = await Promise.all([
+    db
+      .select({ count: count() })
+      .from(slugChangeHistory)
+      .where(
+        and(
+          eq(slugChangeHistory.workspaceId, workspaceId),
+          gt(slugChangeHistory.changedAt, oneDayAgo)
+        )
+      ),
+    db
+      .select({ count: count() })
+      .from(slugChangeHistory)
+      .where(eq(slugChangeHistory.workspaceId, workspaceId)),
+  ]);
+
+  const dailyCount = dailyResult[0]?.count ?? 0;
+  const lifetimeCount = lifetimeResult[0]?.count ?? 0;
+
+  const dailyRemaining = Math.max(0, MAX_DAILY_SLUG_CHANGES - dailyCount);
+  const lifetimeRemaining = Math.max(
+    0,
+    MAX_LIFETIME_SLUG_CHANGES - lifetimeCount
+  );
+
+  if (lifetimeRemaining <= 0) {
+    return {
+      allowed: false,
+      error: "You have reached the maximum number of slug changes (10 total)",
+      dailyRemaining,
+      lifetimeRemaining,
+    };
+  }
+
+  if (dailyRemaining <= 0) {
+    return {
+      allowed: false,
+      error:
+        "You can only change your slug 3 times per day. Try again tomorrow.",
+      dailyRemaining,
+      lifetimeRemaining,
+    };
+  }
+
+  return { allowed: true, dailyRemaining, lifetimeRemaining };
+}
 
 /**
  * Generate a URL-safe slug from an email address.
@@ -70,16 +127,95 @@ export async function getUserWorkspace(
   return workspace || null;
 }
 
+export type WorkspaceSlugResult = {
+  workspace: Workspace;
+  isRedirect: boolean;
+} | null;
+
 /**
  * Get a workspace by its public slug.
- * Used for public idea board URLs.
+ * Checks current slug first, then falls back to previousSlug for redirects.
+ * Current slug always takes priority (if another workspace claims the old slug, the redirect stops).
  */
 export async function getWorkspaceBySlug(
   slug: string
-): Promise<Workspace | null> {
+): Promise<WorkspaceSlugResult> {
+  // Priority: current slug wins
   const workspace = await db.query.workspaces.findFirst({
     where: eq(workspaces.slug, slug),
   });
 
-  return workspace || null;
+  if (workspace) {
+    return { workspace, isRedirect: false };
+  }
+
+  // Fallback: check previousSlug for redirect
+  const redirectWorkspace = await db.query.workspaces.findFirst({
+    where: eq(workspaces.previousSlug, slug),
+  });
+
+  if (redirectWorkspace) {
+    return { workspace: redirectWorkspace, isRedirect: true };
+  }
+
+  return null;
+}
+
+export type UpdateSlugResult =
+  | { success: true; slug: string }
+  | { success: false; error: string };
+
+/**
+ * Update a workspace's slug with rate limiting and audit trail.
+ * Stores the previous slug for redirect support.
+ */
+export async function updateWorkspaceSlug(
+  userId: string,
+  newSlug: string
+): Promise<UpdateSlugResult> {
+  const workspace = await db.query.workspaces.findFirst({
+    where: eq(workspaces.ownerId, userId),
+  });
+
+  if (!workspace) {
+    return { success: false, error: "Workspace not found" };
+  }
+
+  if (workspace.slug === newSlug) {
+    return { success: false, error: "New slug is the same as current slug" };
+  }
+
+  // Check rate limits
+  const rateLimit = await checkSlugChangeRateLimit(workspace.id);
+  if (!rateLimit.allowed) {
+    return { success: false, error: rateLimit.error! };
+  }
+
+  try {
+    await db.transaction(async (tx) => {
+      // Record the change in history
+      await tx.insert(slugChangeHistory).values({
+        workspaceId: workspace.id,
+        oldSlug: workspace.slug,
+        newSlug,
+      });
+
+      // Update workspace: previousSlug = current, slug = new
+      await tx
+        .update(workspaces)
+        .set({
+          previousSlug: workspace.slug,
+          slug: newSlug,
+        })
+        .where(eq(workspaces.id, workspace.id));
+    });
+
+    return { success: true, slug: newSlug };
+  } catch (error: unknown) {
+    // Handle unique constraint violation (slug already taken)
+    if (error instanceof Error && error.message.includes("unique")) {
+      return { success: false, error: "This slug is already taken" };
+    }
+    throw error;
+  }
 }

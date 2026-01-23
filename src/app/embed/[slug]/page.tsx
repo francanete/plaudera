@@ -7,7 +7,7 @@ import {
   workspaces,
   PUBLIC_VISIBLE_STATUSES,
 } from "@/lib/db/schema";
-import { eq, desc, and, inArray } from "drizzle-orm";
+import { eq, desc, and, or, inArray } from "drizzle-orm";
 import { getContributor } from "@/lib/contributor-auth";
 import { EmbedBoard } from "./embed-board";
 
@@ -16,9 +16,9 @@ type PageProps = { params: Promise<{ slug: string }> };
 const MAX_EMBED_IDEAS = 10;
 
 async function EmbedContent({ slug }: { slug: string }) {
-  // Find the workspace
+  // Find the workspace (check both current and previous slug for widget compatibility)
   const workspace = await db.query.workspaces.findFirst({
-    where: eq(workspaces.slug, slug),
+    where: or(eq(workspaces.slug, slug), eq(workspaces.previousSlug, slug)),
   });
 
   if (!workspace) {

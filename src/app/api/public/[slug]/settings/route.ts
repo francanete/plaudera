@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { workspaces } from "@/lib/db/schema";
-import { eq } from "drizzle-orm";
+import { eq, or } from "drizzle-orm";
 import { handleApiError } from "@/lib/api-utils";
 import { NotFoundError } from "@/lib/errors";
 import {
@@ -37,9 +37,9 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
     const { slug } = await params;
 
-    // Find the workspace with its widget settings
+    // Find the workspace with its widget settings (check both current and previous slug)
     const workspace = await db.query.workspaces.findFirst({
-      where: eq(workspaces.slug, slug),
+      where: or(eq(workspaces.slug, slug), eq(workspaces.previousSlug, slug)),
       with: {
         widgetSettings: true,
       },

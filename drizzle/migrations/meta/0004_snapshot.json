@@ -1,5 +1,5 @@
 {
-  "id": "806f77eb-129d-4388-93be-d4b3d1ffedba",
+  "id": "9ae9dbc7-3fbc-4ca0-9ce2-d215aed7831e",
   "prevId": "4a55aec2-bcf3-4271-9d31-c5ae11ff2a7b",
   "version": "7",
   "dialect": "postgresql",
@@ -1326,6 +1326,80 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
+    "public.slug_change_history": {
+      "name": "slug_change_history",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "workspace_id": {
+          "name": "workspace_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "old_slug": {
+          "name": "old_slug",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "new_slug": {
+          "name": "new_slug",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "changed_at": {
+          "name": "changed_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "slug_change_history_workspace_id_idx": {
+          "name": "slug_change_history_workspace_id_idx",
+          "columns": [
+            {
+              "expression": "workspace_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "slug_change_history_workspace_id_workspaces_id_fk": {
+          "name": "slug_change_history_workspace_id_workspaces_id_fk",
+          "tableFrom": "slug_change_history",
+          "tableTo": "workspaces",
+          "columnsFrom": [
+            "workspace_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
     "public.subscriptions": {
       "name": "subscriptions",
       "schema": "",
@@ -1862,13 +1936,6 @@
           "notNull": false,
           "default": "'{}'"
         },
-        "page_rules": {
-          "name": "page_rules",
-          "type": "text[]",
-          "primaryKey": false,
-          "notNull": false,
-          "default": "'{}'"
-        },
         "created_at": {
           "name": "created_at",
           "type": "timestamp",
@@ -1951,6 +2018,12 @@
           "type": "text",
           "primaryKey": false,
           "notNull": true
+        },
+        "previous_slug": {
+          "name": "previous_slug",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
         },
         "owner_id": {
           "name": "owner_id",
