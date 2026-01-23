@@ -83,7 +83,7 @@ export type AppConfig = {
 
 export const appConfig: AppConfig = {
   name: "Plaudera",
-  description: "The complete platform for building modern applications.",
+  description: "Collect, organize, and prioritize customer feedback with public boards, embeddable widgets, and AI-powered insights.",
   email: {
     from: "noreply@app.plaudera.com",
   },
