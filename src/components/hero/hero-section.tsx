@@ -39,7 +39,7 @@ export function HeroSection({ className }: HeroSectionProps) {
             opacity: 0.4,
           }}
         />
-        <div className="absolute inset-0 bg-gradient-to-b from-white via-transparent to-white" />
+        <div className="absolute inset-0 bg-linear-to-b from-white via-transparent to-white" />
       </div>
 
       <div className="container mx-auto px-4 md:px-6">
@@ -90,9 +90,9 @@ export function HeroSection({ className }: HeroSectionProps) {
                   : "translate-y-8 opacity-0"
               )}
             >
-              Collect feedback with public boards and embeddable widgets.
-              Let users vote on ideas, and let AI surface duplicates — so you
-              focus on shipping what matters.
+              Collect feedback with public boards and embeddable widgets. Let
+              users vote on ideas, and let AI surface duplicates — so you focus
+              on shipping what matters.
             </p>
 
             {/* CTAs */}
@@ -162,8 +162,8 @@ export function HeroSection({ className }: HeroSectionProps) {
             )}
           >
             {/* Abstract Background Shapes */}
-            <div className="absolute -top-12 -right-12 h-[500px] w-[500px] rounded-full bg-slate-50 opacity-50 blur-3xl" />
-            <div className="absolute -bottom-12 -left-12 h-[400px] w-[400px] rounded-full bg-slate-100 opacity-50 blur-3xl" />
+            <div className="absolute -top-12 -right-12 h-125 w-125 rounded-full bg-slate-50 opacity-50 blur-3xl" />
+            <div className="absolute -bottom-12 -left-12 h-100 w-100 rounded-full bg-slate-100 opacity-50 blur-3xl" />
 
             <HeroDashboardMockup
               className="relative z-10"
