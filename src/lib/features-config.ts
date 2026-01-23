@@ -1,9 +1,9 @@
 import type { LucideIcon } from "lucide-react";
 import type { ComponentType } from "react";
-import { Bell, BarChart3, Users } from "lucide-react";
-import { NotificationCardMockup } from "@/components/features/mockups/notification-card";
-import { AnalyticsChartMockup } from "@/components/features/mockups/analytics-chart";
-import { TeamCollaborationMockup } from "@/components/features/mockups/team-collaboration";
+import { MessageSquare, Code2, Sparkles } from "lucide-react";
+import { FeedbackBoardMockup } from "@/components/features/mockups/feedback-board-mockup";
+import { WidgetEmbedMockup } from "@/components/features/mockups/widget-embed-mockup";
+import { AiDuplicatesMockup } from "@/components/features/mockups/ai-duplicates-mockup";
 
 /**
  * Alignment options for feature showcase
@@ -66,39 +66,41 @@ export interface FeaturesSectionConfig {
 export const homepageFeaturesConfig: FeaturesSectionConfig = {
   id: "features",
   header: {
-    title: "Built for modern teams",
-    description: "Everything you need to run your business, all in one place.",
+    title: "Everything you need to listen to your users",
+    description:
+      "From public voting boards to embeddable widgets and AI-powered insights — Plaudera gives you the tools to collect, organize, and act on customer feedback.",
   },
   features: [
     {
-      id: "real-time-notifications",
-      title: "Real-time notifications",
+      id: "public-feedback-boards",
+      title: "Public feedback boards",
       description:
-        "Stay informed with instant updates. Get notified about important events as they happen, across all your devices.",
-      icon: Bell,
-      mockup: NotificationCardMockup,
+        "Give your users a voice. Let them submit ideas, vote on what matters most, and see what you're working on — all on a branded, public-facing board.",
+      icon: MessageSquare,
+      mockup: FeedbackBoardMockup,
       alignment: "left",
       category: "core",
     },
     {
-      id: "advanced-analytics",
-      title: "Advanced analytics",
+      id: "embeddable-widget",
+      title: "Embeddable feedback widget",
       description:
-        "Make data-driven decisions with powerful insights. Track performance, identify trends, and optimize your operations.",
-      icon: BarChart3,
-      mockup: AnalyticsChartMockup,
+        "Drop a lightweight widget into your app with a single code snippet. Capture feedback right where your users are, without breaking their flow.",
+      icon: Code2,
+      mockup: WidgetEmbedMockup,
       alignment: "right",
-      category: "analytics",
+      category: "integration",
     },
     {
-      id: "team-collaboration",
-      title: "Team collaboration",
+      id: "ai-duplicate-detection",
+      title: "AI-powered duplicate detection",
       description:
-        "Work together seamlessly. Share updates, coordinate tasks, and keep everyone aligned in real-time.",
-      icon: Users,
-      mockup: TeamCollaborationMockup,
+        "Stop wasting time on duplicate ideas. Our AI surfaces similar submissions automatically, so you can merge them, consolidate votes, and keep your board clean.",
+      icon: Sparkles,
+      mockup: AiDuplicatesMockup,
       alignment: "left",
-      category: "collaboration",
+      category: "analytics",
+      badge: "AI",
     },
   ],
 };

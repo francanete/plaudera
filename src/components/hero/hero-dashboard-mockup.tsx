@@ -90,15 +90,21 @@ export function HeroDashboardMockup({
           )}
         >
           <div className="rounded-lg border border-slate-100 bg-slate-50/50 px-3 py-2.5">
-            <p className="text-[10px] font-medium text-slate-400 uppercase">Ideas</p>
+            <p className="text-[10px] font-medium text-slate-400 uppercase">
+              Ideas
+            </p>
             <p className="text-lg font-semibold text-slate-900">128</p>
           </div>
           <div className="rounded-lg border border-slate-100 bg-slate-50/50 px-3 py-2.5">
-            <p className="text-[10px] font-medium text-slate-400 uppercase">Votes</p>
+            <p className="text-[10px] font-medium text-slate-400 uppercase">
+              Votes
+            </p>
             <p className="text-lg font-semibold text-slate-900">1.2k</p>
           </div>
           <div className="rounded-lg border border-slate-100 bg-slate-50/50 px-3 py-2.5">
-            <p className="text-[10px] font-medium text-slate-400 uppercase">Contributors</p>
+            <p className="text-[10px] font-medium text-slate-400 uppercase">
+              Contributors
+            </p>
             <p className="text-lg font-semibold text-slate-900">89</p>
           </div>
         </div>
@@ -113,7 +119,8 @@ export function HeroDashboardMockup({
         >
           <Sparkles className="h-3.5 w-3.5 shrink-0 text-violet-500" />
           <p className="text-xs font-medium text-violet-700">
-            AI detected 3 duplicate ideas — <span className="underline underline-offset-2">Review</span>
+            AI detected 3 duplicate ideas —{" "}
+            <span className="underline underline-offset-2">Review</span>
           </p>
         </div>
 
@@ -140,7 +147,9 @@ export function HeroDashboardMockup({
                 {/* Vote Button */}
                 <div className="flex shrink-0 flex-col items-center gap-0.5 rounded border border-slate-200 bg-slate-50 px-2 py-1.5">
                   <ThumbsUp className="h-3 w-3 text-slate-500" />
-                  <span className="text-xs font-semibold text-slate-700">{item.votes}</span>
+                  <span className="text-xs font-semibold text-slate-700">
+                    {item.votes}
+                  </span>
                 </div>
 
                 {/* Content */}
@@ -149,7 +158,12 @@ export function HeroDashboardMockup({
                     {item.title}
                   </p>
                   <div className="mt-0.5 flex items-center gap-2">
-                    <span className={cn("rounded-full px-1.5 py-0.5 text-[9px] font-semibold", item.statusColor)}>
+                    <span
+                      className={cn(
+                        "rounded-full px-1.5 py-0.5 text-[9px] font-semibold",
+                        item.statusColor
+                      )}
+                    >
                       {item.status}
                     </span>
                     <span className="flex items-center gap-0.5 text-[10px] text-slate-400">

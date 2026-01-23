@@ -49,7 +49,8 @@ export default function HomePage() {
               Stop guessing what to build next
             </h2>
             <p className="text-muted-foreground mb-8 text-xl">
-              Let your customers tell you. Set up your feedback board in minutes.
+              Let your customers tell you. Set up your feedback board in
+              minutes.
             </p>
             <Button size="lg" asChild>
               <Link href="/register">Start Collecting Feedback</Link>
