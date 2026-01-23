@@ -3,7 +3,7 @@ import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { db } from "@/lib/db";
 import { ideas } from "@/lib/db/schema";
-import { eq } from "drizzle-orm";
+import { eq, and, ne } from "drizzle-orm";
 import { IdeaDetail } from "./idea-detail";
 
 type PageProps = {
@@ -21,11 +21,14 @@ export default async function IdeaDetailPage({ params }: PageProps) {
     notFound();
   }
 
-  // Fetch idea with workspace to verify ownership
+  // Fetch idea with workspace and merged children
   const idea = await db.query.ideas.findFirst({
     where: eq(ideas.id, id),
     with: {
       workspace: true,
+      mergedFrom: {
+        columns: { id: true, title: true },
+      },
     },
   });
 
@@ -34,5 +37,23 @@ export default async function IdeaDetailPage({ params }: PageProps) {
     notFound();
   }
 
-  return <IdeaDetail idea={idea} />;
+  // Fetch PUBLISHED ideas in the same workspace for the merge picker
+  const publishedIdeas = await db
+    .select({ id: ideas.id, title: ideas.title })
+    .from(ideas)
+    .where(
+      and(
+        eq(ideas.workspaceId, idea.workspaceId),
+        eq(ideas.status, "PUBLISHED"),
+        ne(ideas.id, id)
+      )
+    );
+
+  return (
+    <IdeaDetail
+      idea={idea}
+      mergedChildren={idea.mergedFrom}
+      publishedIdeas={publishedIdeas}
+    />
+  );
 }

@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { toast } from "sonner";
 import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -13,7 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Plus, ChevronUp, Lightbulb, Copy } from "lucide-react";
+import { Plus, ChevronUp, Lightbulb, Copy, GitMerge } from "lucide-react";
 import {
   Tooltip,
   TooltipContent,
@@ -23,6 +24,7 @@ import {
 import type { Idea, IdeaStatus } from "@/lib/db/schema";
 import {
   ALL_IDEA_STATUSES,
+  SELECTABLE_IDEA_STATUSES,
   IDEA_STATUS_CONFIG,
 } from "@/lib/idea-status-config";
 
@@ -275,39 +277,46 @@ export function IdeasList({
                       </p>
                     )}
                     <div className="mt-2 flex items-center gap-2">
-                      {/* Status dropdown - stop propagation to prevent navigation */}
-                      <div
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                        }}
-                        onKeyDown={(e) => e.stopPropagation()}
-                      >
-                        <Select
-                          value={idea.status}
-                          onValueChange={(value) =>
-                            handleStatusChange(idea.id, value as IdeaStatus)
-                          }
+                      {/* Status - static badge for merged, dropdown for others */}
+                      {idea.status === "MERGED" ? (
+                        <Badge variant="secondary" className="gap-1 text-xs">
+                          <GitMerge className="h-3 w-3" />
+                          Merged
+                        </Badge>
+                      ) : (
+                        <div
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                          }}
+                          onKeyDown={(e) => e.stopPropagation()}
                         >
-                          <SelectTrigger className="h-7 w-[160px] text-xs">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {ALL_IDEA_STATUSES.map((opt) => {
-                              const cfg = IDEA_STATUS_CONFIG[opt];
-                              const Icon = cfg.icon;
-                              return (
-                                <SelectItem key={opt} value={opt}>
-                                  <div className="flex items-center">
-                                    <Icon className="mr-2 h-3 w-3" />
-                                    {cfg.label}
-                                  </div>
-                                </SelectItem>
-                              );
-                            })}
-                          </SelectContent>
-                        </Select>
-                      </div>
+                          <Select
+                            value={idea.status}
+                            onValueChange={(value) =>
+                              handleStatusChange(idea.id, value as IdeaStatus)
+                            }
+                          >
+                            <SelectTrigger className="h-7 w-[160px] text-xs">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {SELECTABLE_IDEA_STATUSES.map((opt) => {
+                                const cfg = IDEA_STATUS_CONFIG[opt];
+                                const Icon = cfg.icon;
+                                return (
+                                  <SelectItem key={opt} value={opt}>
+                                    <div className="flex items-center">
+                                      <Icon className="mr-2 h-3 w-3" />
+                                      {cfg.label}
+                                    </div>
+                                  </SelectItem>
+                                );
+                              })}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      )}
                       <span className="text-muted-foreground text-xs">
                         {new Date(idea.createdAt).toLocaleDateString("en-US")}
                       </span>

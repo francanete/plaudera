@@ -8,8 +8,10 @@ import {
   index,
   integer,
   vector,
+  check,
+  foreignKey,
 } from "drizzle-orm/pg-core";
-import { relations } from "drizzle-orm";
+import { relations, sql } from "drizzle-orm";
 import { createId } from "@paralleldrive/cuid2";
 
 // ============ Enums ============
@@ -514,6 +516,14 @@ export const ideas = pgTable(
     index("ideas_workspace_status_idx").on(table.workspaceId, table.status),
     index("ideas_workspace_votes_idx").on(table.workspaceId, table.voteCount),
     index("ideas_contributor_id_idx").on(table.contributorId),
+    foreignKey({
+      columns: [table.mergedIntoId],
+      foreignColumns: [table.id],
+    }).onDelete("restrict"),
+    check(
+      "merged_status_requires_parent",
+      sql`(${table.status} = 'MERGED' AND ${table.mergedIntoId} IS NOT NULL) OR (${table.status} != 'MERGED' AND ${table.mergedIntoId} IS NULL)`
+    ),
   ]
 );
 

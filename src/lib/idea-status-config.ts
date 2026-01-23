@@ -13,6 +13,16 @@ export const ALL_IDEA_STATUSES: IdeaStatus[] = [
 ];
 
 /**
+ * Statuses available for manual selection in dropdowns.
+ * MERGED is excluded because it requires the dedicated merge flow.
+ */
+export const SELECTABLE_IDEA_STATUSES: IdeaStatus[] = [
+  "UNDER_REVIEW",
+  "PUBLISHED",
+  "DECLINED",
+];
+
+/**
  * Unified status configuration for display across the app.
  * Includes label, badge variant, and icon for each status.
  */
