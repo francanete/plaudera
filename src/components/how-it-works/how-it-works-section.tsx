@@ -28,10 +28,7 @@ export function HowItWorksSection({ className }: HowItWorksSectionProps) {
   ];
 
   return (
-    <section
-      ref={ref}
-      className={cn("bg-slate-50 py-24 lg:py-32", className)}
-    >
+    <section ref={ref} className={cn("bg-slate-50 py-24 lg:py-32", className)}>
       <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div
@@ -41,7 +38,7 @@ export function HowItWorksSection({ className }: HowItWorksSectionProps) {
             isInView ? "translate-y-0 opacity-100" : "translate-y-8 opacity-0"
           )}
         >
-          <h2 className="mb-5 text-4xl font-semibold leading-tight tracking-tight text-slate-900 md:text-5xl">
+          <h2 className="mb-5 text-4xl leading-tight font-semibold tracking-tight text-slate-900 md:text-5xl">
             {header.title}
           </h2>
           <p className="text-lg leading-relaxed text-slate-600 md:text-xl">
@@ -65,9 +62,7 @@ export function HowItWorksSection({ className }: HowItWorksSectionProps) {
                     : "translate-y-4 opacity-0"
                 )}
                 style={{
-                  transitionDelay: isInView
-                    ? `${300 + index * 150}ms`
-                    : "0ms",
+                  transitionDelay: isInView ? `${300 + index * 150}ms` : "0ms",
                 }}
               >
                 <div className="mb-3 flex items-center gap-3">

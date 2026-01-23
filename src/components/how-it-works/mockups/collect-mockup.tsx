@@ -119,9 +119,7 @@ export function CollectMockup({ isInView, delay }: CollectMockupProps) {
             <div className="h-4 w-4 rounded-full border border-white bg-emerald-200" />
             <div className="h-4 w-4 rounded-full border border-white bg-amber-200" />
           </div>
-          <span className="text-[10px] text-slate-400">
-            3 users voting now
-          </span>
+          <span className="text-[10px] text-slate-400">3 users voting now</span>
         </div>
       </div>
     </div>

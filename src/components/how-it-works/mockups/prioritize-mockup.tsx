@@ -75,9 +75,7 @@ export function PrioritizeMockup({ isInView, delay }: PrioritizeMockupProps) {
                 <p className="truncate text-xs font-medium text-slate-800">
                   {item.feature}
                 </p>
-                <p className="text-[10px] text-slate-400">
-                  {item.votes} votes
-                </p>
+                <p className="text-[10px] text-slate-400">{item.votes} votes</p>
               </div>
 
               {/* Growth */}

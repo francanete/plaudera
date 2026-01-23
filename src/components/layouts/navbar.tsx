@@ -9,8 +9,8 @@ import {
   Menu,
   X,
   ChevronDown,
-  Layers,
 } from "lucide-react";
+import { PlauderaLogo } from "@/components/plaudera-logo";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -72,7 +72,7 @@ export function Navbar() {
             <div className="flex shrink-0 items-center">
               <Link href="/" className="group flex items-center gap-2">
                 <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-600 text-white shadow-md transition-transform group-hover:scale-105">
-                  <Layers className="h-5 w-5" />
+                  <PlauderaLogo />
                 </div>
                 <span className="text-lg font-bold tracking-tight text-slate-900 transition-colors">
                   {appConfig.name}

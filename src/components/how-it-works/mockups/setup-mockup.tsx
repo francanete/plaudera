@@ -66,9 +66,7 @@ export function SetupMockup({ isInView, delay }: SetupMockupProps) {
       <div className="border-t border-slate-100 px-4 py-2.5">
         <div className="flex items-center gap-2">
           <Code2 className="h-3 w-3 text-slate-400" />
-          <span className="text-[10px] text-slate-500">
-            Widget embed ready
-          </span>
+          <span className="text-[10px] text-slate-500">Widget embed ready</span>
           <div
             className={cn(
               "ml-auto h-2 w-2 rounded-full bg-emerald-400",

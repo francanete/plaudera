@@ -23,10 +23,7 @@ export function BenefitComparison({ className }: BenefitComparisonProps) {
   const { header, oldWay, modernApproach } = benefitComparisonConfig;
 
   return (
-    <section
-      ref={ref}
-      className={cn("bg-white py-24 lg:py-32", className)}
-    >
+    <section ref={ref} className={cn("bg-white py-24 lg:py-32", className)}>
       <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div
@@ -36,7 +33,7 @@ export function BenefitComparison({ className }: BenefitComparisonProps) {
             isInView ? "translate-y-0 opacity-100" : "translate-y-8 opacity-0"
           )}
         >
-          <h2 className="mb-5 text-4xl font-semibold leading-tight tracking-tight text-slate-900 md:text-5xl">
+          <h2 className="mb-5 text-4xl leading-tight font-semibold tracking-tight text-slate-900 md:text-5xl">
             {header.title}
           </h2>
           <p className="text-lg leading-relaxed text-slate-600 md:text-xl">
@@ -96,7 +93,10 @@ export function BenefitComparison({ className }: BenefitComparisonProps) {
               {/* Card Header */}
               <div className="mb-8 flex items-center gap-3 border-b border-slate-100 pb-6">
                 <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-100">
-                  <Check className="h-5 w-5 text-emerald-600" strokeWidth={2.5} />
+                  <Check
+                    className="h-5 w-5 text-emerald-600"
+                    strokeWidth={2.5}
+                  />
                 </div>
                 <h3 className="text-xl font-semibold text-slate-900">
                   {modernApproach.label}
