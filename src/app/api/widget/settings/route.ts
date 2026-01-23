@@ -19,6 +19,15 @@ const updateSettingsSchema = z.object({
         .string()
         .max(200, "Pattern must be 200 characters or less")
         .refine((s) => s.startsWith("/"), "Pattern must start with /")
+        .refine(
+          (s) => /^[a-zA-Z0-9\-._~:@!$&'()+,;=%/*?]+$/.test(s),
+          "Pattern contains invalid characters"
+        )
+        .refine((s) => !s.includes("***"), "Use * or ** for wildcards, not ***")
+        .refine(
+          (s) => !s.includes("//"),
+          "Pattern must not contain consecutive slashes"
+        )
     )
     .max(MAX_PAGE_RULES)
     .optional(),
