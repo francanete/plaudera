@@ -9,6 +9,7 @@ import {
   Shield,
   Lightbulb,
   Code2,
+  Copy,
 } from "lucide-react";
 import {
   Sidebar,
@@ -43,11 +44,13 @@ interface AppSidebarProps {
   subscriptionStatus?: SubscriptionStatus;
   expiresAt?: Date | null;
   isAdmin?: boolean;
+  pendingDuplicatesCount?: number;
 }
 
 const navigation = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { name: "Ideas", href: "/dashboard/ideas", icon: Lightbulb },
+  { name: "Duplicates", href: "/dashboard/duplicates", icon: Copy },
   { name: "Widget", href: "/dashboard/widget", icon: Code2 },
   { name: "Chat", href: "/dashboard/chat", icon: MessageSquare },
   { name: "Billing", href: "/dashboard/billing", icon: CreditCard },
@@ -64,7 +67,13 @@ export function AppSidebar({
   subscriptionStatus,
   expiresAt,
   isAdmin,
+  pendingDuplicatesCount = 0,
 }: AppSidebarProps) {
+  // Build badges map for nav items with counts
+  const badges: Record<string, number> = {};
+  if (pendingDuplicatesCount > 0) {
+    badges["/dashboard/duplicates"] = pendingDuplicatesCount;
+  }
   return (
     <Sidebar collapsible="icon">
       <SidebarHeader>
@@ -92,7 +101,7 @@ export function AppSidebar({
       </SidebarHeader>
 
       <SidebarContent>
-        <NavMain items={navigation} />
+        <NavMain items={navigation} badges={badges} />
         {isAdmin && (
           <>
             <SidebarSeparator />

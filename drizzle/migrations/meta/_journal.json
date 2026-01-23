@@ -8,6 +8,27 @@
       "when": 1768938007063,
       "tag": "0000_damp_true_believers",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1769091600936,
+      "tag": "0001_bent_silver_centurion",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1769102999809,
+      "tag": "0002_modern_raza",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1769158647410,
+      "tag": "0003_sweet_dragon_lord",
+      "breakpoints": true
     }
   ]
 }

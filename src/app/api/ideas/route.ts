@@ -1,11 +1,12 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { eq, desc, asc } from "drizzle-orm";
+import { eq, desc, asc, ne } from "drizzle-orm";
 import { db, ideas, type IdeaStatus } from "@/lib/db";
 import { protectedApiRouteWrapper } from "@/lib/dal";
 import { getUserWorkspace } from "@/lib/workspace";
 import { NotFoundError } from "@/lib/errors";
 import { ALL_IDEA_STATUSES } from "@/lib/idea-status-config";
+import { updateIdeaEmbedding } from "@/lib/ai/embeddings";
 
 const createIdeaSchema = z.object({
   title: z.string().min(1, "Title is required").max(200, "Title too long"),
@@ -40,8 +41,11 @@ export const GET = protectedApiRouteWrapper(
         orderBy = desc(ideas.createdAt);
     }
 
-    // Build where clause
-    const whereConditions = [eq(ideas.workspaceId, workspace.id)];
+    // Build where clause - always exclude MERGED ideas
+    const whereConditions = [
+      eq(ideas.workspaceId, workspace.id),
+      ne(ideas.status, "MERGED"),
+    ];
     if (status && ALL_IDEA_STATUSES.includes(status)) {
       whereConditions.push(eq(ideas.status, status));
     }
@@ -79,10 +83,15 @@ export const POST = protectedApiRouteWrapper(
         workspaceId: workspace.id,
         title: data.title,
         description: data.description || null,
-        status: "NEW",
+        status: "PUBLISHED",
         voteCount: 0,
       })
       .returning();
+
+    // Generate embedding for duplicate detection (fire-and-forget, don't block response)
+    updateIdeaEmbedding(newIdea.id, newIdea.title, newIdea.description).catch(
+      (err) => console.error("Failed to generate embedding for idea:", err)
+    );
 
     return NextResponse.json({ idea: newIdea }, { status: 201 });
   },

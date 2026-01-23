@@ -32,7 +32,7 @@ export function IdeaCard({
 }: IdeaCardProps) {
   const status = IDEA_STATUS_CONFIG[idea.status];
   const StatusIcon = status.icon;
-  const isOwnPending = idea.isOwn && idea.status === "PENDING";
+  const isOwnPending = idea.isOwn && idea.status === "UNDER_REVIEW";
 
   return (
     <Card

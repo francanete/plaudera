@@ -7,8 +7,11 @@ import {
   uniqueIndex,
   index,
   integer,
+  vector,
+  check,
+  foreignKey,
 } from "drizzle-orm/pg-core";
-import { relations } from "drizzle-orm";
+import { relations, sql } from "drizzle-orm";
 import { createId } from "@paralleldrive/cuid2";
 
 // ============ Enums ============
@@ -376,27 +379,20 @@ export const featureRateLimitsRelations = relations(
 
 // ============ Idea Status Enum ============
 export const ideaStatusEnum = pgEnum("idea_status", [
-  "PENDING",
-  "NEW",
   "UNDER_REVIEW",
-  "PLANNED",
-  "IN_PROGRESS",
-  "DONE",
+  "PUBLISHED",
   "DECLINED",
+  "MERGED",
 ]);
 
 /**
  * Statuses that are visible on the public feedback board.
- * PENDING = awaiting admin approval (hidden)
- * DECLINED = rejected ideas (hidden)
+ * Only PUBLISHED ideas are visible to everyone.
+ * UNDER_REVIEW = awaiting owner approval (hidden, except to submitter)
+ * DECLINED = rejected (hidden, soft-delete)
+ * MERGED = duplicate merged into another (hidden)
  */
-export const PUBLIC_VISIBLE_STATUSES: IdeaStatus[] = [
-  "NEW",
-  "UNDER_REVIEW",
-  "PLANNED",
-  "IN_PROGRESS",
-  "DONE",
-] as const;
+export const PUBLIC_VISIBLE_STATUSES: IdeaStatus[] = ["PUBLISHED"] as const;
 
 // ============ Contributors (workspace owners' customers) ============
 export const contributors = pgTable(
@@ -504,8 +500,9 @@ export const ideas = pgTable(
     }),
     title: text("title").notNull(),
     description: text("description"),
-    status: ideaStatusEnum("status").default("PENDING").notNull(),
+    status: ideaStatusEnum("status").default("UNDER_REVIEW").notNull(),
     voteCount: integer("vote_count").default(0).notNull(),
+    mergedIntoId: text("merged_into_id"),
     authorEmail: text("author_email"),
     authorName: text("author_name"),
     createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -519,6 +516,14 @@ export const ideas = pgTable(
     index("ideas_workspace_status_idx").on(table.workspaceId, table.status),
     index("ideas_workspace_votes_idx").on(table.workspaceId, table.voteCount),
     index("ideas_contributor_id_idx").on(table.contributorId),
+    foreignKey({
+      columns: [table.mergedIntoId],
+      foreignColumns: [table.id],
+    }).onDelete("restrict"),
+    check(
+      "merged_status_requires_parent",
+      sql`(${table.status} = 'MERGED' AND ${table.mergedIntoId} IS NOT NULL) OR (${table.status} != 'MERGED' AND ${table.mergedIntoId} IS NULL)`
+    ),
   ]
 );
 
@@ -547,6 +552,75 @@ export const votes = pgTable(
   ]
 );
 
+// ============ Duplicate Suggestion Status Enum ============
+export const duplicateSuggestionStatusEnum = pgEnum(
+  "duplicate_suggestion_status",
+  ["PENDING", "MERGED", "DISMISSED"]
+);
+
+// ============ Idea Embeddings Table ============
+export const ideaEmbeddings = pgTable(
+  "idea_embeddings",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => createId()),
+    ideaId: text("idea_id")
+      .notNull()
+      .unique()
+      .references(() => ideas.id, { onDelete: "cascade" }),
+    embedding: vector("embedding", { dimensions: 768 }).notNull(),
+    modelVersion: text("model_version").notNull().default("text-embedding-004"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at")
+      .defaultNow()
+      .notNull()
+      .$onUpdate(() => new Date()),
+  },
+  (table) => [
+    index("idea_embeddings_idea_id_idx").on(table.ideaId),
+    index("idea_embeddings_vector_idx").using(
+      "hnsw",
+      table.embedding.op("vector_cosine_ops")
+    ),
+  ]
+);
+
+// ============ Duplicate Suggestions Table ============
+export const duplicateSuggestions = pgTable(
+  "duplicate_suggestions",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => createId()),
+    workspaceId: text("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    sourceIdeaId: text("source_idea_id")
+      .notNull()
+      .references(() => ideas.id, { onDelete: "cascade" }),
+    duplicateIdeaId: text("duplicate_idea_id")
+      .notNull()
+      .references(() => ideas.id, { onDelete: "cascade" }),
+    similarity: integer("similarity").notNull(), // 0-100 percentage
+    status: duplicateSuggestionStatusEnum("status")
+      .default("PENDING")
+      .notNull(),
+    reviewedAt: timestamp("reviewed_at"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => [
+    index("duplicate_suggestions_workspace_status_idx").on(
+      table.workspaceId,
+      table.status
+    ),
+    uniqueIndex("duplicate_suggestions_pair_idx").on(
+      table.sourceIdeaId,
+      table.duplicateIdeaId
+    ),
+  ]
+);
+
 // ============ Workspaces Relations ============
 export const workspacesRelations = relations(workspaces, ({ one, many }) => ({
   owner: one(users, {
@@ -555,6 +629,7 @@ export const workspacesRelations = relations(workspaces, ({ one, many }) => ({
   }),
   ideas: many(ideas),
   widgetSettings: one(widgetSettings),
+  duplicateSuggestions: many(duplicateSuggestions),
 }));
 
 // ============ Widget Settings Relations ============
@@ -576,6 +651,16 @@ export const ideasRelations = relations(ideas, ({ one, many }) => ({
     references: [contributors.id],
   }),
   votes: many(votes),
+  mergedInto: one(ideas, {
+    fields: [ideas.mergedIntoId],
+    references: [ideas.id],
+    relationName: "mergedIdeas",
+  }),
+  mergedFrom: many(ideas, { relationName: "mergedIdeas" }),
+  embedding: one(ideaEmbeddings, {
+    fields: [ideas.id],
+    references: [ideaEmbeddings.ideaId],
+  }),
 }));
 
 // ============ Votes Relations ============
@@ -595,6 +680,35 @@ export const contributorsRelations = relations(contributors, ({ many }) => ({
   ideas: many(ideas),
   votes: many(votes),
 }));
+
+// ============ Idea Embeddings Relations ============
+export const ideaEmbeddingsRelations = relations(ideaEmbeddings, ({ one }) => ({
+  idea: one(ideas, {
+    fields: [ideaEmbeddings.ideaId],
+    references: [ideas.id],
+  }),
+}));
+
+// ============ Duplicate Suggestions Relations ============
+export const duplicateSuggestionsRelations = relations(
+  duplicateSuggestions,
+  ({ one }) => ({
+    workspace: one(workspaces, {
+      fields: [duplicateSuggestions.workspaceId],
+      references: [workspaces.id],
+    }),
+    sourceIdea: one(ideas, {
+      fields: [duplicateSuggestions.sourceIdeaId],
+      references: [ideas.id],
+      relationName: "sourceDuplicates",
+    }),
+    duplicateIdea: one(ideas, {
+      fields: [duplicateSuggestions.duplicateIdeaId],
+      references: [ideas.id],
+      relationName: "targetDuplicates",
+    }),
+  })
+);
 
 // ============ Type Exports ============
 export type User = typeof users.$inferSelect;
@@ -630,3 +744,9 @@ export type NewWidgetSettings = typeof widgetSettings.$inferInsert;
 // Derive IdeaStatus type from the enum to keep them in sync
 export type IdeaStatus = (typeof ideaStatusEnum.enumValues)[number];
 export type WidgetPosition = (typeof widgetPositionEnum.enumValues)[number];
+export type IdeaEmbedding = typeof ideaEmbeddings.$inferSelect;
+export type NewIdeaEmbedding = typeof ideaEmbeddings.$inferInsert;
+export type DuplicateSuggestion = typeof duplicateSuggestions.$inferSelect;
+export type NewDuplicateSuggestion = typeof duplicateSuggestions.$inferInsert;
+export type DuplicateSuggestionStatus =
+  (typeof duplicateSuggestionStatusEnum.enumValues)[number];

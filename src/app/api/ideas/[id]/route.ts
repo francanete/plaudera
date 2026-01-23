@@ -3,8 +3,9 @@ import { z } from "zod";
 import { eq } from "drizzle-orm";
 import { db, ideas, type IdeaStatus } from "@/lib/db";
 import { protectedApiRouteWrapper } from "@/lib/dal";
-import { NotFoundError, ForbiddenError } from "@/lib/errors";
+import { NotFoundError, ForbiddenError, BadRequestError } from "@/lib/errors";
 import { ALL_IDEA_STATUSES } from "@/lib/idea-status-config";
+import { updateIdeaEmbedding } from "@/lib/ai/embeddings";
 
 const updateIdeaSchema = z.object({
   title: z.string().min(1).max(200).optional(),
@@ -47,10 +48,14 @@ export const GET = protectedApiRouteWrapper<RouteParams>(
 // PATCH /api/ideas/[id] - Update an idea
 export const PATCH = protectedApiRouteWrapper<RouteParams>(
   async (request, { session, params }) => {
-    await getIdeaWithOwnerCheck(params.id, session.user.id);
+    const idea = await getIdeaWithOwnerCheck(params.id, session.user.id);
 
     const body = await request.json();
     const data = updateIdeaSchema.parse(body);
+
+    if (data.status === "MERGED") {
+      throw new BadRequestError("Use the merge endpoint to merge ideas");
+    }
 
     // Build update object with only provided fields
     // Always set updatedAt for explicit timestamp tracking
@@ -58,6 +63,7 @@ export const PATCH = protectedApiRouteWrapper<RouteParams>(
       title: string;
       description: string | null;
       status: IdeaStatus;
+      mergedIntoId: string | null;
       updatedAt: Date;
     }> = {
       updatedAt: new Date(),
@@ -66,7 +72,13 @@ export const PATCH = protectedApiRouteWrapper<RouteParams>(
     if (data.title !== undefined) updateData.title = data.title;
     if (data.description !== undefined)
       updateData.description = data.description;
-    if (data.status !== undefined) updateData.status = data.status;
+    if (data.status !== undefined) {
+      updateData.status = data.status;
+      // Clear mergedIntoId when changing away from MERGED (CHECK constraint requires it)
+      if (idea.status === "MERGED") {
+        updateData.mergedIntoId = null;
+      }
+    }
 
     const [updatedIdea] = await db
       .update(ideas)
@@ -74,17 +86,31 @@ export const PATCH = protectedApiRouteWrapper<RouteParams>(
       .where(eq(ideas.id, params.id))
       .returning();
 
+    // Regenerate embedding if title or description changed (fire-and-forget)
+    if (data.title !== undefined || data.description !== undefined) {
+      updateIdeaEmbedding(
+        updatedIdea.id,
+        updatedIdea.title,
+        updatedIdea.description
+      ).catch((err) =>
+        console.error("Failed to update embedding for idea:", err)
+      );
+    }
+
     return NextResponse.json({ idea: updatedIdea });
   },
   { requirePaid: false }
 );
 
-// DELETE /api/ideas/[id] - Delete an idea
+// DELETE /api/ideas/[id] - Soft-delete an idea (set status to DECLINED)
 export const DELETE = protectedApiRouteWrapper<RouteParams>(
   async (_request, { session, params }) => {
     await getIdeaWithOwnerCheck(params.id, session.user.id);
 
-    await db.delete(ideas).where(eq(ideas.id, params.id));
+    await db
+      .update(ideas)
+      .set({ status: "DECLINED", updatedAt: new Date() })
+      .where(eq(ideas.id, params.id));
 
     return NextResponse.json({ success: true });
   },

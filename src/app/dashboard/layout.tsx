@@ -2,9 +2,13 @@ import { Suspense } from "react";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { eq, and } from "drizzle-orm";
+import { eq, and, count } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { onboardingFlows } from "@/lib/db/schema";
+import {
+  onboardingFlows,
+  duplicateSuggestions,
+  workspaces,
+} from "@/lib/db/schema";
 import { getSubscriptionStatus } from "@/lib/subscription";
 import { getSubscriptionFromRequest, isUserAdmin } from "@/lib/dal";
 import { appConfig } from "@/lib/config";
@@ -48,8 +52,8 @@ export default async function DashboardLayout({
     redirect("/gate");
   }
 
-  // Get admin status and onboarding flow status
-  const [isAdmin, dashboardOnboarding] = await Promise.all([
+  // Get admin status, onboarding flow status, and pending duplicates count
+  const [isAdmin, dashboardOnboarding, userWorkspace] = await Promise.all([
     isUserAdmin(session.user.id),
     db.query.onboardingFlows.findFirst({
       where: and(
@@ -57,7 +61,25 @@ export default async function DashboardLayout({
         eq(onboardingFlows.flowId, "dashboard")
       ),
     }),
+    db.query.workspaces.findFirst({
+      where: eq(workspaces.ownerId, session.user.id),
+    }),
   ]);
+
+  // Count pending duplicate suggestions for this workspace
+  let pendingDuplicatesCount = 0;
+  if (userWorkspace) {
+    const [result] = await db
+      .select({ count: count() })
+      .from(duplicateSuggestions)
+      .where(
+        and(
+          eq(duplicateSuggestions.workspaceId, userWorkspace.id),
+          eq(duplicateSuggestions.status, "PENDING")
+        )
+      );
+    pendingDuplicatesCount = result?.count ?? 0;
+  }
 
   // Flow is completed if completedAt or skippedAt is set
   const dashboardFlowCompleted = !!(
@@ -79,6 +101,7 @@ export default async function DashboardLayout({
           subscriptionStatus={subscription.status}
           expiresAt={subscription.expiresAt}
           isAdmin={isAdmin}
+          pendingDuplicatesCount={pendingDuplicatesCount}
         />
         <SidebarInset>
           <header className="flex h-12 shrink-0 items-center gap-2 px-4">

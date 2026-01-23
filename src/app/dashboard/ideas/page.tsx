@@ -1,8 +1,8 @@
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { db, ideas } from "@/lib/db";
-import { eq, desc } from "drizzle-orm";
+import { db, ideas, duplicateSuggestions } from "@/lib/db";
+import { eq, desc, and } from "drizzle-orm";
 import { getUserWorkspace, createUserWorkspace } from "@/lib/workspace";
 import { IdeasList } from "./ideas-list";
 import { Lightbulb } from "lucide-react";
@@ -34,10 +34,32 @@ export default async function IdeasPage({ searchParams }: PageProps) {
     );
   }
 
-  const workspaceIdeas = await db.query.ideas.findMany({
-    where: eq(ideas.workspaceId, workspace.id),
-    orderBy: [desc(ideas.createdAt)],
-  });
+  // Fetch ideas and pending duplicate suggestions in parallel
+  const [workspaceIdeas, pendingDuplicates] = await Promise.all([
+    db.query.ideas.findMany({
+      where: eq(ideas.workspaceId, workspace.id),
+      orderBy: [desc(ideas.createdAt)],
+    }),
+    db
+      .select({
+        sourceIdeaId: duplicateSuggestions.sourceIdeaId,
+        duplicateIdeaId: duplicateSuggestions.duplicateIdeaId,
+      })
+      .from(duplicateSuggestions)
+      .where(
+        and(
+          eq(duplicateSuggestions.workspaceId, workspace.id),
+          eq(duplicateSuggestions.status, "PENDING")
+        )
+      ),
+  ]);
+
+  // Collect all idea IDs that are part of pending duplicate suggestions
+  const ideasWithDuplicates = new Set<string>();
+  for (const dup of pendingDuplicates) {
+    ideasWithDuplicates.add(dup.sourceIdeaId);
+    ideasWithDuplicates.add(dup.duplicateIdeaId);
+  }
 
   // Get initial status filter from URL
   const { status } = await searchParams;
@@ -63,6 +85,7 @@ export default async function IdeasPage({ searchParams }: PageProps) {
         initialIdeas={workspaceIdeas}
         workspaceSlug={workspace.slug}
         initialStatusFilter={initialStatusFilter}
+        ideasWithDuplicates={Array.from(ideasWithDuplicates)}
       />
     </div>
   );

@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
 import {
   Select,
   SelectContent,
@@ -23,18 +24,45 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { ArrowLeft, ChevronUp, Trash2 } from "lucide-react";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
+import {
+  ArrowLeft,
+  ChevronDown,
+  ChevronUp,
+  GitMerge,
+  Trash2,
+} from "lucide-react";
 import type { Idea, IdeaStatus } from "@/lib/db/schema";
 import {
-  ALL_IDEA_STATUSES,
+  SELECTABLE_IDEA_STATUSES,
   IDEA_STATUS_CONFIG,
 } from "@/lib/idea-status-config";
 
-interface IdeaDetailProps {
-  idea: Idea;
+interface MergedChild {
+  id: string;
+  title: string;
 }
 
-export function IdeaDetail({ idea: initialIdea }: IdeaDetailProps) {
+interface PublishedIdea {
+  id: string;
+  title: string;
+}
+
+interface IdeaDetailProps {
+  idea: Idea;
+  mergedChildren?: MergedChild[];
+  publishedIdeas?: PublishedIdea[];
+}
+
+export function IdeaDetail({
+  idea: initialIdea,
+  mergedChildren = [],
+  publishedIdeas = [],
+}: IdeaDetailProps) {
   const router = useRouter();
   const [idea, setIdea] = useState(initialIdea);
   const [title, setTitle] = useState(idea.title);
@@ -43,6 +71,12 @@ export function IdeaDetail({ idea: initialIdea }: IdeaDetailProps) {
   const [isSavingDescription, setIsSavingDescription] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+
+  // Merge state
+  const [selectedParentId, setSelectedParentId] = useState<string>("");
+  const [isMerging, setIsMerging] = useState(false);
+  const [showMergeDialog, setShowMergeDialog] = useState(false);
+  const [mergedChildrenOpen, setMergedChildrenOpen] = useState(false);
 
   // Track if description has changed
   const descriptionChanged = description !== (idea.description || "");
@@ -131,7 +165,33 @@ export function IdeaDetail({ idea: initialIdea }: IdeaDetailProps) {
     }
   };
 
+  const handleMergeConfirm = async () => {
+    setIsMerging(true);
+    try {
+      const res = await fetch(`/api/ideas/${idea.id}/merge`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ parentIdeaId: selectedParentId }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "Failed to merge idea");
+      }
+
+      toast.success("Idea merged successfully");
+      router.push(`/dashboard/ideas/${selectedParentId}`);
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Failed to merge idea"
+      );
+      setIsMerging(false);
+      setShowMergeDialog(false);
+    }
+  };
+
   const StatusIcon = IDEA_STATUS_CONFIG[idea.status].icon;
+  const selectedParent = publishedIdeas.find((i) => i.id === selectedParentId);
 
   return (
     <div className="space-y-6">
@@ -168,6 +228,40 @@ export function IdeaDetail({ idea: initialIdea }: IdeaDetailProps) {
         </CardHeader>
 
         <CardContent className="space-y-6">
+          {/* Merged children display */}
+          {mergedChildren.length > 0 && (
+            <Collapsible
+              open={mergedChildrenOpen}
+              onOpenChange={setMergedChildrenOpen}
+            >
+              <CollapsibleTrigger asChild>
+                <Button variant="ghost" size="sm" className="gap-2">
+                  <GitMerge className="h-4 w-4" />
+                  <Badge variant="secondary">
+                    {mergedChildren.length} idea
+                    {mergedChildren.length > 1 ? "s" : ""} merged into this
+                  </Badge>
+                  {mergedChildrenOpen ? (
+                    <ChevronUp className="h-3 w-3" />
+                  ) : (
+                    <ChevronDown className="h-3 w-3" />
+                  )}
+                </Button>
+              </CollapsibleTrigger>
+              <CollapsibleContent className="mt-2 space-y-1 pl-6">
+                {mergedChildren.map((child) => (
+                  <Link
+                    key={child.id}
+                    href={`/dashboard/ideas/${child.id}`}
+                    className="text-muted-foreground hover:text-foreground block text-sm transition-colors"
+                  >
+                    &bull; {child.title}
+                  </Link>
+                ))}
+              </CollapsibleContent>
+            </Collapsible>
+          )}
+
           {/* Editable description */}
           <div className="space-y-2">
             <label className="text-muted-foreground text-sm font-medium">
@@ -200,26 +294,33 @@ export function IdeaDetail({ idea: initialIdea }: IdeaDetailProps) {
             <label className="text-muted-foreground text-sm font-medium">
               Status
             </label>
-            <Select value={idea.status} onValueChange={handleStatusChange}>
-              <SelectTrigger className="w-[180px]">
-                <StatusIcon className="mr-2 h-4 w-4" />
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {ALL_IDEA_STATUSES.map((opt) => {
-                  const cfg = IDEA_STATUS_CONFIG[opt];
-                  const Icon = cfg.icon;
-                  return (
-                    <SelectItem key={opt} value={opt}>
-                      <div className="flex items-center">
-                        <Icon className="mr-2 h-4 w-4" />
-                        {cfg.label}
-                      </div>
-                    </SelectItem>
-                  );
-                })}
-              </SelectContent>
-            </Select>
+            {idea.status === "MERGED" ? (
+              <Badge variant="secondary" className="gap-1.5">
+                <GitMerge className="h-3.5 w-3.5" />
+                Merged
+              </Badge>
+            ) : (
+              <Select value={idea.status} onValueChange={handleStatusChange}>
+                <SelectTrigger className="w-[180px]">
+                  <StatusIcon className="mr-2 h-4 w-4" />
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {SELECTABLE_IDEA_STATUSES.map((opt) => {
+                    const cfg = IDEA_STATUS_CONFIG[opt];
+                    const Icon = cfg.icon;
+                    return (
+                      <SelectItem key={opt} value={opt}>
+                        <div className="flex items-center">
+                          <Icon className="mr-2 h-4 w-4" />
+                          {cfg.label}
+                        </div>
+                      </SelectItem>
+                    );
+                  })}
+                </SelectContent>
+              </Select>
+            )}
           </div>
 
           <hr className="border-border" />
@@ -254,6 +355,51 @@ export function IdeaDetail({ idea: initialIdea }: IdeaDetailProps) {
               Delete Idea
             </Button>
           </div>
+
+          {/* Merge section - only show if idea is not already merged */}
+          {idea.status !== "MERGED" && publishedIdeas.length > 0 && (
+            <>
+              <hr className="border-border" />
+              <div className="space-y-3">
+                <label className="text-muted-foreground text-sm font-medium">
+                  Merge This Idea
+                </label>
+                <p className="text-muted-foreground text-xs">
+                  Merge this idea into another published idea. Votes will be
+                  transferred to the parent. This action is permanent.
+                </p>
+                <div className="flex items-center gap-2">
+                  <Select
+                    value={selectedParentId}
+                    onValueChange={setSelectedParentId}
+                  >
+                    <SelectTrigger className="flex-1">
+                      <SelectValue placeholder="Select parent idea..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {publishedIdeas.map((publishedIdea) => (
+                        <SelectItem
+                          key={publishedIdea.id}
+                          value={publishedIdea.id}
+                        >
+                          {publishedIdea.title}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={!selectedParentId}
+                    onClick={() => setShowMergeDialog(true)}
+                  >
+                    <GitMerge className="mr-2 h-4 w-4" />
+                    Merge
+                  </Button>
+                </div>
+              </div>
+            </>
+          )}
         </CardContent>
       </Card>
 
@@ -281,6 +427,43 @@ export function IdeaDetail({ idea: initialIdea }: IdeaDetailProps) {
               disabled={isDeleting}
             >
               {isDeleting ? "Deleting..." : "Delete"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Merge Confirmation Dialog */}
+      <Dialog open={showMergeDialog} onOpenChange={setShowMergeDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Merge Idea</DialogTitle>
+            <DialogDescription asChild>
+              <div className="text-muted-foreground text-sm">
+                <p>
+                  Are you sure you want to merge &ldquo;{idea.title}&rdquo; into
+                  &ldquo;{selectedParent?.title}&rdquo;?
+                </p>
+                <ul className="mt-2 list-inside list-disc space-y-1">
+                  <li>All votes will be transferred to the parent idea</li>
+                  <li>This idea will be hidden from the public board</li>
+                  <li>There is no way to undo this operation</li>
+                </ul>
+                <p className="mt-2 font-medium">
+                  This action cannot be reverted.
+                </p>
+              </div>
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setShowMergeDialog(false)}
+              disabled={isMerging}
+            >
+              Cancel
+            </Button>
+            <Button onClick={handleMergeConfirm} disabled={isMerging}>
+              {isMerging ? "Merging..." : "Confirm Merge"}
             </Button>
           </DialogFooter>
         </DialogContent>

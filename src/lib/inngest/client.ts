@@ -11,3 +11,9 @@ export const inngest = new Inngest({
     "subscription/changed": { data: { userId: string; plan: string } };
   }>(),
 });
+
+// Step type for testability (subset of Inngest step methods we use)
+export type InngestStepLike = {
+  run: <T>(name: string, fn: () => Promise<T>) => Promise<T>;
+  sleep: (name: string, duration: string | number) => Promise<void>;
+};

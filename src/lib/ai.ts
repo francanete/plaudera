@@ -4,6 +4,9 @@ const google = createGoogleGenerativeAI({
   apiKey: process.env.GOOGLE_AI_API_KEY!,
 });
 
+// Export the provider for embedding generation
+export { google };
+
 // Model configurations for Vercel AI SDK
 export const models = {
   // Fast model for quick responses (chat, summaries)
@@ -13,3 +16,19 @@ export const models = {
 };
 
 export type ModelName = keyof typeof models;
+
+// Re-export AI services for embeddings and similarity
+export {
+  generateEmbedding,
+  updateIdeaEmbedding,
+  deleteIdeaEmbedding,
+  syncWorkspaceEmbeddings,
+} from "./ai/embeddings";
+
+export {
+  findDuplicatesInWorkspace,
+  createDuplicateSuggestions,
+  SIMILARITY_THRESHOLD,
+  MIN_IDEAS_FOR_DETECTION,
+  type DuplicatePair,
+} from "./ai/similarity";

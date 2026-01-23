@@ -43,7 +43,7 @@ export default async function DashboardPage() {
         totalIdeas: sql<number>`COUNT(*)::int`,
         totalVotes: sql<number>`COALESCE(SUM(${ideas.voteCount}), 0)::int`,
         weeklyIdeas: sql<number>`COUNT(*) FILTER (WHERE ${ideas.createdAt} >= ${oneWeekAgo})::int`,
-        pendingIdeas: sql<number>`COUNT(*) FILTER (WHERE ${ideas.status} = 'PENDING')::int`,
+        pendingIdeas: sql<number>`COUNT(*) FILTER (WHERE ${ideas.status} = 'UNDER_REVIEW')::int`,
       })
       .from(ideas)
       .where(eq(ideas.workspaceId, workspace.id));
@@ -99,7 +99,7 @@ export default async function DashboardPage() {
 
       {/* Pending Ideas Alert */}
       {pendingIdeas > 0 && (
-        <Link href="/dashboard/ideas?status=PENDING">
+        <Link href="/dashboard/ideas?status=UNDER_REVIEW">
           <Card className="cursor-pointer border-orange-500/50 bg-orange-50 transition-colors hover:border-orange-500 dark:bg-orange-950/20">
             <CardContent className="flex items-center gap-4 py-4">
               <div className="rounded-full bg-orange-500/20 p-3">
