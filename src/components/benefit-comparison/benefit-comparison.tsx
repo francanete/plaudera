@@ -23,49 +23,44 @@ export function BenefitComparison({ className }: BenefitComparisonProps) {
   const { header, oldWay, modernApproach } = benefitComparisonConfig;
 
   return (
-    <section
-      ref={ref}
-      className={cn(
-        "bg-gradient-to-b from-white to-slate-50 py-24 lg:py-32",
-        className
-      )}
-    >
+    <section ref={ref} className={cn("bg-white py-24 lg:py-32", className)}>
       <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div
           className={cn(
-            "mb-20 max-w-2xl",
+            "mb-16 max-w-3xl md:mb-20",
             "transition-all duration-700 ease-out",
             isInView ? "translate-y-0 opacity-100" : "translate-y-8 opacity-0"
           )}
         >
-          <h2 className="text-4xl font-semibold tracking-tight text-slate-900 sm:text-5xl">
+          <h2 className="mb-5 text-4xl leading-tight font-semibold tracking-tight text-slate-900 md:text-5xl">
             {header.title}
           </h2>
-          <p className="mt-6 text-lg leading-8 text-slate-600">
+          <p className="text-lg leading-relaxed text-slate-600 md:text-xl">
             {header.subtitle}
           </p>
         </div>
 
         {/* Comparison Grid */}
-        <div className="grid gap-6 md:grid-cols-2 lg:gap-8">
-          {/* Old Way Card */}
+        <div className="grid grid-cols-1 gap-6 md:gap-8 lg:grid-cols-2">
+          {/* Without Plaudera Card */}
           <div
             className={cn(
-              "relative",
+              "group relative",
               "transition-all delay-100 duration-700 ease-out",
               isInView
                 ? "translate-y-0 opacity-100"
                 : "translate-y-12 opacity-0"
             )}
           >
-            <div className="absolute -inset-px rounded-2xl bg-gradient-to-b from-slate-100 to-slate-50" />
-            <div className="relative rounded-2xl bg-white p-8 lg:p-10">
-              <div className="mb-8 flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-slate-100">
-                  <X className="h-5 w-5 text-slate-600" strokeWidth={2.5} />
+            <div className="absolute inset-0 rounded-2xl bg-gradient-to-b from-rose-50/50 to-rose-50/30" />
+            <div className="relative h-full rounded-2xl border border-rose-100/80 bg-white/60 p-8 backdrop-blur-sm transition-all duration-200 hover:border-rose-200/80 hover:shadow-sm md:p-10">
+              {/* Card Header */}
+              <div className="mb-8 flex items-center gap-3 border-b border-slate-100 pb-6">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-rose-100">
+                  <X className="h-5 w-5 text-rose-500" strokeWidth={2.5} />
                 </div>
-                <h3 className="text-lg font-semibold text-slate-900">
+                <h3 className="text-xl font-semibold text-slate-900">
                   {oldWay.label}
                 </h3>
               </div>
@@ -83,23 +78,27 @@ export function BenefitComparison({ className }: BenefitComparisonProps) {
             </div>
           </div>
 
-          {/* Modern Approach Card */}
+          {/* With Plaudera Card */}
           <div
             className={cn(
-              "relative",
+              "group relative",
               "transition-all delay-200 duration-700 ease-out",
               isInView
                 ? "translate-y-0 opacity-100"
                 : "translate-y-12 opacity-0"
             )}
           >
-            <div className="absolute -inset-px rounded-2xl bg-gradient-to-b from-emerald-500/20 to-emerald-500/5" />
-            <div className="relative rounded-2xl bg-white p-8 shadow-lg shadow-emerald-500/10 lg:p-10">
-              <div className="mb-8 flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-500">
-                  <Check className="h-5 w-5 text-white" strokeWidth={2.5} />
+            <div className="absolute inset-0 rounded-2xl bg-gradient-to-b from-emerald-50/50 to-emerald-50/30" />
+            <div className="relative h-full rounded-2xl border border-emerald-100/80 bg-white/60 p-8 backdrop-blur-sm transition-all duration-200 hover:border-emerald-200/80 hover:shadow-sm md:p-10">
+              {/* Card Header */}
+              <div className="mb-8 flex items-center gap-3 border-b border-slate-100 pb-6">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-100">
+                  <Check
+                    className="h-5 w-5 text-emerald-600"
+                    strokeWidth={2.5}
+                  />
                 </div>
-                <h3 className="text-lg font-semibold text-slate-900">
+                <h3 className="text-xl font-semibold text-slate-900">
                   {modernApproach.label}
                 </h3>
               </div>
@@ -139,13 +138,15 @@ function OldWayItem({ item, isInView, delay }: ItemProps) {
       style={{ transitionDelay: isInView ? `${300 + delay}ms` : "0ms" }}
     >
       <div className="mt-0.5 flex-shrink-0">
-        <div className="h-1.5 w-1.5 rounded-full bg-slate-400" />
+        <div className="flex h-6 w-6 items-center justify-center rounded-full bg-rose-50">
+          <X className="h-3.5 w-3.5 text-rose-400" strokeWidth={2.5} />
+        </div>
       </div>
       <div>
-        <p className="text-[15px] leading-snug font-medium text-slate-900">
+        <h4 className="mb-1 text-base font-medium text-slate-900">
           {item.title}
-        </p>
-        <p className="mt-1.5 text-[15px] leading-relaxed text-slate-600">
+        </h4>
+        <p className="text-sm leading-relaxed text-slate-500">
           {item.description}
         </p>
       </div>
@@ -164,13 +165,15 @@ function ModernApproachItem({ item, isInView, delay }: ItemProps) {
       style={{ transitionDelay: isInView ? `${400 + delay}ms` : "0ms" }}
     >
       <div className="mt-0.5 flex-shrink-0">
-        <Check className="h-5 w-5 text-emerald-600" strokeWidth={2.5} />
+        <div className="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-50">
+          <Check className="h-3.5 w-3.5 text-emerald-500" strokeWidth={2.5} />
+        </div>
       </div>
       <div>
-        <p className="text-[15px] leading-snug font-medium text-slate-900">
+        <h4 className="mb-1 text-base font-medium text-slate-900">
           {item.title}
-        </p>
-        <p className="mt-1.5 text-[15px] leading-relaxed text-slate-600">
+        </h4>
+        <p className="text-sm leading-relaxed text-slate-500">
           {item.description}
         </p>
       </div>

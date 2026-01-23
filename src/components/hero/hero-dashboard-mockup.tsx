@@ -1,6 +1,6 @@
 "use client";
 
-import { TrendingUp, Users, CreditCard, Activity } from "lucide-react";
+import { ThumbsUp, Sparkles, MessageSquare } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface HeroDashboardMockupProps {
@@ -8,36 +8,37 @@ interface HeroDashboardMockupProps {
   isInView?: boolean;
 }
 
-const weekData = [
-  { height: 45 },
-  { height: 62 },
-  { height: 55 },
-  { height: 78 },
-  { height: 60 },
-  { height: 88 },
-  { height: 72 },
-];
-
-const activityItems = [
+const feedbackItems = [
   {
-    icon: Users,
-    text: "New enterprise team joined",
-    time: "2m ago",
-    amount: "+$2,400",
+    title: "Dark mode support",
+    votes: 47,
+    status: "Under Review",
+    statusColor: "bg-amber-100 text-amber-700",
+    comments: 12,
+    delay: 300,
+  },
+  {
+    title: "Export data to CSV",
+    votes: 34,
+    status: "Planned",
+    statusColor: "bg-blue-100 text-blue-700",
+    comments: 8,
     delay: 400,
   },
   {
-    icon: CreditCard,
-    text: "Subscription renewed",
-    time: "15m ago",
-    amount: "+$890",
+    title: "Slack integration",
+    votes: 28,
+    status: "Under Review",
+    statusColor: "bg-amber-100 text-amber-700",
+    comments: 5,
     delay: 500,
   },
   {
-    icon: Activity,
-    text: "Server capacity upgraded",
-    time: "1h ago",
-    amount: "-$120",
+    title: "Mobile app notifications",
+    votes: 21,
+    status: "New",
+    statusColor: "bg-slate-100 text-slate-600",
+    comments: 3,
     delay: 600,
   },
 ];
@@ -58,146 +59,121 @@ export function HeroDashboardMockup({
         className
       )}
     >
-      {/* Header - Minimalist */}
+      {/* Header */}
       <div className="flex items-center justify-between border-b border-slate-100 bg-white px-6 py-4">
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3">
           <div className="flex gap-2">
             <div className="h-2.5 w-2.5 rounded-full bg-slate-200" />
             <div className="h-2.5 w-2.5 rounded-full bg-slate-200" />
             <div className="h-2.5 w-2.5 rounded-full bg-slate-200" />
           </div>
+          <span className="text-xs font-semibold tracking-wide text-slate-400 uppercase">
+            Feedback Board
+          </span>
         </div>
         <div className="flex items-center gap-2 rounded-full border border-slate-100 bg-slate-50 px-2 py-1">
           <div className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
           <span className="text-[10px] font-medium tracking-wider text-slate-500 uppercase">
-            System Operational
+            Live
           </span>
         </div>
       </div>
 
       {/* Content */}
-      <div className="p-6 md:p-8">
-        {/* Main Metric */}
-        <div className="mb-8">
-          <div className="mb-2 flex items-center justify-between">
-            <p className="text-sm font-medium text-slate-500">Total Revenue</p>
-            <span
-              className={cn(
-                "inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-600",
-                "transition-all delay-200 duration-500 ease-out",
-                isInView
-                  ? "translate-y-0 opacity-100"
-                  : "translate-y-2 opacity-0"
-              )}
-            >
-              <TrendingUp className="h-3 w-3" />
-              +12.5%
-            </span>
-          </div>
-          <div className="flex items-baseline gap-1">
-            <span className="text-3xl font-light tracking-tight text-slate-400">
-              $
-            </span>
-            <span
-              className={cn(
-                "text-4xl font-semibold tracking-tight text-slate-900",
-                "transition-all duration-700 ease-out",
-                isInView
-                  ? "translate-y-0 opacity-100"
-                  : "translate-y-4 opacity-0"
-              )}
-            >
-              48,352.00
-            </span>
-          </div>
-        </div>
-
-        {/* Chart - Clean & Professional */}
+      <div className="p-5 md:p-6">
+        {/* Stats Row */}
         <div
           className={cn(
-            "mb-8",
-            "transition-all delay-100 duration-700",
-            isInView ? "opacity-100" : "opacity-0"
+            "mb-5 grid grid-cols-3 gap-3",
+            "transition-all duration-700 ease-out",
+            isInView ? "translate-y-0 opacity-100" : "translate-y-4 opacity-0"
           )}
         >
-          <div className="flex h-24 items-end justify-between gap-2 md:gap-4">
-            {weekData.map((bar, index) => (
-              <div
-                key={index}
-                className="group flex flex-1 flex-col items-center gap-2"
-              >
-                <div
-                  className="w-full rounded-sm bg-slate-900 opacity-90 transition-all hover:opacity-100"
-                  style={{
-                    height: isInView ? `${bar.height}%` : "0%",
-                    transition: "height 1000ms cubic-bezier(0.4, 0, 0.2, 1)",
-                    transitionDelay: `${200 + index * 50}ms`,
-                  }}
-                />
-              </div>
-            ))}
+          <div className="rounded-lg border border-slate-100 bg-slate-50/50 px-3 py-2.5">
+            <p className="text-[10px] font-medium text-slate-400 uppercase">
+              Ideas
+            </p>
+            <p className="text-lg font-semibold text-slate-900">128</p>
           </div>
-          <div className="mt-3 flex justify-between border-t border-slate-100 pt-3">
-            {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((day, i) => (
-              <span
-                key={i}
-                className="text-[10px] font-medium tracking-wide text-slate-400 uppercase"
-              >
-                {day}
-              </span>
-            ))}
+          <div className="rounded-lg border border-slate-100 bg-slate-50/50 px-3 py-2.5">
+            <p className="text-[10px] font-medium text-slate-400 uppercase">
+              Votes
+            </p>
+            <p className="text-lg font-semibold text-slate-900">1.2k</p>
+          </div>
+          <div className="rounded-lg border border-slate-100 bg-slate-50/50 px-3 py-2.5">
+            <p className="text-[10px] font-medium text-slate-400 uppercase">
+              Contributors
+            </p>
+            <p className="text-lg font-semibold text-slate-900">89</p>
           </div>
         </div>
 
-        {/* Recent Transactions - Minimal List */}
-        <div>
-          <p className="mb-4 text-xs font-semibold tracking-wider text-slate-900 uppercase">
-            Recent Transactions
+        {/* AI Duplicate Alert */}
+        <div
+          className={cn(
+            "mb-5 flex items-center gap-2.5 rounded-lg border border-violet-100 bg-violet-50/60 px-3.5 py-2.5",
+            "transition-all delay-200 duration-700 ease-out",
+            isInView ? "translate-y-0 opacity-100" : "translate-y-4 opacity-0"
+          )}
+        >
+          <Sparkles className="h-3.5 w-3.5 shrink-0 text-violet-500" />
+          <p className="text-xs font-medium text-violet-700">
+            AI detected 3 duplicate ideas —{" "}
+            <span className="underline underline-offset-2">Review</span>
           </p>
-          <div className="space-y-3">
-            {activityItems.map((item, index) => {
-              const Icon = item.icon;
-              return (
-                <div
-                  key={index}
-                  className={cn(
-                    "flex items-center justify-between py-2",
-                    "border-b border-slate-50 last:border-0",
-                    "transition-all duration-500 ease-out",
-                    isInView
-                      ? "translate-x-0 opacity-100"
-                      : "-translate-x-4 opacity-0"
-                  )}
-                  style={{
-                    transitionDelay: isInView ? `${item.delay}ms` : "0ms",
-                  }}
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-full border border-slate-100 bg-slate-50 text-slate-500">
-                      <Icon className="h-4 w-4" />
-                    </div>
-                    <div className="flex flex-col">
-                      <span className="text-sm font-medium text-slate-700">
-                        {item.text}
-                      </span>
-                      <span className="text-xs text-slate-400">
-                        {item.time}
-                      </span>
-                    </div>
-                  </div>
-                  <span
-                    className={cn(
-                      "text-sm font-medium",
-                      item.amount.startsWith("+")
-                        ? "text-slate-700"
-                        : "text-slate-400"
-                    )}
-                  >
-                    {item.amount}
+        </div>
+
+        {/* Feedback List */}
+        <div>
+          <p className="mb-3 text-[10px] font-semibold tracking-wider text-slate-400 uppercase">
+            Top Ideas
+          </p>
+          <div className="space-y-2">
+            {feedbackItems.map((item, index) => (
+              <div
+                key={index}
+                className={cn(
+                  "flex items-center gap-3 rounded-lg border border-slate-100 px-3 py-2.5",
+                  "transition-all duration-500 ease-out",
+                  isInView
+                    ? "translate-x-0 opacity-100"
+                    : "-translate-x-4 opacity-0"
+                )}
+                style={{
+                  transitionDelay: isInView ? `${item.delay}ms` : "0ms",
+                }}
+              >
+                {/* Vote Button */}
+                <div className="flex shrink-0 flex-col items-center gap-0.5 rounded border border-slate-200 bg-slate-50 px-2 py-1.5">
+                  <ThumbsUp className="h-3 w-3 text-slate-500" />
+                  <span className="text-xs font-semibold text-slate-700">
+                    {item.votes}
                   </span>
                 </div>
-              );
-            })}
+
+                {/* Content */}
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-medium text-slate-800">
+                    {item.title}
+                  </p>
+                  <div className="mt-0.5 flex items-center gap-2">
+                    <span
+                      className={cn(
+                        "rounded-full px-1.5 py-0.5 text-[9px] font-semibold",
+                        item.statusColor
+                      )}
+                    >
+                      {item.status}
+                    </span>
+                    <span className="flex items-center gap-0.5 text-[10px] text-slate-400">
+                      <MessageSquare className="h-2.5 w-2.5" />
+                      {item.comments}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </div>

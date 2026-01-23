@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { appConfig } from "@/lib/config";
-import { Twitter, Github, Linkedin, Hexagon } from "lucide-react";
+import { Twitter, Github, Linkedin } from "lucide-react";
+import { PlauderaLogo } from "@/components/plaudera-logo";
 
 const footerSections = [
   {
@@ -28,8 +29,8 @@ export function Footer() {
           {/* Brand Column - Takes up 2 columns on large screens */}
           <div className="space-y-8 lg:col-span-2">
             <div className="flex items-center space-x-2">
-              <div className="rounded-lg bg-blue-600 p-1.5">
-                <Hexagon className="h-6 w-6 fill-current text-white" />
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-600 text-white shadow-md">
+                <PlauderaLogo />
               </div>
               <span className="text-xl font-bold tracking-tight text-gray-900">
                 {appConfig.name}
