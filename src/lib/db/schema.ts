@@ -471,6 +471,8 @@ export const widgetSettings = pgTable(
     position: widgetPositionEnum("position").default("bottom-right").notNull(),
     // CORS allowlist for widget embed
     allowedOrigins: text("allowed_origins").array().default([]),
+    // Page targeting: glob patterns for which pages show the widget (empty = all pages)
+    pageRules: text("page_rules").array().default([]),
     // Future settings (ready for expansion)
     // theme: text("theme").default("light"),
     // primaryColor: text("primary_color"),

@@ -12,12 +12,13 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Check, Copy, Code2, Loader2, Plus, X, Globe } from "lucide-react";
+import { Check, Copy, Code2, Loader2, Plus, X, Globe, Route } from "lucide-react";
 import { toast } from "sonner";
 import { appConfig } from "@/lib/config";
 import type { WidgetPosition } from "@/lib/db/schema";
 
 const MAX_ALLOWED_ORIGINS = 10;
+const MAX_PAGE_RULES = 20;
 
 /**
  * Validate and normalize an origin URL (client-side).
@@ -39,12 +40,14 @@ interface WidgetSectionProps {
   workspaceSlug: string;
   initialPosition: WidgetPosition;
   initialAllowedOrigins: string[];
+  initialPageRules: string[];
 }
 
 export function WidgetSection({
   workspaceSlug,
   initialPosition,
   initialAllowedOrigins,
+  initialPageRules,
 }: WidgetSectionProps) {
   const [position, setPosition] = useState<WidgetPosition>(initialPosition);
   const [allowedOrigins, setAllowedOrigins] = useState<string[]>(
@@ -52,9 +55,13 @@ export function WidgetSection({
   );
   const [newOrigin, setNewOrigin] = useState("");
   const [originError, setOriginError] = useState<string | null>(null);
+  const [pageRules, setPageRules] = useState<string[]>(initialPageRules);
+  const [newRule, setNewRule] = useState("");
+  const [ruleError, setRuleError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [isPending, startTransition] = useTransition();
   const [isOriginPending, startOriginTransition] = useTransition();
+  const [isRulePending, startRuleTransition] = useTransition();
   const copyTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
@@ -197,6 +204,85 @@ export function WidgetSection({
     });
   };
 
+  const handleAddRule = () => {
+    setRuleError(null);
+
+    const trimmed = newRule.trim();
+    if (!trimmed) {
+      setRuleError("Please enter a path pattern");
+      return;
+    }
+
+    if (!trimmed.startsWith("/")) {
+      setRuleError("Pattern must start with /");
+      return;
+    }
+
+    if (pageRules.includes(trimmed)) {
+      setRuleError("This pattern is already added");
+      return;
+    }
+
+    if (pageRules.length >= MAX_PAGE_RULES) {
+      setRuleError(`Maximum ${MAX_PAGE_RULES} page rules allowed`);
+      return;
+    }
+
+    const previousRules = pageRules;
+    const updatedRules = [...pageRules, trimmed];
+    setPageRules(updatedRules);
+    setNewRule("");
+
+    startRuleTransition(async () => {
+      try {
+        const res = await fetch("/api/widget/settings", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ pageRules: updatedRules }),
+        });
+
+        if (!res.ok) {
+          const data = await res.json();
+          throw new Error(data.error || "Failed to save");
+        }
+
+        toast.success("Page rule added");
+      } catch (error) {
+        console.error("[WidgetSection] Failed to add page rule:", error);
+        setPageRules(previousRules);
+        toast.error(
+          error instanceof Error ? error.message : "Failed to add page rule"
+        );
+      }
+    });
+  };
+
+  const handleRemoveRule = (ruleToRemove: string) => {
+    const previousRules = pageRules;
+    const updatedRules = pageRules.filter((r) => r !== ruleToRemove);
+    setPageRules(updatedRules);
+
+    startRuleTransition(async () => {
+      try {
+        const res = await fetch("/api/widget/settings", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ pageRules: updatedRules }),
+        });
+
+        if (!res.ok) {
+          throw new Error("Failed to save");
+        }
+
+        toast.success("Page rule removed");
+      } catch (error) {
+        console.error("[WidgetSection] Failed to remove page rule:", error);
+        setPageRules(previousRules);
+        toast.error("Failed to remove page rule");
+      }
+    });
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -320,6 +406,81 @@ export function WidgetSection({
           )}
           <p className="text-muted-foreground text-xs">
             {allowedOrigins.length}/{MAX_ALLOWED_ORIGINS} domains configured
+          </p>
+        </div>
+
+        {/* Page Targeting */}
+        <div className="space-y-3">
+          <div className="flex items-center gap-2">
+            <Route className="h-4 w-4" />
+            <Label>Page Targeting</Label>
+            {isRulePending && <Loader2 className="h-4 w-4 animate-spin" />}
+          </div>
+          <p className="text-muted-foreground text-sm">
+            Specify which pages should show the widget using path patterns. Leave
+            empty to show the widget on all pages.
+          </p>
+
+          {/* Add rule input */}
+          <div className="flex gap-2">
+            <Input
+              placeholder="/pricing, /docs/**, /blog/*"
+              value={newRule}
+              onChange={(e) => {
+                setNewRule(e.target.value);
+                setRuleError(null);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  handleAddRule();
+                }
+              }}
+              disabled={isRulePending || pageRules.length >= MAX_PAGE_RULES}
+              className="flex-1"
+            />
+            <Button
+              onClick={handleAddRule}
+              disabled={isRulePending || pageRules.length >= MAX_PAGE_RULES}
+              size="sm"
+            >
+              <Plus className="mr-1 h-4 w-4" />
+              Add
+            </Button>
+          </div>
+          {ruleError && (
+            <p className="text-destructive text-sm">{ruleError}</p>
+          )}
+
+          {/* Rules list */}
+          {pageRules.length > 0 ? (
+            <ul className="space-y-2">
+              {pageRules.map((rule) => (
+                <li
+                  key={rule}
+                  className="bg-muted flex items-center justify-between rounded-md px-3 py-2"
+                >
+                  <span className="truncate font-mono text-sm">{rule}</span>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleRemoveRule(rule)}
+                    disabled={isRulePending}
+                    className="hover:bg-destructive/10 h-6 w-6 p-0"
+                  >
+                    <X className="h-4 w-4" />
+                    <span className="sr-only">Remove {rule}</span>
+                  </Button>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-muted-foreground border-muted rounded-md border border-dashed p-4 text-center text-sm">
+              No page rules configured. The widget will show on all pages.
+            </p>
+          )}
+          <p className="text-muted-foreground text-xs">
+            {pageRules.length}/{MAX_PAGE_RULES} page rules configured
           </p>
         </div>
 

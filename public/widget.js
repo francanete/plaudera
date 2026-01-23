@@ -33,6 +33,47 @@
   const PANEL_WIDTH = 400;
   const Z_INDEX = 2147483647; // Max z-index
 
+  // Page rules (populated from API)
+  let pageRules = [];
+
+  // Convert a glob pattern to a RegExp
+  function globToRegex(pattern) {
+    var result = '';
+    var i = 0;
+    while (i < pattern.length) {
+      var ch = pattern[i];
+      if (ch === '*' && pattern[i + 1] === '*') {
+        // ** matches any path segments (including /)
+        result += '.*';
+        i += 2;
+        // Skip trailing slash after ** if present
+        if (pattern[i] === '/') i++;
+      } else if (ch === '*') {
+        // * matches any characters except /
+        result += '[^/]*';
+        i++;
+      } else if ('^$.|+?()[]{}\\'.indexOf(ch) !== -1) {
+        // Escape regex special characters
+        result += '\\' + ch;
+        i++;
+      } else {
+        result += ch;
+        i++;
+      }
+    }
+    return new RegExp('^' + result + '$');
+  }
+
+  // Check if current page matches any page rule
+  function matchesPageRules(rules) {
+    if (!rules || rules.length === 0) return true;
+    var pathname = window.location.pathname;
+    for (var i = 0; i < rules.length; i++) {
+      if (globToRegex(rules[i]).test(pathname)) return true;
+    }
+    return false;
+  }
+
   // Fetch widget settings from API
   function fetchSettings() {
     return fetch(baseUrl + '/api/public/' + workspace + '/settings')
@@ -45,6 +86,9 @@
       .then(function(data) {
         if (data.position) {
           position = data.position;
+        }
+        if (data.pageRules) {
+          pageRules = data.pageRules;
         }
       })
       .catch(function(error) {
@@ -321,8 +365,11 @@
   }
 
   function loadAndSetup() {
-    // Fetch settings from API first, then setup
-    fetchSettings().then(setup);
+    // Fetch settings from API first, then check page rules before setup
+    fetchSettings().then(function() {
+      if (!matchesPageRules(pageRules)) return;
+      setup();
+    });
   }
 
   function setup() {

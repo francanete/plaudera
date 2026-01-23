@@ -1,0 +1,1 @@
+ALTER TABLE "widget_settings" ADD COLUMN "page_rules" text[] DEFAULT '{}';
