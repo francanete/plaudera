@@ -11,7 +11,6 @@ import { FeaturesSection } from "@/components/features/features-section";
 import { HeroSection } from "@/components/hero/hero-section";
 import { BenefitComparison } from "@/components/benefit-comparison/benefit-comparison";
 import { PricingSection } from "@/components/pricing/pricing-section";
-import { TestimonialSection } from "@/components/testimonials/testimonial-section";
 import { HowItWorksSection } from "@/components/how-it-works/how-it-works-section";
 
 export const metadata: Metadata = seo.page({
