@@ -43,10 +43,6 @@ export const POST = protectedApiRouteWrapper<{ id: string }>(
       throw new NotFoundError("Suggestion not found");
     }
 
-    if (suggestion.status !== "PENDING") {
-      throw new BadRequestError("Suggestion has already been processed");
-    }
-
     // Validate that keepIdeaId is one of the two ideas
     const validIds = [suggestion.sourceIdeaId, suggestion.duplicateIdeaId];
     if (!validIds.includes(keepIdeaId)) {
@@ -61,25 +57,32 @@ export const POST = protectedApiRouteWrapper<{ id: string }>(
         ? suggestion.duplicateIdeaId
         : suggestion.sourceIdeaId;
 
-    // Execute merge in a transaction
+    // Execute merge in a transaction with row-level locking
     await db.transaction(async (tx) => {
-      // 1. Transfer votes from merged idea to kept idea (skip duplicates)
-      // Get votes from the merged idea
-      const votesToTransfer = await tx
-        .select({ contributorId: votes.contributorId })
-        .from(votes)
-        .where(eq(votes.ideaId, mergeIdeaId));
+      // Acquire row lock and re-check status to prevent concurrent merges
+      const lockResult = await tx.execute(sql`
+        SELECT status FROM duplicate_suggestions
+        WHERE id = ${params.id} AND workspace_id = ${workspace.id}
+        FOR UPDATE
+      `);
 
-      // Insert votes for kept idea (ON CONFLICT DO NOTHING to skip duplicates)
-      for (const vote of votesToTransfer) {
-        await tx
-          .insert(votes)
-          .values({
-            ideaId: keepIdeaId,
-            contributorId: vote.contributorId,
-          })
-          .onConflictDoNothing();
+      const locked = lockResult.rows[0] as { status: string } | undefined;
+      if (!locked || locked.status !== "PENDING") {
+        throw new BadRequestError("Suggestion has already been processed");
       }
+
+      // 1. Transfer votes from merged idea to kept idea in bulk (skip duplicates)
+      await tx.execute(sql`
+        INSERT INTO votes (id, idea_id, contributor_id, created_at)
+        SELECT
+          'vote_' || gen_random_uuid()::text,
+          ${keepIdeaId},
+          contributor_id,
+          NOW()
+        FROM votes
+        WHERE idea_id = ${mergeIdeaId}
+        ON CONFLICT (idea_id, contributor_id) DO NOTHING
+      `);
 
       // 2. Recalculate vote count for kept idea
       const [{ count }] = await tx

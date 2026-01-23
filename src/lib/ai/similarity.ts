@@ -1,8 +1,8 @@
-import { cosineDistance, sql, eq, and, ne, desc, gt } from "drizzle-orm";
-import { db, ideaEmbeddings, ideas, duplicateSuggestions } from "@/lib/db";
+import { sql, eq } from "drizzle-orm";
+import { db, duplicateSuggestions } from "@/lib/db";
 
 // Configuration
-// 65% threshold works well for short titles; higher values miss similar ideas
+// 55% similarity threshold; lower values catch more potential duplicates but increase false positives
 export const SIMILARITY_THRESHOLD = 0.55;
 export const MIN_IDEAS_FOR_DETECTION = 5;
 
@@ -20,18 +20,15 @@ export interface DuplicatePair {
 export async function findDuplicatesInWorkspace(
   workspaceId: string
 ): Promise<DuplicatePair[]> {
-  // Get all ideas with embeddings for this workspace (excluding MERGED)
-  const ideasWithEmbeddings = await db
-    .select({
-      id: ideas.id,
-      createdAt: ideas.createdAt,
-      embedding: ideaEmbeddings.embedding,
-    })
-    .from(ideas)
-    .innerJoin(ideaEmbeddings, eq(ideas.id, ideaEmbeddings.ideaId))
-    .where(and(eq(ideas.workspaceId, workspaceId), ne(ideas.status, "MERGED")));
+  // Quick count check to avoid expensive self-join on small workspaces
+  const [{ count }] = await db.execute(sql`
+    SELECT count(*)::int AS count
+    FROM ideas i
+    INNER JOIN idea_embeddings ie ON ie.idea_id = i.id
+    WHERE i.workspace_id = ${workspaceId} AND i.status != 'MERGED'
+  `).then((r) => r.rows as { count: number }[]);
 
-  if (ideasWithEmbeddings.length < MIN_IDEAS_FOR_DETECTION) {
+  if (count < MIN_IDEAS_FOR_DETECTION) {
     return [];
   }
 
@@ -48,67 +45,55 @@ export async function findDuplicatesInWorkspace(
     existingSuggestions.map((s) => `${s.sourceIdeaId}:${s.duplicateIdeaId}`)
   );
 
+  // Single self-join query: compute all above-threshold pairs in one round trip.
+  // The condition b.id > a.id ensures each pair is computed exactly once.
+  const similarPairs = await db.execute(sql`
+    SELECT
+      a_idea.id AS idea_a_id,
+      a_idea.created_at AS idea_a_created_at,
+      b_idea.id AS idea_b_id,
+      b_idea.created_at AS idea_b_created_at,
+      1 - (a_emb.embedding <=> b_emb.embedding) AS similarity
+    FROM ideas a_idea
+    INNER JOIN idea_embeddings a_emb ON a_emb.idea_id = a_idea.id
+    INNER JOIN ideas b_idea
+      ON b_idea.workspace_id = a_idea.workspace_id
+      AND b_idea.id > a_idea.id
+      AND b_idea.status != 'MERGED'
+    INNER JOIN idea_embeddings b_emb ON b_emb.idea_id = b_idea.id
+    WHERE a_idea.workspace_id = ${workspaceId}
+      AND a_idea.status != 'MERGED'
+      AND 1 - (a_emb.embedding <=> b_emb.embedding) > ${SIMILARITY_THRESHOLD}
+    ORDER BY similarity DESC
+  `);
+
+  // Post-process: determine source/duplicate by createdAt, filter existing pairs
   const pairs: DuplicatePair[] = [];
 
-  // Compare each pair of ideas using pgvector cosine distance
-  for (let i = 0; i < ideasWithEmbeddings.length; i++) {
-    const ideaA = ideasWithEmbeddings[i];
+  for (const row of similarPairs.rows as {
+    idea_a_id: string;
+    idea_a_created_at: Date;
+    idea_b_id: string;
+    idea_b_created_at: Date;
+    similarity: number;
+  }[]) {
+    const aIsOlder = row.idea_a_created_at <= row.idea_b_created_at;
+    const sourceId = aIsOlder ? row.idea_a_id : row.idea_b_id;
+    const duplicateId = aIsOlder ? row.idea_b_id : row.idea_a_id;
 
-    // Use pgvector to find similar ideas for this embedding
-    const similarIdeas = await db
-      .select({
-        id: ideas.id,
-        createdAt: ideas.createdAt,
-        similarity: sql<number>`1 - (${cosineDistance(ideaEmbeddings.embedding, ideaA.embedding)})`,
-      })
-      .from(ideas)
-      .innerJoin(ideaEmbeddings, eq(ideas.id, ideaEmbeddings.ideaId))
-      .where(
-        and(
-          eq(ideas.workspaceId, workspaceId),
-          ne(ideas.status, "MERGED"),
-          ne(ideas.id, ideaA.id), // Don't compare with self
-          gt(
-            sql<number>`1 - (${cosineDistance(ideaEmbeddings.embedding, ideaA.embedding)})`,
-            SIMILARITY_THRESHOLD
-          )
-        )
-      )
-      .orderBy(
-        desc(
-          sql`1 - (${cosineDistance(ideaEmbeddings.embedding, ideaA.embedding)})`
-        )
-      );
-
-    for (const similar of similarIdeas) {
-      // Determine source (older) and duplicate (newer)
-      const isAOlder = ideaA.createdAt <= similar.createdAt;
-      const sourceId = isAOlder ? ideaA.id : similar.id;
-      const duplicateId = isAOlder ? similar.id : ideaA.id;
-
-      // Skip if we already have a suggestion for this pair (in either direction)
-      const pairKey = `${sourceId}:${duplicateId}`;
-      const reversePairKey = `${duplicateId}:${sourceId}`;
-      if (existingPairs.has(pairKey) || existingPairs.has(reversePairKey)) {
-        continue;
-      }
-
-      // Skip if we already added this pair in this run
-      const alreadyAdded = pairs.some(
-        (p) =>
-          (p.sourceIdeaId === sourceId && p.duplicateIdeaId === duplicateId) ||
-          (p.sourceIdeaId === duplicateId && p.duplicateIdeaId === sourceId)
-      );
-      if (alreadyAdded) {
-        continue;
-      }
-
-      pairs.push({
-        sourceIdeaId: sourceId,
-        duplicateIdeaId: duplicateId,
-        similarity: Math.round(similar.similarity * 100),
-      });
+    // Skip if a suggestion already exists for this pair (in either direction)
+    if (
+      existingPairs.has(`${sourceId}:${duplicateId}`) ||
+      existingPairs.has(`${duplicateId}:${sourceId}`)
+    ) {
+      continue;
     }
+
+    pairs.push({
+      sourceIdeaId: sourceId,
+      duplicateIdeaId: duplicateId,
+      similarity: Math.round(row.similarity * 100),
+    });
   }
 
   return pairs;
