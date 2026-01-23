@@ -127,17 +127,20 @@ npm run build         # Migrates DB + builds Next.js
 All tables defined in `/src/lib/db/schema.ts`:
 
 **Core:**
+
 - `users` - User accounts with roles (user/admin)
 - `sessions` - Auth sessions
 - `accounts` - OAuth provider connections
 - `verifications` - Email verification tokens
 
 **Subscriptions & Billing:**
+
 - `subscriptions` - Plan status (FREE/STARTER/GROWTH/SCALE), Polar integration
 - `tierConfigs` - Tier display configuration
 - `featureRateLimits` - Per-plan feature rate limits
 
 **Feedback Board:**
+
 - `workspaces` - User workspaces (one-per-owner, slug-based)
 - `ideas` - Feature requests (UNDER_REVIEW/PUBLISHED/MERGED status)
 - `contributors` - Non-authenticated board participants
@@ -146,10 +149,12 @@ All tables defined in `/src/lib/db/schema.ts`:
 - `widgetSettings` - Widget position, CORS allowlist per workspace
 
 **AI Duplicate Detection:**
+
 - `ideaEmbeddings` - Vector embeddings (768-dim, pgvector with HNSW index)
 - `duplicateSuggestions` - AI-detected duplicate pairs with similarity % (PENDING/MERGED/DISMISSED)
 
 **Usage & Tracking:**
+
 - `aiUsage` - Token tracking for rate limiting
 - `onboardingFlows` - Tour completion tracking
 - `emailsSent` - Email sequence opt-out tracking
