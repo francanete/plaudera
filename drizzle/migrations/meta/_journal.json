@@ -33,8 +33,22 @@
     {
       "idx": 4,
       "version": "7",
-      "when": 1769205420868,
-      "tag": "0004_furry_wilson_fisk",
+      "when": 1769185134640,
+      "tag": "0004_dry_namora",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1769186121053,
+      "tag": "0005_charming_gateway",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1769259162421,
+      "tag": "0006_nifty_tusk",
       "breakpoints": true
     }
   ]

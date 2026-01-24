@@ -23,6 +23,8 @@ export default async function BoardPage() {
 
   let initialPosition: WidgetPosition = "bottom-right";
   let initialAllowedOrigins: string[] = [];
+  let initialPageRules: string[] = [];
+  let initialShowLabel = true;
   let slugChangesUsed = 0;
 
   if (workspace) {
@@ -38,6 +40,8 @@ export default async function BoardPage() {
 
     initialPosition = settings?.position ?? "bottom-right";
     initialAllowedOrigins = settings?.allowedOrigins ?? [];
+    initialPageRules = settings?.pageRules ?? [];
+    initialShowLabel = settings?.showLabel ?? true;
     slugChangesUsed = slugCountResult?.count ?? 0;
   }
 
@@ -71,6 +75,8 @@ export default async function BoardPage() {
             workspaceSlug={workspace.slug}
             initialPosition={initialPosition}
             initialAllowedOrigins={initialAllowedOrigins}
+            initialPageRules={initialPageRules}
+            initialShowLabel={initialShowLabel}
           />
         </>
       ) : (
