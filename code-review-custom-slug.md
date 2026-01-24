@@ -16,6 +16,7 @@ This feature implements custom workspace slugs with rate limiting and a complete
 ## Critical Issues (Merge Blockers)
 
 ### 1. **Race Condition in Slug Uniqueness Check**
+
 **File:** `/src/lib/workspace.ts` (lines 156-178)
 **Severity:** High - Data integrity risk
 
@@ -63,6 +64,7 @@ The current dual-check approach (explicit check + constraint fallback) adds comp
 ---
 
 ### 2. **Missing Index on `slugChangeHistory.changedAt`**
+
 **File:** `/drizzle/migrations/0006_nifty_tusk.sql`
 **Severity:** High - Performance degradation
 
@@ -79,7 +81,7 @@ where(
     eq(slugChangeHistory.workspaceId, workspaceId),
     gt(slugChangeHistory.changedAt, oneDayAgo)
   )
-)
+);
 ```
 
 Without a composite index or an index on `changedAt`, the daily rate limit check will do a full table scan on all slug changes for that workspace (could be up to 10 rows, but still inefficient).
@@ -96,6 +98,7 @@ Or at minimum, add an index on `changed_at` if you expect large volumes.
 ---
 
 ### 3. **Weak ReDoS Protection in Widget Page Rules**
+
 **File:** `/public/widget.js` (lines 39-61)
 **Severity:** Medium-High - Client DoS risk
 
@@ -104,7 +107,7 @@ The glob-to-regex conversion limits `**` to 2 occurrences but doesn't limit tota
 ```javascript
 const MAX_DOUBLE_STARS = 2;
 if (doubleStarCount > MAX_DOUBLE_STARS) {
-  result += '[^/]*'; // Degrades to single-segment match
+  result += "[^/]*"; // Degrades to single-segment match
 }
 ```
 
@@ -118,12 +121,12 @@ const MAX_WILDCARDS = 5;
 
 function globToRegex(pattern) {
   if (pattern.length > MAX_PATTERN_LENGTH) {
-    throw new Error('Pattern too long');
+    throw new Error("Pattern too long");
   }
 
   let wildcardCount = (pattern.match(/\*/g) || []).length;
   if (wildcardCount > MAX_WILDCARDS) {
-    throw new Error('Too many wildcards');
+    throw new Error("Too many wildcards");
   }
 
   // ... rest of implementation
@@ -136,11 +139,11 @@ Also consider using a timeout on the regex test:
 function matchesPageRules(rules) {
   if (!rules || rules.length === 0) return true;
   const pathname = window.location.pathname;
-  return rules.some(function(rule) {
+  return rules.some(function (rule) {
     try {
       return globToRegex(rule).test(pathname);
     } catch (e) {
-      console.warn('[Plaudera] Invalid page rule:', rule);
+      console.warn("[Plaudera] Invalid page rule:", rule);
       return false;
     }
   });
@@ -150,6 +153,7 @@ function matchesPageRules(rules) {
 ---
 
 ### 4. **Missing Validation on Server-Side Page Rules**
+
 **File:** `/src/app/api/widget/settings/route.ts` (lines 13-32)
 **Severity:** Medium - Inconsistent validation
 
@@ -178,12 +182,14 @@ pageRules: z.array(
 ---
 
 ### 5. **Public API Route Rename Without Backward Compatibility**
+
 **Files:** `/src/app/api/public/[slug]/*` → `/src/app/api/public/[workspaceId]/*`
 **Severity:** Medium - Breaking change for existing widget installations
 
 You've completely removed the slug-based public API routes and replaced them with ID-based routes. Any existing widgets using the old endpoints will break immediately on deploy.
 
 **Problem:**
+
 - Old widget code: `data-workspace="my-slug"` → calls `/api/public/my-slug/ideas`
 - New widget code: `data-workspace="workspace-id-123"` → calls `/api/public/workspace-id-123/ideas`
 
@@ -192,16 +198,19 @@ There's no deprecation path or dual-support period.
 **Fix Options:**
 
 **Option A (Recommended):** Support both during transition period:
+
 1. Keep old `/api/public/[slug]/*` routes that look up workspace by slug, then call shared handler
 2. Add new `/api/public/[workspaceId]/*` routes that call same handler
 3. Deprecate slug routes in 30-60 days with console warnings
 
 **Option B:** One-time migration script:
+
 1. Before deploy: Generate migration to update all existing widget installations
 2. Parse HTML snippets, replace `data-workspace` values with workspace IDs
 3. Requires database tracking of where widgets are installed (you don't have this)
 
 **Option C:** Accept breaking change:
+
 - Document in release notes that all widget code must be updated
 - High friction for users, but clean break
 
@@ -210,9 +219,11 @@ There's no deprecation path or dual-support period.
 ## Quality Issues (Should Fix)
 
 ### 6. **Redundant Slug Validation in Multiple Locations**
+
 **Files:** `/src/lib/slug-validation.ts`, `/src/app/api/workspace/slug/check/route.ts`, `/src/components/settings/workspace-slug-form.tsx`
 
 The slug validation logic is duplicated across:
+
 - Zod schema validation (server-side)
 - Real-time availability check (client-side debounced)
 - Form submission validation (client-side)
@@ -238,11 +249,14 @@ This is already done correctly. No change needed, but document this pattern.
 ---
 
 ### 7. **Inconsistent Error Handling in Client Components**
+
 **File:** `/src/components/settings/workspace-slug-form.tsx` (lines 72-90)
 
 ```typescript
 try {
-  const response = await fetch(`/api/workspace/slug/check?slug=${encodeURIComponent(slug)}`);
+  const response = await fetch(
+    `/api/workspace/slug/check?slug=${encodeURIComponent(slug)}`
+  );
   const data = await response.json();
 
   if (data.available) {
@@ -276,6 +290,7 @@ try {
 ---
 
 ### 8. **Missing Rate Limit Information in Error Responses**
+
 **File:** `/src/lib/workspace.ts` (lines 41-57)
 
 When rate limits are hit, you return generic error messages:
@@ -311,11 +326,13 @@ And expose this in the UI.
 ---
 
 ### 9. **Incomplete Test Coverage for New Widget Features**
+
 **Files:** `/tests/lib/slug-validation.test.ts`, `/tests/lib/workspace.test.ts`
 
 Good test coverage for slug validation and workspace functions, but:
 
 **Missing tests:**
+
 - Widget page rule glob pattern matching (`globToRegex` function)
 - Widget page rule validation edge cases
 - Rate limiting logic for slug changes (integration test)
@@ -325,21 +342,21 @@ Good test coverage for slug validation and workspace functions, but:
 
 ```typescript
 // tests/lib/widget-page-rules.test.ts
-describe('globToRegex', () => {
-  it('matches exact paths', () => {
-    expect(globToRegex('/pricing').test('/pricing')).toBe(true);
+describe("globToRegex", () => {
+  it("matches exact paths", () => {
+    expect(globToRegex("/pricing").test("/pricing")).toBe(true);
   });
 
-  it('matches single wildcards', () => {
-    expect(globToRegex('/blog/*').test('/blog/post-1')).toBe(true);
+  it("matches single wildcards", () => {
+    expect(globToRegex("/blog/*").test("/blog/post-1")).toBe(true);
   });
 
-  it('matches double wildcards', () => {
-    expect(globToRegex('/docs/**').test('/docs/api/auth')).toBe(true);
+  it("matches double wildcards", () => {
+    expect(globToRegex("/docs/**").test("/docs/api/auth")).toBe(true);
   });
 
-  it('rejects non-matching paths', () => {
-    expect(globToRegex('/pricing').test('/blog')).toBe(false);
+  it("rejects non-matching paths", () => {
+    expect(globToRegex("/pricing").test("/blog")).toBe(false);
   });
 });
 ```
@@ -347,6 +364,7 @@ describe('globToRegex', () => {
 ---
 
 ### 10. **Hardcoded Limits Should Be Configurable**
+
 **Files:** Multiple files reference `MAX_DAILY_SLUG_CHANGES`, `MAX_LIFETIME_SLUG_CHANGES`, `MAX_PAGE_RULES`
 
 These limits are hardcoded in `/src/lib/slug-validation.ts` and duplicated in component files.
@@ -374,7 +392,9 @@ Then import from config instead of duplicating constants.
 ## Suggestions (Nice to Have)
 
 ### 11. **Add Slug Change Audit Trail UI**
+
 The `slugChangeHistory` table is created but there's no UI to view it. Users might want to see their slug change history for:
+
 - Debugging link issues
 - Understanding why they hit the limit
 - Auditing for workspace ownership transfers
@@ -384,6 +404,7 @@ The `slugChangeHistory` table is created but there's no UI to view it. Users mig
 ---
 
 ### 12. **Widget Configuration Preview**
+
 The embed code is shown, but users can't preview how the widget will look with their current settings (position, showLabel, pageRules).
 
 **Suggestion:** Add a live preview iframe showing the widget in action with current settings.
@@ -391,12 +412,15 @@ The embed code is shown, but users can't preview how the widget will look with t
 ---
 
 ### 13. **Page Rule Documentation**
+
 The page rules feature uses glob syntax but there's no inline help explaining:
+
 - What `*` vs `**` means
 - Examples of common patterns
 - How to test patterns
 
 **Suggestion:** Add a tooltip or collapsible help section with examples:
+
 - `/pricing` - Exact match
 - `/blog/*` - All blog posts
 - `/docs/**` - All docs pages (nested)
@@ -404,6 +428,7 @@ The page rules feature uses glob syntax but there's no inline help explaining:
 ---
 
 ### 14. **Optimize Widget Script Loading**
+
 **File:** `/public/widget.js`
 
 The widget fetches settings from `/api/public/[workspaceId]/settings` on every page load. This could be cached or embedded in the script tag.
@@ -426,6 +451,7 @@ Then only fetch from API as a fallback if attributes are missing.
 ---
 
 ### 15. **Add Migration Path Helper**
+
 For the breaking API change (slug → ID), consider adding a migration helper endpoint:
 
 ```typescript
@@ -440,6 +466,7 @@ Users could paste their old embed code and get the updated version.
 ## Summary
 
 ### Merge Blockers (Must Fix):
+
 1. Race condition in slug uniqueness check
 2. Missing database index on `slugChangeHistory.changedAt`
 3. Weak ReDoS protection in widget glob patterns
@@ -447,6 +474,7 @@ Users could paste their old embed code and get the updated version.
 5. Breaking API change without backward compatibility
 
 ### Quality Issues (Should Fix):
+
 6. Redundant validation logic (already handled correctly, just document)
 7. Inconsistent error handling in client components
 8. Missing rate limit reset time in error messages
@@ -454,6 +482,7 @@ Users could paste their old embed code and get the updated version.
 10. Hardcoded limits not configurable
 
 ### Suggestions (Optional):
+
 11-15. Various UX and DX improvements
 
 ---
@@ -461,6 +490,7 @@ Users could paste their old embed code and get the updated version.
 ## Architecture Assessment
 
 **Strengths:**
+
 - Clean separation of concerns (slug validation, workspace management, CORS)
 - Comprehensive validation using Zod schemas
 - Good use of optimistic UI updates with rollback
@@ -469,6 +499,7 @@ Users could paste their old embed code and get the updated version.
 - Proper use of rate limiting to prevent abuse
 
 **Weaknesses:**
+
 - Breaking API change handled abruptly
 - Client-side security validation not mirrored on server
 - Missing database performance optimizations

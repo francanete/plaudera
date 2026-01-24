@@ -248,5 +248,4 @@ describe("workspace", () => {
       expect(result).toBeNull();
     });
   });
-
 });

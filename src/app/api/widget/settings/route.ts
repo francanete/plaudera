@@ -29,8 +29,7 @@ const updateSettingsSchema = z.object({
           "Maximum 2 double-star (**) wildcards allowed per pattern"
         )
         .refine(
-          (s) =>
-            (s.replace(/\*\*/g, "").match(/\*/g) || []).length <= 5,
+          (s) => (s.replace(/\*\*/g, "").match(/\*/g) || []).length <= 5,
           "Maximum 5 single-star (*) wildcards allowed per pattern"
         )
         .refine(

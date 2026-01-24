@@ -126,7 +126,6 @@ export async function isWorkspaceOriginAllowed(
   return allowedOrigins.includes(normalizedOrigin);
 }
 
-
 /**
  * Build CORS headers for a workspace-aware request.
  * Returns proper headers based on whether the origin is in the workspace's allowlist.
@@ -166,4 +165,3 @@ export async function applyWorkspaceCorsHeaders(
     response.headers.set(key, value);
   });
 }
-
