@@ -1,9 +1,6 @@
 import type { Metadata } from "next";
 import { seo } from "@/lib/seo";
-import {
-  OrganizationJsonLd,
-  WebSiteJsonLd,
-} from "@/components/seo/json-ld";
+import { OrganizationJsonLd, WebSiteJsonLd } from "@/components/seo/json-ld";
 import { FeaturesSection } from "@/components/features/features-section";
 import { WaitlistHero } from "@/components/waitlist/waitlist-hero";
 import { BenefitComparison } from "@/components/benefit-comparison/benefit-comparison";
