@@ -73,9 +73,12 @@ export const POST = protectedApiRouteWrapper<RouteParams>(
 
     // Perform merge in a transaction
     await db.transaction(async (tx) => {
-      // Transfer votes: insert source votes into parent, skip duplicates
+      // Transfer votes: insert source votes into parent, preserve original timestamps, skip duplicates
       const sourceVotes = await tx
-        .select({ contributorId: votes.contributorId })
+        .select({
+          contributorId: votes.contributorId,
+          createdAt: votes.createdAt,
+        })
         .from(votes)
         .where(eq(votes.ideaId, params.id));
 
@@ -85,6 +88,7 @@ export const POST = protectedApiRouteWrapper<RouteParams>(
           .values({
             ideaId: parentIdeaId,
             contributorId: vote.contributorId,
+            createdAt: vote.createdAt,
           })
           .onConflictDoNothing();
       }

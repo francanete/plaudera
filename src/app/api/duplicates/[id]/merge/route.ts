@@ -71,14 +71,14 @@ export const POST = protectedApiRouteWrapper<{ id: string }>(
         throw new BadRequestError("Suggestion has already been processed");
       }
 
-      // 1. Transfer votes from merged idea to kept idea in bulk (skip duplicates)
+      // 1. Transfer votes from merged idea to kept idea in bulk (preserve original timestamps, skip duplicates)
       await tx.execute(sql`
         INSERT INTO votes (id, idea_id, contributor_id, created_at)
         SELECT
           'vote_' || gen_random_uuid()::text,
           ${keepIdeaId},
           contributor_id,
-          NOW()
+          created_at
         FROM votes
         WHERE idea_id = ${mergeIdeaId}
         ON CONFLICT (idea_id, contributor_id) DO NOTHING
