@@ -16,7 +16,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { CheckCircle2, XCircle, Loader2 } from "lucide-react";
-import { updateWorkspaceSlug } from "@/app/dashboard/settings/actions";
+import { updateWorkspaceSlug } from "@/app/dashboard/board/actions";
 import { slugSchema } from "@/lib/slug-validation";
 
 const formSchema = z.object({

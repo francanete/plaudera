@@ -6,7 +6,7 @@ import { db } from "@/lib/db";
 import { onboardingFlows } from "@/lib/db/schema";
 import { OnboardingProvider } from "@/components/onboarding/onboarding-provider";
 
-export default async function SettingsLayout({
+export default async function AccountLayout({
   children,
 }: {
   children: React.ReactNode;

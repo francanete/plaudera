@@ -4,11 +4,9 @@ import Link from "next/link";
 import {
   LayoutDashboard,
   MessageSquare,
-  Settings,
-  CreditCard,
   Shield,
   Lightbulb,
-  Code2,
+  LayoutPanelLeft,
   Copy,
 } from "lucide-react";
 import { PlauderaLogo } from "@/components/plaudera-logo";
@@ -52,10 +50,8 @@ const navigation = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { name: "Ideas", href: "/dashboard/ideas", icon: Lightbulb },
   { name: "Duplicates", href: "/dashboard/duplicates", icon: Copy },
-  { name: "Widget", href: "/dashboard/widget", icon: Code2 },
+  { name: "Board", href: "/dashboard/board", icon: LayoutPanelLeft },
   { name: "Chat", href: "/dashboard/chat", icon: MessageSquare },
-  { name: "Billing", href: "/dashboard/billing", icon: CreditCard },
-  { name: "Settings", href: "/dashboard/settings", icon: Settings },
 ];
 
 const adminNavigation = [

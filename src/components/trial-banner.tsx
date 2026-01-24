@@ -19,7 +19,7 @@ export function TrialBanner({ endsAt }: TrialBannerProps) {
             : `${daysRemaining} day${daysRemaining !== 1 ? "s" : ""} remaining`}
         </p>
         <Button size="sm" asChild>
-          <Link href="/dashboard/billing">Upgrade Now</Link>
+          <Link href="/dashboard/account">Upgrade Now</Link>
         </Button>
       </div>
     </div>
