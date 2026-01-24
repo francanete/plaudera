@@ -3,11 +3,20 @@ import { protectedApiRouteWrapper } from "@/lib/dal";
 import { slugSchema } from "@/lib/slug-validation";
 import { db } from "@/lib/db";
 import { workspaces } from "@/lib/db/schema";
-import { eq, or } from "drizzle-orm";
+import { eq, and, ne } from "drizzle-orm";
 import { getUserWorkspace } from "@/lib/workspace";
+import { validateDashboardOrigin } from "@/lib/cors";
 
 export const GET = protectedApiRouteWrapper(
   async (request, { session }) => {
+    // Validate request comes from our own app (defense-in-depth against cross-origin enumeration)
+    if (!validateDashboardOrigin(request)) {
+      return NextResponse.json(
+        { available: false, error: "Forbidden" },
+        { status: 403 }
+      );
+    }
+
     const { searchParams } = new URL(request.url);
     const slug = searchParams.get("slug");
 
@@ -33,9 +42,12 @@ export const GET = protectedApiRouteWrapper(
       return NextResponse.json({ available: true });
     }
 
-    // Check if any workspace uses this as current or previous slug
+    // Only block on active slugs (previousSlug does NOT block)
+    // Exclude user's own workspace so they can reclaim their previousSlug
     const existing = await db.query.workspaces.findFirst({
-      where: or(eq(workspaces.slug, slug), eq(workspaces.previousSlug, slug)),
+      where: userWorkspace
+        ? and(eq(workspaces.slug, slug), ne(workspaces.id, userWorkspace.id))
+        : eq(workspaces.slug, slug),
       columns: { id: true },
     });
 

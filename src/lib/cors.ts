@@ -57,7 +57,7 @@ export function validateOrigins(origins: string[]): string[] {
  * Get the base allowed origins (app's own origin + dev localhost).
  * These are always allowed regardless of workspace configuration.
  */
-function getBaseAllowedOrigins(): string[] {
+export function getBaseAllowedOrigins(): string[] {
   const origins: string[] = [];
 
   // Always allow the app's own origin
@@ -77,6 +77,24 @@ function getBaseAllowedOrigins(): string[] {
   }
 
   return origins;
+}
+
+/**
+ * Validate that a request originates from the app's own domain.
+ * Used for dashboard APIs that should not be callable cross-origin.
+ * Returns true if no Origin header is present (same-origin GET requests
+ * often omit Origin).
+ */
+export function validateDashboardOrigin(request: Request): boolean {
+  const origin = request.headers.get("origin");
+
+  // No Origin header = likely same-origin (browsers omit Origin for same-origin GETs)
+  if (!origin) return true;
+
+  const normalized = normalizeOrigin(origin);
+  if (!normalized) return false;
+
+  return getBaseAllowedOrigins().includes(normalized);
 }
 
 /**

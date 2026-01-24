@@ -1,6 +1,6 @@
 import { db } from "./db";
 import { workspaces, slugChangeHistory, type Workspace } from "./db/schema";
-import { eq, and, gt, count } from "drizzle-orm";
+import { eq, and, gt, count, ne } from "drizzle-orm";
 import { createId } from "@paralleldrive/cuid2";
 import {
   MAX_DAILY_SLUG_CHANGES,
@@ -161,6 +161,13 @@ export async function getWorkspaceBySlug(
   return null;
 }
 
+class SlugTakenError extends Error {
+  constructor() {
+    super("Slug is already taken");
+    this.name = "SlugTakenError";
+  }
+}
+
 export type UpdateSlugResult =
   | { success: true; slug: string }
   | { success: false; error: string };
@@ -193,6 +200,19 @@ export async function updateWorkspaceSlug(
 
   try {
     await db.transaction(async (tx) => {
+      // Explicit uniqueness check inside transaction (only checks active slugs)
+      const conflicting = await tx.query.workspaces.findFirst({
+        where: and(
+          eq(workspaces.slug, newSlug),
+          ne(workspaces.id, workspace.id)
+        ),
+        columns: { id: true },
+      });
+
+      if (conflicting) {
+        throw new SlugTakenError();
+      }
+
       // Record the change in history
       await tx.insert(slugChangeHistory).values({
         workspaceId: workspace.id,
@@ -212,7 +232,10 @@ export async function updateWorkspaceSlug(
 
     return { success: true, slug: newSlug };
   } catch (error: unknown) {
-    // Handle unique constraint violation (slug already taken)
+    if (error instanceof SlugTakenError) {
+      return { success: false, error: "This slug is already taken" };
+    }
+    // Safety net: still catch constraint violations
     if (error instanceof Error && error.message.includes("unique")) {
       return { success: false, error: "This slug is already taken" };
     }
