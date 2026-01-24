@@ -13,6 +13,7 @@ import {
 import { syncWithPolar } from "@/lib/subscription";
 import { createUserWorkspace } from "@/lib/workspace";
 import { appConfig, type PaidTier } from "@/lib/config";
+import { addEmailToSegment } from "@/lib/resend";
 import { z } from "zod";
 
 // ============ Event Schemas ============
@@ -409,10 +410,37 @@ export const trialEndingReminderJob = inngest.createFunction(
   async ({ step }) => trialEndingReminderHandler(step as InngestStepLike)
 );
 
+// Sync Resend segments when subscription status changes
+export const subscriptionChangedJob = inngest.createFunction(
+  { id: "subscription-changed-segment-sync" },
+  { event: "subscription/changed" },
+  async ({ event, step }) => {
+    const { email, status } = event.data;
+
+    const segmentId =
+      status === "ACTIVE"
+        ? appConfig.resendSegments.paid
+        : status === "CANCELED"
+          ? appConfig.resendSegments.churned
+          : null;
+
+    if (!segmentId) {
+      return { skipped: true, reason: `No segment action for status: ${status}` };
+    }
+
+    const result = await step.run("add-to-segment", async () => {
+      return addEmailToSegment({ email, segmentId });
+    });
+
+    return { email, status, segmentId, result };
+  }
+);
+
 export const functions = [
   welcomeSequenceJob,
   syncAllSubscriptions,
   paidSignupEmailJob,
   trialEndingReminderJob,
   detectDuplicatesJob,
+  subscriptionChangedJob,
 ];

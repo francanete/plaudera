@@ -8,7 +8,9 @@ export const inngest = new Inngest({
       data: { userId: string; email: string; name: string | null };
     };
     "email/welcome": { data: { userId: string; email: string; name: string } };
-    "subscription/changed": { data: { userId: string; plan: string } };
+    "subscription/changed": {
+      data: { userId: string; email: string; plan: string; status: string };
+    };
   }>(),
 });
 

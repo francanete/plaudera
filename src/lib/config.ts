@@ -25,6 +25,8 @@ export type TierConfig = {
 
 export type ResendSegments = {
   waitlist: string;
+  paid: string;
+  churned: string;
 };
 
 export type AppConfig = {
@@ -95,6 +97,8 @@ export const appConfig: AppConfig = {
   },
   resendSegments: {
     waitlist: "4697f202-5b77-40d6-acfa-15789e6c5828",
+    paid: "1226cbab-1769-4316-a428-ec211620de81",
+    churned: "ec2627c5-5261-4bba-8b45-d2b0c45faae6",
   },
   team: {
     name: "Plaudera Team",

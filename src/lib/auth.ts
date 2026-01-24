@@ -8,7 +8,7 @@ import { eq } from "drizzle-orm";
 import { db, users, subscriptions } from "./db";
 import * as schema from "./db/schema";
 import { sendEmail } from "./email";
-import { appConfig } from "./config";
+import { appConfig, getPlanFromPolarProduct } from "./config";
 import { getPolarProducts } from "./pricing";
 import {
   upsertSubscription,
@@ -191,6 +191,16 @@ export const auth = betterAuth({
               billingType: "one_time",
               status: "ACTIVE",
             });
+
+            await inngest.send({
+              name: "subscription/changed",
+              data: {
+                userId,
+                email: customer.email,
+                plan: getPlanFromPolarProduct(product.id),
+                status: "ACTIVE",
+              },
+            });
           },
 
           // New recurring subscription
@@ -214,31 +224,54 @@ export const auth = betterAuth({
               name: customer.name,
             });
 
+            const status = mapPolarStatus(subscription.status);
+
             await upsertSubscription({
               userId,
               polarCustomerId: customer.id,
               polarSubscriptionId: subscription.id,
               polarProductId: product.id,
               billingType: "recurring",
-              status: mapPolarStatus(subscription.status),
+              status,
               currentPeriodEnd: subscription.currentPeriodEnd
                 ? new Date(subscription.currentPeriodEnd)
                 : undefined,
               cancelAtPeriodEnd: subscription.cancelAtPeriodEnd,
+            });
+
+            await inngest.send({
+              name: "subscription/changed",
+              data: {
+                userId,
+                email: customer.email,
+                plan: getPlanFromPolarProduct(product.id),
+                status,
+              },
             });
           },
 
           // Subscription status/period changes
           onSubscriptionUpdated: async (payload) => {
             const subscription = payload.data;
+            const status = mapPolarStatus(subscription.status);
 
             await updateSubscriptionStatus({
               polarSubscriptionId: subscription.id,
-              status: mapPolarStatus(subscription.status),
+              status,
               currentPeriodEnd: subscription.currentPeriodEnd
                 ? new Date(subscription.currentPeriodEnd)
                 : undefined,
               cancelAtPeriodEnd: subscription.cancelAtPeriodEnd,
+            });
+
+            await inngest.send({
+              name: "subscription/changed",
+              data: {
+                userId: subscription.customer.externalId || subscription.customer.id,
+                email: subscription.customer.email,
+                plan: getPlanFromPolarProduct(subscription.product?.id),
+                status,
+              },
             });
           },
 
@@ -249,6 +282,16 @@ export const auth = betterAuth({
             await updateSubscriptionStatus({
               polarSubscriptionId: subscription.id,
               status: "CANCELED",
+            });
+
+            await inngest.send({
+              name: "subscription/changed",
+              data: {
+                userId: subscription.customer.externalId || subscription.customer.id,
+                email: subscription.customer.email,
+                plan: getPlanFromPolarProduct(subscription.product?.id),
+                status: "CANCELED",
+              },
             });
           },
         }),
