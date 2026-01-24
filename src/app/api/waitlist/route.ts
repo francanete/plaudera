@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server";
+import { appConfig } from "@/lib/config";
+import { addEmailToSegment } from "@/lib/resend";
 
 export async function POST(request: Request) {
   try {
@@ -8,7 +10,6 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Email is required" }, { status: 400 });
     }
 
-    // Basic email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
       return NextResponse.json(
@@ -17,51 +18,18 @@ export async function POST(request: Request) {
       );
     }
 
-    const audienceId = process.env.RESEND_AUDIENCE_ID;
-
-    if (!audienceId) {
-      if (process.env.NODE_ENV === "production") {
-        console.error("[Waitlist] RESEND_AUDIENCE_ID is not configured");
-        return NextResponse.json(
-          { error: "Service temporarily unavailable" },
-          { status: 503 }
-        );
-      }
-      // Development: log and return success
-      console.log("[Waitlist] Dev mode - would add contact:", { email });
-      return NextResponse.json({ success: true });
-    }
-
-    if (!process.env.RESEND_API_KEY) {
-      if (process.env.NODE_ENV === "production") {
-        console.error("[Waitlist] RESEND_API_KEY is not configured");
-        return NextResponse.json(
-          { error: "Service temporarily unavailable" },
-          { status: 503 }
-        );
-      }
-      console.log("[Waitlist] Dev mode - would add contact:", { email });
-      return NextResponse.json({ success: true });
-    }
-
-    const { Resend } = await import("resend");
-    const resend = new Resend(process.env.RESEND_API_KEY);
-
-    const { error } = await resend.contacts.create({
+    const result = await addEmailToSegment({
       email,
-      unsubscribed: false,
-      audienceId,
+      segmentId: appConfig.resendSegments.waitlist,
     });
 
-    if (error) {
-      console.error("[Waitlist] Resend error:", error);
-      // Resend returns a specific error for duplicate contacts
-      if (error.message?.includes("already exists")) {
-        return NextResponse.json({ success: true });
-      }
+    if (!result.success) {
       return NextResponse.json(
-        { error: "Failed to join waitlist. Please try again." },
-        { status: 500 }
+        { error: result.error || "Failed to join waitlist. Please try again." },
+        {
+          status:
+            result.error === "Service temporarily unavailable" ? 503 : 500,
+        }
       );
     }
 

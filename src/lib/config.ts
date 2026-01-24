@@ -23,10 +23,15 @@ export type TierConfig = {
   marketing: TierMarketing;
 };
 
+export type ResendSegments = {
+  waitlist: string;
+};
+
 export type AppConfig = {
   name: string;
   description: string;
   email: { from: string };
+  resendSegments: ResendSegments;
   team: { name: string };
   socials: {
     twitter: string;
@@ -87,6 +92,9 @@ export const appConfig: AppConfig = {
     "Collect, organize, and prioritize customer feedback with public boards, embeddable widgets, and AI-powered insights.",
   email: {
     from: "noreply@app.plaudera.com",
+  },
+  resendSegments: {
+    waitlist: "4697f202-5b77-40d6-acfa-15789e6c5828",
   },
   team: {
     name: "Plaudera Team",
