@@ -143,7 +143,7 @@ const transactionalTemplates = {
           Need to make changes? You can manage your subscription anytime:
         </p>
         <p style="margin: 24px 0;">
-          <a href="${process.env.NEXT_PUBLIC_APP_URL}/dashboard/settings"
+          <a href="${process.env.NEXT_PUBLIC_APP_URL}/dashboard/account"
              style="display: inline-block; padding: 14px 28px; background: #000; color: #fff; text-decoration: none; border-radius: 6px; font-weight: 500;">
             Manage Subscription
           </a>

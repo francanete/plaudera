@@ -43,6 +43,13 @@
       "when": 1769186121053,
       "tag": "0005_charming_gateway",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1769259162421,
+      "tag": "0006_nifty_tusk",
+      "breakpoints": true
     }
   ]
 }

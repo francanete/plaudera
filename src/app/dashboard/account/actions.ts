@@ -36,7 +36,7 @@ export async function updateProfile(formData: FormData) {
       .set({ name: result.data.name, updatedAt: new Date() })
       .where(eq(users.id, session.user.id));
 
-    revalidatePath("/dashboard/settings");
+    revalidatePath("/dashboard/account");
     return { success: true };
   } catch (error) {
     console.error("Failed to update profile:", error);

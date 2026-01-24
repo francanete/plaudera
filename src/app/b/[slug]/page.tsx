@@ -34,7 +34,6 @@ export async function generateMetadata({
 }
 
 async function BoardContent({ slug }: { slug: string }) {
-  // Find the workspace
   const workspace = await db.query.workspaces.findFirst({
     where: eq(workspaces.slug, slug),
   });
@@ -102,6 +101,7 @@ async function BoardContent({ slug }: { slug: string }) {
   return (
     <PublicIdeaList
       workspaceName={workspace.name}
+      workspaceId={workspace.id}
       workspaceSlug={workspace.slug}
       initialIdeas={ideasWithVoteStatus}
       initialContributor={

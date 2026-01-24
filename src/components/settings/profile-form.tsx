@@ -14,7 +14,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { updateProfile } from "@/app/dashboard/settings/actions";
+import { updateProfile } from "@/app/dashboard/account/actions";
 
 const profileSchema = z.object({
   name: z.string().min(1, "Name is required").max(100, "Name is too long"),

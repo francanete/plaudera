@@ -456,6 +456,28 @@ export const workspaces = pgTable(
   ]
 );
 
+// ============ Slug Change History Table ============
+export const slugChangeHistory = pgTable(
+  "slug_change_history",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => createId()),
+    workspaceId: text("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    oldSlug: text("old_slug").notNull(),
+    newSlug: text("new_slug").notNull(),
+    changedAt: timestamp("changed_at").defaultNow().notNull(),
+  },
+  (table) => [
+    index("slug_change_history_workspace_changed_idx").on(
+      table.workspaceId,
+      table.changedAt
+    ),
+  ]
+);
+
 // ============ Widget Settings Table ============
 export const widgetSettings = pgTable(
   "widget_settings",
@@ -631,7 +653,19 @@ export const workspacesRelations = relations(workspaces, ({ one, many }) => ({
   ideas: many(ideas),
   widgetSettings: one(widgetSettings),
   duplicateSuggestions: many(duplicateSuggestions),
+  slugChangeHistory: many(slugChangeHistory),
 }));
+
+// ============ Slug Change History Relations ============
+export const slugChangeHistoryRelations = relations(
+  slugChangeHistory,
+  ({ one }) => ({
+    workspace: one(workspaces, {
+      fields: [slugChangeHistory.workspaceId],
+      references: [workspaces.id],
+    }),
+  })
+);
 
 // ============ Widget Settings Relations ============
 export const widgetSettingsRelations = relations(widgetSettings, ({ one }) => ({
@@ -751,3 +785,5 @@ export type DuplicateSuggestion = typeof duplicateSuggestions.$inferSelect;
 export type NewDuplicateSuggestion = typeof duplicateSuggestions.$inferInsert;
 export type DuplicateSuggestionStatus =
   (typeof duplicateSuggestionStatusEnum.enumValues)[number];
+export type SlugChangeHistory = typeof slugChangeHistory.$inferSelect;
+export type NewSlugChangeHistory = typeof slugChangeHistory.$inferInsert;

@@ -1,7 +1,64 @@
 import { db } from "./db";
-import { workspaces, type Workspace } from "./db/schema";
-import { eq } from "drizzle-orm";
+import { workspaces, slugChangeHistory, type Workspace } from "./db/schema";
+import { eq, and, gt, count } from "drizzle-orm";
 import { createId } from "@paralleldrive/cuid2";
+import {
+  MAX_DAILY_SLUG_CHANGES,
+  MAX_LIFETIME_SLUG_CHANGES,
+  type SlugRateLimitResult,
+} from "./slug-validation";
+
+async function checkSlugChangeRateLimit(
+  workspaceId: string
+): Promise<SlugRateLimitResult> {
+  const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+
+  const [dailyResult, lifetimeResult] = await Promise.all([
+    db
+      .select({ count: count() })
+      .from(slugChangeHistory)
+      .where(
+        and(
+          eq(slugChangeHistory.workspaceId, workspaceId),
+          gt(slugChangeHistory.changedAt, oneDayAgo)
+        )
+      ),
+    db
+      .select({ count: count() })
+      .from(slugChangeHistory)
+      .where(eq(slugChangeHistory.workspaceId, workspaceId)),
+  ]);
+
+  const dailyCount = dailyResult[0]?.count ?? 0;
+  const lifetimeCount = lifetimeResult[0]?.count ?? 0;
+
+  const dailyRemaining = Math.max(0, MAX_DAILY_SLUG_CHANGES - dailyCount);
+  const lifetimeRemaining = Math.max(
+    0,
+    MAX_LIFETIME_SLUG_CHANGES - lifetimeCount
+  );
+
+  if (lifetimeRemaining <= 0) {
+    return {
+      allowed: false,
+      error: "You have reached the maximum number of slug changes (10 total)",
+      dailyRemaining,
+      lifetimeRemaining,
+    };
+  }
+
+  if (dailyRemaining <= 0) {
+    return {
+      allowed: false,
+      error:
+        "You can only change your slug 3 times per day. Try again tomorrow.",
+      dailyRemaining,
+      lifetimeRemaining,
+    };
+  }
+
+  return { allowed: true, dailyRemaining, lifetimeRemaining };
+}
 
 /**
  * Generate a URL-safe slug from an email address.
@@ -70,16 +127,62 @@ export async function getUserWorkspace(
   return workspace || null;
 }
 
+export type UpdateSlugResult =
+  | { success: true; slug: string }
+  | { success: false; error: string };
+
 /**
- * Get a workspace by its public slug.
- * Used for public idea board URLs.
+ * Update a workspace's slug with rate limiting and audit trail.
  */
-export async function getWorkspaceBySlug(
-  slug: string
-): Promise<Workspace | null> {
+export async function updateWorkspaceSlug(
+  userId: string,
+  newSlug: string
+): Promise<UpdateSlugResult> {
   const workspace = await db.query.workspaces.findFirst({
-    where: eq(workspaces.slug, slug),
+    where: eq(workspaces.ownerId, userId),
   });
 
-  return workspace || null;
+  if (!workspace) {
+    return { success: false, error: "Workspace not found" };
+  }
+
+  if (workspace.slug === newSlug) {
+    return { success: false, error: "New slug is the same as current slug" };
+  }
+
+  // Check rate limits
+  const rateLimit = await checkSlugChangeRateLimit(workspace.id);
+  if (!rateLimit.allowed) {
+    return { success: false, error: rateLimit.error! };
+  }
+
+  try {
+    await db.transaction(async (tx) => {
+      // Record the change in history
+      await tx.insert(slugChangeHistory).values({
+        workspaceId: workspace.id,
+        oldSlug: workspace.slug,
+        newSlug,
+      });
+
+      // Update slug - DB unique constraint (workspaces_slug_idx) protects against duplicates
+      await tx
+        .update(workspaces)
+        .set({ slug: newSlug })
+        .where(eq(workspaces.id, workspace.id));
+    });
+
+    return { success: true, slug: newSlug };
+  } catch (error: unknown) {
+    // PostgreSQL unique_violation error code
+    if (
+      error &&
+      typeof error === "object" &&
+      "code" in error &&
+      error.code === "23505"
+    ) {
+      return { success: false, error: "This slug is already taken" };
+    }
+    throw error;
+  }
 }

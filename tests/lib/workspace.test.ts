@@ -14,7 +14,16 @@ vi.mock("@/lib/db", () => ({
 }));
 
 vi.mock("@/lib/db/schema", () => ({
-  workspaces: { ownerId: "ownerId", slug: "slug" },
+  workspaces: {
+    ownerId: "ownerId",
+    slug: "slug",
+  },
+  slugChangeHistory: { workspaceId: "workspaceId", changedAt: "changedAt" },
+}));
+
+vi.mock("@/lib/slug-validation", () => ({
+  MAX_DAILY_SLUG_CHANGES: 3,
+  MAX_LIFETIME_SLUG_CHANGES: 10,
 }));
 
 // Mock cuid2 with predictable output for testing
@@ -235,38 +244,6 @@ describe("workspace", () => {
       const { getUserWorkspace } = await import("@/lib/workspace");
 
       const result = await getUserWorkspace("nonexistent-user");
-
-      expect(result).toBeNull();
-    });
-  });
-
-  describe("getWorkspaceBySlug", () => {
-    it("returns workspace when slug matches", async () => {
-      const mockWorkspace = {
-        id: "workspace-456",
-        name: "Public Workspace",
-        slug: "public-xyz98765",
-        ownerId: "user-456",
-        createdAt: new Date(),
-      };
-
-      mockFindFirst.mockResolvedValue(mockWorkspace);
-
-      vi.resetModules();
-      const { getWorkspaceBySlug } = await import("@/lib/workspace");
-
-      const result = await getWorkspaceBySlug("public-xyz98765");
-
-      expect(result).toEqual(mockWorkspace);
-    });
-
-    it("returns null when slug not found", async () => {
-      mockFindFirst.mockResolvedValue(undefined);
-
-      vi.resetModules();
-      const { getWorkspaceBySlug } = await import("@/lib/workspace");
-
-      const result = await getWorkspaceBySlug("nonexistent-slug");
 
       expect(result).toBeNull();
     });

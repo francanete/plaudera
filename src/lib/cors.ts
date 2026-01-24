@@ -11,7 +11,7 @@
  */
 
 import { db } from "@/lib/db";
-import { widgetSettings, workspaces } from "@/lib/db/schema";
+import { widgetSettings } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 
 // ============ Origin Validation Utilities ============
@@ -57,7 +57,7 @@ export function validateOrigins(origins: string[]): string[] {
  * Get the base allowed origins (app's own origin + dev localhost).
  * These are always allowed regardless of workspace configuration.
  */
-function getBaseAllowedOrigins(): string[] {
+export function getBaseAllowedOrigins(): string[] {
   const origins: string[] = [];
 
   // Always allow the app's own origin
@@ -77,6 +77,24 @@ function getBaseAllowedOrigins(): string[] {
   }
 
   return origins;
+}
+
+/**
+ * Validate that a request originates from the app's own domain.
+ * Used for dashboard APIs that should not be callable cross-origin.
+ * Returns true if no Origin header is present (same-origin GET requests
+ * often omit Origin).
+ */
+export function validateDashboardOrigin(request: Request): boolean {
+  const origin = request.headers.get("origin");
+
+  // No Origin header = likely same-origin (browsers omit Origin for same-origin GETs)
+  if (!origin) return true;
+
+  const normalized = normalizeOrigin(origin);
+  if (!normalized) return false;
+
+  return getBaseAllowedOrigins().includes(normalized);
 }
 
 /**
@@ -109,37 +127,6 @@ export async function isWorkspaceOriginAllowed(
 }
 
 /**
- * Check if an origin is allowed for a specific workspace by slug.
- * Used by public API routes that identify workspaces by slug.
- */
-export async function isWorkspaceSlugOriginAllowed(
-  origin: string | null,
-  slug: string
-): Promise<boolean> {
-  if (!origin) return false;
-
-  const normalizedOrigin = normalizeOrigin(origin);
-  if (!normalizedOrigin) return false;
-
-  // Check base origins first (app's own origin, dev localhost)
-  const baseOrigins = getBaseAllowedOrigins();
-  if (baseOrigins.includes(normalizedOrigin)) {
-    return true;
-  }
-
-  // Find workspace and its settings by slug
-  const workspace = await db.query.workspaces.findFirst({
-    where: eq(workspaces.slug, slug),
-    with: { widgetSettings: { columns: { allowedOrigins: true } } },
-  });
-
-  if (!workspace) return false;
-
-  const allowedOrigins = workspace.widgetSettings?.allowedOrigins ?? [];
-  return allowedOrigins.includes(normalizedOrigin);
-}
-
-/**
  * Build CORS headers for a workspace-aware request.
  * Returns proper headers based on whether the origin is in the workspace's allowlist.
  */
@@ -149,27 +136,6 @@ export async function getWorkspaceCorsHeaders(
   methods: string = "GET, POST, OPTIONS"
 ): Promise<Record<string, string>> {
   const allowed = await isWorkspaceOriginAllowed(requestOrigin, workspaceId);
-
-  return {
-    "Access-Control-Allow-Origin":
-      allowed && requestOrigin ? requestOrigin : "null",
-    "Access-Control-Allow-Methods": methods,
-    "Access-Control-Allow-Headers": "Content-Type",
-    "Access-Control-Allow-Credentials": "true",
-    Vary: "Origin",
-  };
-}
-
-/**
- * Build CORS headers for a workspace-aware request using slug.
- * Returns proper headers based on whether the origin is in the workspace's allowlist.
- */
-export async function getWorkspaceSlugCorsHeaders(
-  requestOrigin: string | null,
-  slug: string,
-  methods: string = "GET, POST, OPTIONS"
-): Promise<Record<string, string>> {
-  const allowed = await isWorkspaceSlugOriginAllowed(requestOrigin, slug);
 
   return {
     "Access-Control-Allow-Origin":
@@ -193,25 +159,6 @@ export async function applyWorkspaceCorsHeaders(
   const headers = await getWorkspaceCorsHeaders(
     requestOrigin,
     workspaceId,
-    methods
-  );
-  Object.entries(headers).forEach(([key, value]) => {
-    response.headers.set(key, value);
-  });
-}
-
-/**
- * Apply workspace-aware CORS headers to a response using slug.
- */
-export async function applyWorkspaceSlugCorsHeaders(
-  response: Response,
-  requestOrigin: string | null,
-  slug: string,
-  methods?: string
-): Promise<void> {
-  const headers = await getWorkspaceSlugCorsHeaders(
-    requestOrigin,
-    slug,
     methods
   );
   Object.entries(headers).forEach(([key, value]) => {

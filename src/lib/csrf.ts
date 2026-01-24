@@ -12,64 +12,12 @@
  */
 
 import { NextRequest } from "next/server";
-import { isWorkspaceOriginAllowed, isWorkspaceSlugOriginAllowed } from "./cors";
+import { isWorkspaceOriginAllowed } from "./cors";
 
 export interface CsrfValidationResult {
   valid: boolean;
   origin: string | null;
   reason?: string;
-}
-
-/**
- * Validate that a request's origin is allowed for a workspace (by slug).
- * Uses Origin header with Referer fallback for browsers that don't send Origin.
- *
- * @param request - The incoming request
- * @param slug - The workspace slug
- * @returns Validation result with origin and reason if invalid
- */
-export async function validateRequestOriginBySlug(
-  request: NextRequest,
-  slug: string
-): Promise<CsrfValidationResult> {
-  const origin = request.headers.get("origin");
-  const referer = request.headers.get("referer");
-
-  // Try Origin first, fall back to Referer
-  let effectiveOrigin = origin;
-  if (!effectiveOrigin && referer) {
-    try {
-      effectiveOrigin = new URL(referer).origin;
-    } catch {
-      effectiveOrigin = null;
-    }
-  }
-
-  // Require at least one of Origin or Referer
-  if (!effectiveOrigin) {
-    return {
-      valid: false,
-      origin: null,
-      reason: "Missing Origin and Referer headers",
-    };
-  }
-
-  // Check against workspace's allowed origins
-  const isAllowed = await isWorkspaceSlugOriginAllowed(effectiveOrigin, slug);
-
-  if (!isAllowed) {
-    console.warn("[CSRF] Request from unauthorized origin:", {
-      slug,
-      origin: effectiveOrigin,
-    });
-    return {
-      valid: false,
-      origin: effectiveOrigin,
-      reason: "Origin not in workspace allowlist",
-    };
-  }
-
-  return { valid: true, origin: effectiveOrigin };
 }
 
 /**

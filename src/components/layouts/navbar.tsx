@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import {
   LayoutDashboard,
-  Settings,
+  User,
   LogOut,
   Menu,
   X,
@@ -146,11 +146,11 @@ export function Navbar() {
                       </DropdownMenuItem>
                       <DropdownMenuItem asChild>
                         <Link
-                          href="/dashboard/settings"
+                          href="/dashboard/account"
                           className="flex items-center gap-2 rounded-lg px-3 py-2 text-slate-700 hover:bg-slate-50"
                         >
-                          <Settings className="h-4 w-4 text-slate-400" />
-                          Settings
+                          <User className="h-4 w-4 text-slate-400" />
+                          Account
                         </Link>
                       </DropdownMenuItem>
                       <DropdownMenuSeparator className="bg-slate-100" />
@@ -252,12 +252,12 @@ export function Navbar() {
                   Dashboard
                 </Link>
                 <Link
-                  href="/dashboard/settings"
+                  href="/dashboard/account"
                   className="flex items-center rounded-lg px-3 py-3 text-base font-medium text-slate-700 transition-colors hover:bg-slate-50"
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
-                  <Settings className="mr-3 h-5 w-5 text-slate-400" />
-                  Settings
+                  <User className="mr-3 h-5 w-5 text-slate-400" />
+                  Account
                 </Link>
                 <button
                   onClick={() => {
