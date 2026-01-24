@@ -57,22 +57,25 @@ npm run build         # Migrates DB + builds Next.js
 /src
 ├── /app                           # Next.js App Router
 │   ├── (auth)                     # Auth routes (login, signup)
-│   ├── (marketing)                # Public pages (pricing, blog, legal)
+│   ├── (marketing)                # Public pages (pricing, blog, legal, waitlist)
 │   ├── /dashboard                 # Protected user area
 │   │   ├── /ideas                 # Ideas management
 │   │   ├── /duplicates            # AI duplicate review UI
 │   │   ├── /chat                  # AI chat
-│   │   ├── /widget                # Widget configuration
-│   │   ├── /settings              # User/workspace settings
+│   │   ├── /board                 # Board & widget configuration
+│   │   ├── /account               # User account settings
 │   │   └── /admin/tiers           # Admin tier management
-│   ├── /embed/[slug]              # Embeddable feedback widget
+│   ├── /b/[slug]                  # Public feedback board
+│   ├── /embed/[workspaceId]       # Embeddable feedback widget
 │   ├── /api
 │   │   ├── /auth/[...all]         # Better Auth routes
 │   │   ├── /ideas                 # Ideas CRUD + merge
 │   │   ├── /duplicates            # Duplicate suggestions (list, merge, dismiss)
-│   │   ├── /public/[slug]         # Public board APIs (no auth)
+│   │   ├── /public/[workspaceId]  # Public board APIs (no auth)
 │   │   ├── /contributor           # Contributor email auth
 │   │   ├── /widget                # Widget settings API
+│   │   ├── /workspace             # Workspace management (slug check)
+│   │   ├── /waitlist              # Waitlist signup
 │   │   ├── /chat                  # AI chat endpoint
 │   │   ├── /checkout              # Polar checkout
 │   │   ├── /subscription          # Polar webhooks
@@ -89,6 +92,7 @@ npm run build         # Migrates DB + builds Next.js
 │   ├── /admin                     # Admin components
 │   ├── /onboarding                # Tour system
 │   ├── /pricing                   # Pricing page
+│   ├── /waitlist                  # Waitlist form & hero
 │   └── /seo                       # SEO components
 ├── /hooks                         # Custom React hooks
 ├── /lib
@@ -115,6 +119,8 @@ npm run build         # Migrates DB + builds Next.js
 │   ├── contributor-auth.ts        # Contributor email auth (JWT-based)
 │   ├── contributor-rate-limit.ts  # Rate limiting for public APIs
 │   ├── workspace.ts               # Workspace helpers
+│   ├── slug-validation.ts         # Workspace slug validation
+│   ├── resend.ts                  # Resend email client
 │   ├── ai-usage.ts                # AI token tracking
 │   ├── rate-limit.ts              # AI rate limiting per plan
 │   ├── email.ts                   # Email templates
@@ -146,7 +152,8 @@ All tables defined in `/src/lib/db/schema.ts`:
 - `contributors` - Non-authenticated board participants
 - `contributorTokens` - Email verification for contributors
 - `votes` - Contributor votes on ideas
-- `widgetSettings` - Widget position, CORS allowlist per workspace
+- `widgetSettings` - Widget position, CORS allowlist, page rules per workspace
+- `slugChangeHistory` - Tracks slug changes for rate limiting (max 3/day, 10 lifetime)
 
 **AI Duplicate Detection:**
 
@@ -258,7 +265,7 @@ Main config in `/src/lib/config.ts` (AppConfig):
 - **Auth**: `BETTER_AUTH_SECRET`, `GOOGLE_CLIENT_ID/SECRET`, `CONTRIBUTOR_JWT_SECRET`
 - **AI**: `GOOGLE_AI_API_KEY`
 - **Payments**: `POLAR_ACCESS_TOKEN`, `POLAR_WEBHOOK_SECRET`, `POLAR_ORGANIZATION_ID`
-- **Email**: `RESEND_API_KEY`, `EMAIL_FROM`
+- **Email**: `RESEND_API_KEY`, `EMAIL_FROM`, `RESEND_AUDIENCE_ID` (waitlist)
 - **Inngest**: `INNGEST_SIGNING_KEY`
 
 ## Testing
@@ -274,6 +281,8 @@ npx vitest run tests/path/to/file.test.ts
 - `tests/lib/errors.test.ts` - Error handling classes
 - `tests/lib/utils.test.ts` - Utility functions
 - `tests/lib/email-sequences.test.ts` - Email sequence logic
+- `tests/lib/slug-validation.test.ts` - Workspace slug validation
+- `tests/lib/workspace.test.ts` - Workspace helpers
 - `tests/lib/inngest/detect-duplicates.test.ts` - Duplicate detection job
 - `tests/lib/inngest/trial-ending-reminder.test.ts` - Trial email job
 
