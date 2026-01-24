@@ -2033,12 +2033,6 @@
           "primaryKey": false,
           "notNull": true
         },
-        "previous_slug": {
-          "name": "previous_slug",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
         "owner_id": {
           "name": "owner_id",
           "type": "text",

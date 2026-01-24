@@ -48,6 +48,7 @@ function normalizeOrigin(origin: string): string | null {
 }
 
 interface WidgetSectionProps {
+  workspaceId: string;
   workspaceSlug: string;
   initialPosition: WidgetPosition;
   initialAllowedOrigins: string[];
@@ -56,6 +57,7 @@ interface WidgetSectionProps {
 }
 
 export function WidgetSection({
+  workspaceId,
   workspaceSlug,
   initialPosition,
   initialAllowedOrigins,
@@ -140,7 +142,7 @@ export function WidgetSection({
   const siteUrl = appConfig.seo.siteUrl;
   const embedCode = `<script
   src="${siteUrl}/widget.js"
-  data-workspace="${workspaceSlug}"
+  data-workspace="${workspaceId}"
   data-position="${position}"
   async
 ></script>`;

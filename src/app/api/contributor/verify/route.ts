@@ -4,13 +4,13 @@ import { sendVerificationEmail, verifyToken } from "@/lib/contributor-auth";
 import { handleApiError } from "@/lib/api-utils";
 import { BadRequestError, RateLimitError } from "@/lib/errors";
 import { checkEmailRateLimit } from "@/lib/contributor-rate-limit";
-import { getWorkspaceSlugCorsHeaders } from "@/lib/cors";
+import { getWorkspaceCorsHeaders } from "@/lib/cors";
 
 /**
- * Extract workspace slug from a callback URL like "/b/{slug}" or "/b/{slug}?params"
+ * Extract workspace ID from a callback URL like "/embed/{workspaceId}" or "/embed/{workspaceId}?params"
  */
-function extractWorkspaceSlug(callbackUrl: string): string | null {
-  const match = callbackUrl.match(/^\/b\/([a-zA-Z0-9_-]+)/);
+function extractWorkspaceId(callbackUrl: string): string | null {
+  const match = callbackUrl.match(/^\/embed\/([a-zA-Z0-9_-]+)/);
   return match ? match[1] : null;
 }
 
@@ -128,15 +128,15 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { email, callbackUrl } = sendVerificationSchema.parse(body);
 
-    // Extract workspace slug from callbackUrl for CORS validation
-    const workspaceSlug = extractWorkspaceSlug(callbackUrl);
+    // Extract workspace ID from callbackUrl for CORS validation
+    const workspaceId = extractWorkspaceId(callbackUrl);
 
     // If we can identify the workspace, use workspace-aware CORS
     let corsHeaders: Record<string, string>;
-    if (workspaceSlug) {
-      corsHeaders = await getWorkspaceSlugCorsHeaders(
+    if (workspaceId) {
+      corsHeaders = await getWorkspaceCorsHeaders(
         origin,
-        workspaceSlug,
+        workspaceId,
         "GET, POST, OPTIONS"
       );
     } else {

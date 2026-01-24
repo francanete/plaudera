@@ -1,4 +1,4 @@
-import { notFound, redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { db } from "@/lib/db";
 import {
@@ -10,7 +10,6 @@ import {
 import { eq, desc, and, or, inArray } from "drizzle-orm";
 import { getContributor } from "@/lib/contributor-auth";
 import { PublicIdeaList } from "@/components/board/public-idea-list";
-import { getWorkspaceBySlug } from "@/lib/workspace";
 import type { Metadata } from "next";
 
 type PageProps = { params: Promise<{ slug: string }> };
@@ -20,31 +19,28 @@ export async function generateMetadata({
 }: PageProps): Promise<Metadata> {
   const { slug } = await params;
 
-  const result = await getWorkspaceBySlug(slug);
+  const workspace = await db.query.workspaces.findFirst({
+    where: eq(workspaces.slug, slug),
+  });
 
-  if (!result) {
+  if (!workspace) {
     return { title: "Not Found" };
   }
 
   return {
-    title: result.workspace.name,
-    description: `Vote on features and share your ideas for ${result.workspace.name}`,
+    title: workspace.name,
+    description: `Vote on features and share your ideas for ${workspace.name}`,
   };
 }
 
 async function BoardContent({ slug }: { slug: string }) {
-  const result = await getWorkspaceBySlug(slug);
+  const workspace = await db.query.workspaces.findFirst({
+    where: eq(workspaces.slug, slug),
+  });
 
-  if (!result) {
+  if (!workspace) {
     notFound();
   }
-
-  // Redirect old slugs to the current one (301 permanent)
-  if (result.isRedirect) {
-    redirect(`/b/${result.workspace.slug}`);
-  }
-
-  const workspace = result.workspace;
 
   // Check if contributor is authenticated
   const contributor = await getContributor();
@@ -105,6 +101,7 @@ async function BoardContent({ slug }: { slug: string }) {
   return (
     <PublicIdeaList
       workspaceName={workspace.name}
+      workspaceId={workspace.id}
       workspaceSlug={workspace.slug}
       initialIdeas={ideasWithVoteStatus}
       initialContributor={

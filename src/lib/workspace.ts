@@ -127,40 +127,6 @@ export async function getUserWorkspace(
   return workspace || null;
 }
 
-export type WorkspaceSlugResult = {
-  workspace: Workspace;
-  isRedirect: boolean;
-} | null;
-
-/**
- * Get a workspace by its public slug.
- * Checks current slug first, then falls back to previousSlug for redirects.
- * Current slug always takes priority (if another workspace claims the old slug, the redirect stops).
- */
-export async function getWorkspaceBySlug(
-  slug: string
-): Promise<WorkspaceSlugResult> {
-  // Priority: current slug wins
-  const workspace = await db.query.workspaces.findFirst({
-    where: eq(workspaces.slug, slug),
-  });
-
-  if (workspace) {
-    return { workspace, isRedirect: false };
-  }
-
-  // Fallback: check previousSlug for redirect
-  const redirectWorkspace = await db.query.workspaces.findFirst({
-    where: eq(workspaces.previousSlug, slug),
-  });
-
-  if (redirectWorkspace) {
-    return { workspace: redirectWorkspace, isRedirect: true };
-  }
-
-  return null;
-}
-
 class SlugTakenError extends Error {
   constructor() {
     super("Slug is already taken");
@@ -174,7 +140,6 @@ export type UpdateSlugResult =
 
 /**
  * Update a workspace's slug with rate limiting and audit trail.
- * Stores the previous slug for redirect support.
  */
 export async function updateWorkspaceSlug(
   userId: string,
@@ -220,11 +185,9 @@ export async function updateWorkspaceSlug(
         newSlug,
       });
 
-      // Update workspace: previousSlug = current, slug = new
       await tx
         .update(workspaces)
         .set({
-          previousSlug: workspace.slug,
           slug: newSlug,
         })
         .where(eq(workspaces.id, workspace.id));

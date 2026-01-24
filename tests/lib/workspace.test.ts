@@ -17,7 +17,6 @@ vi.mock("@/lib/db/schema", () => ({
   workspaces: {
     ownerId: "ownerId",
     slug: "slug",
-    previousSlug: "previousSlug",
   },
   slugChangeHistory: { workspaceId: "workspaceId", changedAt: "changedAt" },
 }));
@@ -250,59 +249,4 @@ describe("workspace", () => {
     });
   });
 
-  describe("getWorkspaceBySlug", () => {
-    it("returns workspace with isRedirect false when current slug matches", async () => {
-      const mockWorkspace = {
-        id: "workspace-456",
-        name: "Public Workspace",
-        slug: "public-xyz98765",
-        ownerId: "user-456",
-        createdAt: new Date(),
-      };
-
-      mockFindFirst.mockResolvedValue(mockWorkspace);
-
-      vi.resetModules();
-      const { getWorkspaceBySlug } = await import("@/lib/workspace");
-
-      const result = await getWorkspaceBySlug("public-xyz98765");
-
-      expect(result).toEqual({ workspace: mockWorkspace, isRedirect: false });
-    });
-
-    it("returns workspace with isRedirect true when previousSlug matches", async () => {
-      const mockWorkspace = {
-        id: "workspace-456",
-        name: "Public Workspace",
-        slug: "new-slug",
-        previousSlug: "old-slug",
-        ownerId: "user-456",
-        createdAt: new Date(),
-      };
-
-      // First call (current slug check) returns nothing
-      // Second call (previousSlug check) returns the workspace
-      mockFindFirst
-        .mockResolvedValueOnce(undefined)
-        .mockResolvedValueOnce(mockWorkspace);
-
-      vi.resetModules();
-      const { getWorkspaceBySlug } = await import("@/lib/workspace");
-
-      const result = await getWorkspaceBySlug("old-slug");
-
-      expect(result).toEqual({ workspace: mockWorkspace, isRedirect: true });
-    });
-
-    it("returns null when slug not found", async () => {
-      mockFindFirst.mockResolvedValue(undefined);
-
-      vi.resetModules();
-      const { getWorkspaceBySlug } = await import("@/lib/workspace");
-
-      const result = await getWorkspaceBySlug("nonexistent-slug");
-
-      expect(result).toBeNull();
-    });
-  });
 });

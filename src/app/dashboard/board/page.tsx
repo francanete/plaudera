@@ -72,6 +72,7 @@ export default async function BoardPage() {
           </Card>
 
           <WidgetSection
+            workspaceId={workspace.id}
             workspaceSlug={workspace.slug}
             initialPosition={initialPosition}
             initialAllowedOrigins={initialAllowedOrigins}

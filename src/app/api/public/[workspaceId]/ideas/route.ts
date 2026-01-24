@@ -6,11 +6,11 @@ import { eq, desc, and, or, inArray } from "drizzle-orm";
 import { getContributor } from "@/lib/contributor-auth";
 import { handleApiError } from "@/lib/api-utils";
 import { NotFoundError, UnauthorizedError, RateLimitError, ForbiddenError } from "@/lib/errors";
-import { validateRequestOriginBySlug } from "@/lib/csrf";
+import { validateRequestOrigin } from "@/lib/csrf";
 import { checkIdeaRateLimit } from "@/lib/contributor-rate-limit";
 import {
-  getWorkspaceSlugCorsHeaders,
-  applyWorkspaceSlugCorsHeaders,
+  getWorkspaceCorsHeaders,
+  applyWorkspaceCorsHeaders,
 } from "@/lib/cors";
 
 const createIdeaSchema = z.object({
@@ -18,19 +18,19 @@ const createIdeaSchema = z.object({
   description: z.string().max(2000, "Description is too long").optional(),
 });
 
-type RouteParams = { params: Promise<{ slug: string }> };
+type RouteParams = { params: Promise<{ workspaceId: string }> };
 
 /**
- * OPTIONS /api/public/[slug]/ideas
+ * OPTIONS /api/public/[workspaceId]/ideas
  * Handle CORS preflight requests for widget embed
  */
 export async function OPTIONS(
   request: NextRequest,
   { params }: RouteParams
 ) {
-  const { slug } = await params;
+  const { workspaceId } = await params;
   const origin = request.headers.get("origin");
-  const headers = await getWorkspaceSlugCorsHeaders(origin, slug, "GET, POST, OPTIONS");
+  const headers = await getWorkspaceCorsHeaders(origin, workspaceId, "GET, POST, OPTIONS");
   return new NextResponse(null, {
     status: 204,
     headers,
@@ -38,17 +38,16 @@ export async function OPTIONS(
 }
 
 /**
- * GET /api/public/[slug]/ideas
+ * GET /api/public/[workspaceId]/ideas
  * List all ideas for a workspace (public)
  * If contributor is authenticated, includes hasVoted per idea
  */
 export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
-    const { slug } = await params;
+    const { workspaceId } = await params;
 
-    // Find the workspace (check both current and previous slug for widget compatibility)
     const workspace = await db.query.workspaces.findFirst({
-      where: or(eq(workspaces.slug, slug), eq(workspaces.previousSlug, slug)),
+      where: eq(workspaces.id, workspaceId),
     });
 
     if (!workspace) {
@@ -112,7 +111,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     }));
 
     const origin = request.headers.get("origin");
-    const corsHeaders = await getWorkspaceSlugCorsHeaders(origin, slug, "GET, POST, OPTIONS");
+    const corsHeaders = await getWorkspaceCorsHeaders(origin, workspaceId, "GET, POST, OPTIONS");
     return NextResponse.json(
       {
         workspace: {
@@ -127,25 +126,24 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       { headers: corsHeaders }
     );
   } catch (error) {
-    const { slug } = await params;
+    const { workspaceId } = await params;
     const origin = request.headers.get("origin");
     const errorResponse = handleApiError(error);
-    // Add CORS headers to error responses for widget compatibility
-    await applyWorkspaceSlugCorsHeaders(errorResponse, origin, slug, "GET, POST, OPTIONS");
+    await applyWorkspaceCorsHeaders(errorResponse, origin, workspaceId, "GET, POST, OPTIONS");
     return errorResponse;
   }
 }
 
 /**
- * POST /api/public/[slug]/ideas
+ * POST /api/public/[workspaceId]/ideas
  * Submit a new idea (requires contributor auth)
  */
 export async function POST(request: NextRequest, { params }: RouteParams) {
   try {
-    const { slug } = await params;
+    const { workspaceId } = await params;
 
     // CSRF protection: Validate request origin against workspace allowlist
-    const csrfResult = await validateRequestOriginBySlug(request, slug);
+    const csrfResult = await validateRequestOrigin(request, workspaceId);
     if (!csrfResult.valid) {
       throw new ForbiddenError("Request origin not allowed");
     }
@@ -168,9 +166,8 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    // Find the workspace (check both current and previous slug for widget compatibility)
     const workspace = await db.query.workspaces.findFirst({
-      where: or(eq(workspaces.slug, slug), eq(workspaces.previousSlug, slug)),
+      where: eq(workspaces.id, workspaceId),
     });
 
     if (!workspace) {
@@ -196,7 +193,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       .returning();
 
     const origin = request.headers.get("origin");
-    const corsHeaders = await getWorkspaceSlugCorsHeaders(origin, slug, "GET, POST, OPTIONS");
+    const corsHeaders = await getWorkspaceCorsHeaders(origin, workspaceId, "GET, POST, OPTIONS");
     return NextResponse.json(
       {
         idea: {
@@ -213,11 +210,10 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       { status: 201, headers: corsHeaders }
     );
   } catch (error) {
-    const { slug } = await params;
+    const { workspaceId } = await params;
     const origin = request.headers.get("origin");
     const errorResponse = handleApiError(error);
-    // Add CORS headers to error responses for widget compatibility
-    await applyWorkspaceSlugCorsHeaders(errorResponse, origin, slug, "GET, POST, OPTIONS");
+    await applyWorkspaceCorsHeaders(errorResponse, origin, workspaceId, "GET, POST, OPTIONS");
     return errorResponse;
   }
 }

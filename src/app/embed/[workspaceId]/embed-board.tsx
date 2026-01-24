@@ -22,6 +22,7 @@ interface CompactIdea {
 
 interface EmbedBoardProps {
   workspaceName: string;
+  workspaceId: string;
   workspaceSlug: string;
   initialIdeas: CompactIdea[];
   initialContributor: { email: string; id: string } | null;
@@ -29,6 +30,7 @@ interface EmbedBoardProps {
 
 export function EmbedBoard({
   workspaceName,
+  workspaceId,
   workspaceSlug,
   initialIdeas,
   initialContributor,
@@ -47,7 +49,7 @@ export function EmbedBoard({
   // Refresh data after auth/actions
   const refreshData = useCallback(async () => {
     try {
-      const res = await fetch(`/api/public/${workspaceSlug}/ideas`);
+      const res = await fetch(`/api/public/${workspaceId}/ideas`);
       if (!res.ok) return;
       const data = await res.json();
       setIdeas(
@@ -68,7 +70,7 @@ export function EmbedBoard({
       // Log error for debugging but don't disrupt UX - user can refresh manually
       console.error("[EmbedBoard] Failed to refresh data:", error);
     }
-  }, [workspaceSlug]);
+  }, [workspaceId]);
 
   // Handle URL callback after email verification
   useEffect(() => {
@@ -230,14 +232,14 @@ export function EmbedBoard({
       <ContributorAuthDialog
         open={authDialogOpen}
         onOpenChange={setAuthDialogOpen}
-        callbackUrl={`/embed/${workspaceSlug}?verified=true`}
+        callbackUrl={`/embed/${workspaceId}?verified=true`}
       />
 
       <IdeaSubmissionDialog
         open={submitDialogOpen}
         onOpenChange={setSubmitDialogOpen}
         onSubmit={async (title, description) => {
-          const res = await fetch(`/api/public/${workspaceSlug}/ideas`, {
+          const res = await fetch(`/api/public/${workspaceId}/ideas`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ title, description }),

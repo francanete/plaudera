@@ -12,6 +12,7 @@ import { Card, CardContent } from "@/components/ui/card";
 
 interface PublicIdeaListProps {
   workspaceName: string;
+  workspaceId: string;
   workspaceSlug: string;
   initialIdeas: IdeaCardData[];
   initialContributor: { email: string; id: string } | null;
@@ -24,6 +25,7 @@ type PendingAction =
 
 export function PublicIdeaList({
   workspaceName,
+  workspaceId,
   workspaceSlug,
   initialIdeas,
   initialContributor,
@@ -43,7 +45,7 @@ export function PublicIdeaList({
   // Declare functions BEFORE the useEffect that uses them
   const refreshData = useCallback(async () => {
     try {
-      const res = await fetch(`/api/public/${workspaceSlug}/ideas`);
+      const res = await fetch(`/api/public/${workspaceId}/ideas`);
       if (!res.ok) {
         toast.error("Failed to refresh data. Please reload the page.");
         return;
@@ -55,7 +57,7 @@ export function PublicIdeaList({
       console.error("Failed to refresh data:", error);
       toast.error("Network error. Please check your connection.");
     }
-  }, [workspaceSlug]);
+  }, [workspaceId]);
 
   const handleVoteAfterAuth = useCallback(async (ideaId: string) => {
     try {
@@ -175,7 +177,7 @@ export function PublicIdeaList({
   };
 
   const handleIdeaSubmit = async (title: string, description?: string) => {
-    const res = await fetch(`/api/public/${workspaceSlug}/ideas`, {
+    const res = await fetch(`/api/public/${workspaceId}/ideas`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ title, description }),

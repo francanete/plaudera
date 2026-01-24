@@ -175,8 +175,9 @@ export function WorkspaceSlugForm({
         />
 
         <p className="text-muted-foreground text-xs">
-          {remainingChanges} of {maxChanges} slug changes remaining. Your
-          previous slug will continue working as a redirect.
+          {remainingChanges} of {maxChanges} slug changes remaining. Changing
+          your slug will update your public board URL. Widget embeds are not
+          affected.
         </p>
 
         {form.formState.errors.root && (

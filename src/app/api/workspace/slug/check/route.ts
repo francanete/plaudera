@@ -42,8 +42,7 @@ export const GET = protectedApiRouteWrapper(
       return NextResponse.json({ available: true });
     }
 
-    // Only block on active slugs (previousSlug does NOT block)
-    // Exclude user's own workspace so they can reclaim their previousSlug
+    // Exclude user's own workspace from the check
     const existing = await db.query.workspaces.findFirst({
       where: userWorkspace
         ? and(eq(workspaces.slug, slug), ne(workspaces.id, userWorkspace.id))

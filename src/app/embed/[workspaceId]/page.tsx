@@ -7,18 +7,17 @@ import {
   workspaces,
   PUBLIC_VISIBLE_STATUSES,
 } from "@/lib/db/schema";
-import { eq, desc, and, or, inArray } from "drizzle-orm";
+import { eq, desc, and, inArray } from "drizzle-orm";
 import { getContributor } from "@/lib/contributor-auth";
 import { EmbedBoard } from "./embed-board";
 
-type PageProps = { params: Promise<{ slug: string }> };
+type PageProps = { params: Promise<{ workspaceId: string }> };
 
 const MAX_EMBED_IDEAS = 10;
 
-async function EmbedContent({ slug }: { slug: string }) {
-  // Find the workspace (check both current and previous slug for widget compatibility)
+async function EmbedContent({ workspaceId }: { workspaceId: string }) {
   const workspace = await db.query.workspaces.findFirst({
-    where: or(eq(workspaces.slug, slug), eq(workspaces.previousSlug, slug)),
+    where: eq(workspaces.id, workspaceId),
   });
 
   if (!workspace) {
@@ -66,6 +65,7 @@ async function EmbedContent({ slug }: { slug: string }) {
   return (
     <EmbedBoard
       workspaceName={workspace.name}
+      workspaceId={workspace.id}
       workspaceSlug={workspace.slug}
       initialIdeas={ideasWithVoteStatus}
       initialContributor={
@@ -76,11 +76,11 @@ async function EmbedContent({ slug }: { slug: string }) {
 }
 
 export default async function EmbedPage({ params }: PageProps) {
-  const { slug } = await params;
+  const { workspaceId } = await params;
 
   return (
     <Suspense fallback={<EmbedSkeleton />}>
-      <EmbedContent slug={slug} />
+      <EmbedContent workspaceId={workspaceId} />
     </Suspense>
   );
 }
