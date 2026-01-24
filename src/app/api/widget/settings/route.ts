@@ -25,6 +25,10 @@ const updateSettingsSchema = z.object({
         )
         .refine((s) => !s.includes("***"), "Use * or ** for wildcards, not ***")
         .refine(
+          (s) => (s.match(/\*\*/g) || []).length <= 2,
+          "Maximum 2 double-star (**) wildcards allowed per pattern"
+        )
+        .refine(
           (s) => !s.includes("//"),
           "Pattern must not contain consecutive slashes"
         )

@@ -7,4 +7,4 @@ CREATE TABLE "slug_change_history" (
 );
 --> statement-breakpoint
 ALTER TABLE "slug_change_history" ADD CONSTRAINT "slug_change_history_workspace_id_workspaces_id_fk" FOREIGN KEY ("workspace_id") REFERENCES "public"."workspaces"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-CREATE INDEX "slug_change_history_workspace_id_idx" ON "slug_change_history" USING btree ("workspace_id");
+CREATE INDEX "slug_change_history_workspace_changed_idx" ON "slug_change_history" USING btree ("workspace_id","changed_at");

@@ -471,7 +471,10 @@ export const slugChangeHistory = pgTable(
     changedAt: timestamp("changed_at").defaultNow().notNull(),
   },
   (table) => [
-    index("slug_change_history_workspace_id_idx").on(table.workspaceId),
+    index("slug_change_history_workspace_changed_idx").on(
+      table.workspaceId,
+      table.changedAt
+    ),
   ]
 );
 

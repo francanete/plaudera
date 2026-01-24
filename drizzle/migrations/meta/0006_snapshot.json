@@ -1363,11 +1363,17 @@
         }
       },
       "indexes": {
-        "slug_change_history_workspace_id_idx": {
-          "name": "slug_change_history_workspace_id_idx",
+        "slug_change_history_workspace_changed_idx": {
+          "name": "slug_change_history_workspace_changed_idx",
           "columns": [
             {
               "expression": "workspace_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "changed_at",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
