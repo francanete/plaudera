@@ -267,7 +267,8 @@ export const auth = betterAuth({
             await inngest.send({
               name: "subscription/changed",
               data: {
-                userId: subscription.customer.externalId || subscription.customer.id,
+                userId:
+                  subscription.customer.externalId || subscription.customer.id,
                 email: subscription.customer.email,
                 plan: getPlanFromPolarProduct(subscription.product?.id),
                 status,
@@ -287,7 +288,8 @@ export const auth = betterAuth({
             await inngest.send({
               name: "subscription/changed",
               data: {
-                userId: subscription.customer.externalId || subscription.customer.id,
+                userId:
+                  subscription.customer.externalId || subscription.customer.id,
                 email: subscription.customer.email,
                 plan: getPlanFromPolarProduct(subscription.product?.id),
                 status: "CANCELED",

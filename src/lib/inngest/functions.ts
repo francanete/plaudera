@@ -425,7 +425,10 @@ export const subscriptionChangedJob = inngest.createFunction(
           : null;
 
     if (!segmentId) {
-      return { skipped: true, reason: `No segment action for status: ${status}` };
+      return {
+        skipped: true,
+        reason: `No segment action for status: ${status}`,
+      };
     }
 
     const result = await step.run("add-to-segment", async () => {
