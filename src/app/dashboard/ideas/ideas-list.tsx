@@ -1,20 +1,21 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { toast } from "sonner";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Plus, ChevronUp, Lightbulb, Copy, GitMerge } from "lucide-react";
+  Plus,
+  ChevronUp,
+  Lightbulb,
+  Copy,
+  GitMerge,
+  ChevronDown,
+  CheckCircle,
+  Search,
+  XCircle,
+} from "lucide-react";
 import {
   Tooltip,
   TooltipContent,
@@ -33,6 +34,311 @@ interface IdeasListProps {
   workspaceSlug: string;
   initialStatusFilter?: IdeaStatus;
   ideasWithDuplicates?: string[];
+}
+
+// Status configuration with semantic colors
+const STATUS_STYLES: Record<
+  IdeaStatus,
+  { bg: string; text: string; iconColor: string }
+> = {
+  UNDER_REVIEW: {
+    bg: "bg-amber-50 dark:bg-amber-950/30",
+    text: "text-amber-700 dark:text-amber-400",
+    iconColor: "text-amber-500",
+  },
+  PUBLISHED: {
+    bg: "bg-emerald-50 dark:bg-emerald-950/30",
+    text: "text-emerald-700 dark:text-emerald-400",
+    iconColor: "text-emerald-500",
+  },
+  DECLINED: {
+    bg: "bg-red-50 dark:bg-red-950/30",
+    text: "text-red-700 dark:text-red-400",
+    iconColor: "text-red-500",
+  },
+  MERGED: {
+    bg: "bg-slate-100 dark:bg-slate-800",
+    text: "text-slate-600 dark:text-slate-400",
+    iconColor: "text-slate-500",
+  },
+};
+
+const STATUS_ICONS: Record<IdeaStatus, typeof CheckCircle> = {
+  UNDER_REVIEW: Search,
+  PUBLISHED: CheckCircle,
+  DECLINED: XCircle,
+  MERGED: GitMerge,
+};
+
+// Custom dropdown component for status
+function StatusBadge({
+  status,
+  onChange,
+  disabled = false,
+}: {
+  status: IdeaStatus;
+  onChange?: (status: IdeaStatus) => void;
+  disabled?: boolean;
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  const styles = STATUS_STYLES[status];
+  const Icon = STATUS_ICONS[status];
+  const config = IDEA_STATUS_CONFIG[status];
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
+        setIsOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      if (!disabled) setIsOpen(!isOpen);
+    } else if (e.key === "Escape") {
+      setIsOpen(false);
+    }
+  };
+
+  const handleSelect = (newStatus: IdeaStatus) => {
+    onChange?.(newStatus);
+    setIsOpen(false);
+  };
+
+  if (disabled) {
+    return (
+      <span
+        className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium ${styles.bg} ${styles.text}`}
+      >
+        <Icon className={`h-3.5 w-3.5 ${styles.iconColor}`} />
+        <span>{config.label}</span>
+      </span>
+    );
+  }
+
+  return (
+    <div className="relative" ref={dropdownRef}>
+      <button
+        type="button"
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          setIsOpen(!isOpen);
+        }}
+        onKeyDown={handleKeyDown}
+        className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium transition-all duration-150 ${styles.bg} ${styles.text} focus:ring-primary hover:opacity-80 focus:ring-2 focus:ring-offset-2 focus:outline-none`}
+        aria-haspopup="listbox"
+        aria-expanded={isOpen}
+      >
+        <Icon className={`h-3.5 w-3.5 ${styles.iconColor}`} />
+        <span>{config.label}</span>
+        <ChevronDown
+          className={`h-3.5 w-3.5 transition-transform duration-150 ${isOpen ? "rotate-180" : ""}`}
+        />
+      </button>
+
+      {isOpen && (
+        <div
+          className="border-border bg-popover absolute top-full left-0 z-50 mt-1 w-40 rounded-lg border py-1 shadow-lg"
+          role="listbox"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+          }}
+        >
+          {SELECTABLE_IDEA_STATUSES.map((statusKey) => {
+            const itemStyles = STATUS_STYLES[statusKey];
+            const ItemIcon = STATUS_ICONS[statusKey];
+            const itemConfig = IDEA_STATUS_CONFIG[statusKey];
+            return (
+              <button
+                key={statusKey}
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  handleSelect(statusKey);
+                }}
+                className={`hover:bg-accent flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition-colors ${status === statusKey ? "bg-accent" : ""}`}
+                role="option"
+                aria-selected={status === statusKey}
+              >
+                <ItemIcon className={`h-4 w-4 ${itemStyles.iconColor}`} />
+                <span className={itemStyles.text}>{itemConfig.label}</span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Filter dropdown component
+function FilterDropdown({
+  value,
+  onChange,
+}: {
+  value: IdeaStatus | "ALL";
+  onChange: (value: IdeaStatus | "ALL") => void;
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
+        setIsOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const getLabel = () => {
+    if (value === "ALL") return "All statuses";
+    return IDEA_STATUS_CONFIG[value].label;
+  };
+
+  return (
+    <div className="relative" ref={dropdownRef}>
+      <button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        className="border-border bg-card text-foreground hover:border-primary/50 hover:bg-accent focus:ring-primary inline-flex items-center gap-2 rounded-lg border px-4 py-2.5 text-sm font-medium transition-colors focus:ring-2 focus:ring-offset-2 focus:outline-none"
+        aria-haspopup="listbox"
+        aria-expanded={isOpen}
+      >
+        {getLabel()}
+        <ChevronDown
+          className={`h-4 w-4 transition-transform ${isOpen ? "rotate-180" : ""}`}
+        />
+      </button>
+
+      {isOpen && (
+        <div className="border-border bg-popover absolute top-full right-0 z-50 mt-1 w-40 rounded-lg border py-1 shadow-lg">
+          <button
+            type="button"
+            onClick={() => {
+              onChange("ALL");
+              setIsOpen(false);
+            }}
+            className={`hover:bg-accent w-full px-4 py-2 text-left text-sm transition-colors ${value === "ALL" ? "bg-accent font-medium" : ""}`}
+          >
+            All statuses
+          </button>
+          {ALL_IDEA_STATUSES.map((opt) => {
+            const cfg = IDEA_STATUS_CONFIG[opt];
+            const Icon = STATUS_ICONS[opt];
+            const styles = STATUS_STYLES[opt];
+            return (
+              <button
+                key={opt}
+                type="button"
+                onClick={() => {
+                  onChange(opt);
+                  setIsOpen(false);
+                }}
+                className={`hover:bg-accent flex w-full items-center gap-2 px-4 py-2 text-left text-sm transition-colors ${value === opt ? "bg-accent font-medium" : ""}`}
+              >
+                <Icon className={`h-3.5 w-3.5 ${styles.iconColor}`} />
+                {cfg.label}
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Idea card component
+function IdeaCard({
+  idea,
+  hasDuplicate,
+  onStatusChange,
+}: {
+  idea: Idea;
+  hasDuplicate: boolean;
+  onStatusChange: (ideaId: string, status: IdeaStatus) => void;
+}) {
+  return (
+    <Link href={`/dashboard/ideas/${idea.id}`} className="block">
+      <article
+        className="group border-border bg-card hover:border-primary/30 flex items-start gap-5 rounded-xl border p-5 transition-all duration-200 hover:shadow-md"
+        aria-label={`Feature request: ${idea.title}`}
+      >
+        {/* Vote Section */}
+        <div className="shrink-0">
+          <div className="border-border bg-muted/50 group-hover:border-primary/20 group-hover:bg-muted flex h-16 w-14 flex-col items-center justify-center rounded-lg border transition-all duration-150">
+            <ChevronUp className="text-muted-foreground group-hover:text-foreground h-4 w-4 transition-colors" />
+            <span className="text-foreground text-lg font-semibold">
+              {idea.voteCount}
+            </span>
+            <span className="text-muted-foreground text-xs">votes</span>
+          </div>
+        </div>
+
+        {/* Content Section */}
+        <div className="min-w-0 flex-1">
+          <div className="mb-1 flex items-center gap-2">
+            <h3 className="text-foreground truncate text-base font-semibold">
+              {idea.title}
+            </h3>
+            {hasDuplicate && (
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
+                      <Copy className="h-3 w-3" />
+                      Duplicate?
+                    </span>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>
+                      Potential duplicate detected. Review in Duplicates page.
+                    </p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            )}
+          </div>
+
+          {idea.description && (
+            <p className="text-muted-foreground mb-3 line-clamp-2 text-sm">
+              {idea.description}
+            </p>
+          )}
+
+          <div className="flex flex-wrap items-center gap-4">
+            <StatusBadge
+              status={idea.status}
+              onChange={(newStatus) => onStatusChange(idea.id, newStatus)}
+              disabled={idea.status === "MERGED"}
+            />
+            <time
+              dateTime={idea.createdAt.toISOString()}
+              className="text-muted-foreground text-sm"
+            >
+              {new Date(idea.createdAt).toLocaleDateString("en-US")}
+            </time>
+          </div>
+        </div>
+      </article>
+    </Link>
+  );
 }
 
 export function IdeasList({
@@ -122,229 +428,122 @@ export function IdeasList({
     }
   };
 
-  // Render filter dropdown
-  const FilterDropdown = () => (
-    <Select
-      value={statusFilter}
-      onValueChange={(value) => setStatusFilter(value as IdeaStatus | "ALL")}
-    >
-      <SelectTrigger className="w-[180px]">
-        <SelectValue placeholder="Filter by status" />
-      </SelectTrigger>
-      <SelectContent>
-        <SelectItem value="ALL">All statuses</SelectItem>
-        {ALL_IDEA_STATUSES.map((opt) => {
-          const cfg = IDEA_STATUS_CONFIG[opt];
-          const Icon = cfg.icon;
-          return (
-            <SelectItem key={opt} value={opt}>
-              <div className="flex items-center">
-                <Icon className="mr-2 h-3 w-3" />
-                {cfg.label}
-              </div>
-            </SelectItem>
-          );
-        })}
-      </SelectContent>
-    </Select>
-  );
-
+  // Empty state
   if (ideas.length === 0 && !isCreating) {
     return (
-      <Card className="border-dashed">
-        <CardContent className="flex flex-col items-center justify-center py-16">
-          <Lightbulb className="text-muted-foreground mb-4 h-12 w-12" />
-          <h3 className="mb-2 text-lg font-semibold">No ideas yet</h3>
+      <div className="border-border bg-card rounded-xl border-2 border-dashed">
+        <div className="flex flex-col items-center justify-center px-6 py-16">
+          <div className="mb-4 rounded-lg bg-amber-100 p-3 dark:bg-amber-900/30">
+            <Lightbulb className="h-12 w-12 text-amber-600 dark:text-amber-400" />
+          </div>
+          <h3 className="text-foreground mb-2 text-lg font-semibold">
+            No ideas yet
+          </h3>
           <p className="text-muted-foreground mb-6 max-w-md text-center">
             Start collecting feature requests and feedback from your users.
             Create your first idea to get started.
           </p>
-          <Button onClick={() => setIsCreating(true)}>
-            <Plus className="mr-2 h-4 w-4" />
+          <Button
+            onClick={() => setIsCreating(true)}
+            className="bg-foreground text-background hover:bg-foreground/90 gap-2"
+          >
+            <Plus className="h-4 w-4" />
             Add your first idea
           </Button>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     );
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       {/* Actions bar */}
       <div className="flex items-center justify-between gap-4">
-        {/* Create new idea */}
         {isCreating ? (
-          <Card className="flex-1">
-            <CardContent className="pt-4">
-              <div className="flex gap-2">
-                <Input
-                  placeholder="What's your idea?"
-                  value={newTitle}
-                  onChange={(e) => setNewTitle(e.target.value)}
-                  onKeyDown={handleKeyDown}
-                  autoFocus
-                />
-                <Button
-                  onClick={handleCreateIdea}
-                  disabled={isSubmitting || !newTitle.trim()}
-                >
-                  {isSubmitting ? "Adding..." : "Add"}
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    setIsCreating(false);
-                    setNewTitle("");
-                  }}
-                >
-                  Cancel
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+          <div className="border-border bg-card flex flex-1 gap-2 rounded-xl border p-4">
+            <Input
+              placeholder="What's your idea?"
+              value={newTitle}
+              onChange={(e) => setNewTitle(e.target.value)}
+              onKeyDown={handleKeyDown}
+              autoFocus
+              className="flex-1"
+            />
+            <Button
+              onClick={handleCreateIdea}
+              disabled={isSubmitting || !newTitle.trim()}
+              className="bg-foreground text-background hover:bg-foreground/90"
+            >
+              {isSubmitting ? "Adding..." : "Add"}
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setIsCreating(false);
+                setNewTitle("");
+              }}
+            >
+              Cancel
+            </Button>
+          </div>
         ) : (
           <>
-            <Button onClick={() => setIsCreating(true)}>
-              <Plus className="mr-2 h-4 w-4" />
+            <Button
+              onClick={() => setIsCreating(true)}
+              className="bg-foreground text-background hover:bg-foreground/90 gap-2"
+            >
+              <Plus className="h-4 w-4" />
               New idea
             </Button>
-            <FilterDropdown />
+            <FilterDropdown value={statusFilter} onChange={setStatusFilter} />
           </>
         )}
       </div>
 
       {/* Ideas list */}
-      <div className="space-y-3">
-        {filteredIdeas.length === 0 && (
-          <Card className="border-dashed">
-            <CardContent className="py-8 text-center">
-              <p className="text-muted-foreground">
-                {statusFilter === "ALL"
-                  ? "No ideas yet."
-                  : `No ideas with "${IDEA_STATUS_CONFIG[statusFilter].label}" status.`}
-              </p>
-              <Button
-                variant="link"
-                className="mt-2"
-                onClick={() => setStatusFilter("ALL")}
-              >
-                Show all ideas
-              </Button>
-            </CardContent>
-          </Card>
+      <div className="space-y-5" role="feed" aria-label="Feature requests">
+        {filteredIdeas.length === 0 ? (
+          <div className="border-border bg-card rounded-xl border-2 border-dashed py-12 text-center">
+            <Lightbulb className="text-muted-foreground/50 mx-auto mb-4 h-12 w-12" />
+            <p className="text-muted-foreground">
+              {statusFilter === "ALL"
+                ? "No ideas yet."
+                : `No ideas with "${IDEA_STATUS_CONFIG[statusFilter].label}" status.`}
+            </p>
+            <Button
+              variant="link"
+              className="mt-2"
+              onClick={() => setStatusFilter("ALL")}
+            >
+              Show all ideas
+            </Button>
+          </div>
+        ) : (
+          filteredIdeas.map((idea) => (
+            <IdeaCard
+              key={idea.id}
+              idea={idea}
+              hasDuplicate={duplicateIdeaIds.has(idea.id)}
+              onStatusChange={handleStatusChange}
+            />
+          ))
         )}
-        {filteredIdeas.map((idea) => {
-          const hasDuplicate = duplicateIdeaIds.has(idea.id);
-          return (
-            <Link key={idea.id} href={`/dashboard/ideas/${idea.id}`}>
-              <Card className="hover:border-primary/50 cursor-pointer transition-colors">
-                <CardContent className="flex items-center gap-4 py-4">
-                  {/* Vote count */}
-                  <div className="bg-muted/50 flex min-w-[60px] flex-col items-center rounded-lg px-3 py-2">
-                    <ChevronUp className="text-muted-foreground h-4 w-4" />
-                    <span className="text-lg font-semibold">
-                      {idea.voteCount}
-                    </span>
-                    <span className="text-muted-foreground text-xs">votes</span>
-                  </div>
-
-                  {/* Content */}
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
-                      <h3 className="truncate font-medium">{idea.title}</h3>
-                      {hasDuplicate && (
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
-                                <Copy className="h-3 w-3" />
-                                Duplicate?
-                              </span>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p>
-                                Potential duplicate detected. Review in
-                                Duplicates page.
-                              </p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                      )}
-                    </div>
-                    {idea.description && (
-                      <p className="text-muted-foreground mt-1 line-clamp-1 text-sm">
-                        {idea.description}
-                      </p>
-                    )}
-                    <div className="mt-2 flex items-center gap-2">
-                      {/* Status - static badge for merged, dropdown for others */}
-                      {idea.status === "MERGED" ? (
-                        <Badge variant="secondary" className="gap-1 text-xs">
-                          <GitMerge className="h-3 w-3" />
-                          Merged
-                        </Badge>
-                      ) : (
-                        <div
-                          onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                          }}
-                          onKeyDown={(e) => e.stopPropagation()}
-                        >
-                          <Select
-                            value={idea.status}
-                            onValueChange={(value) =>
-                              handleStatusChange(idea.id, value as IdeaStatus)
-                            }
-                          >
-                            <SelectTrigger className="h-7 w-[160px] text-xs">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {SELECTABLE_IDEA_STATUSES.map((opt) => {
-                                const cfg = IDEA_STATUS_CONFIG[opt];
-                                const Icon = cfg.icon;
-                                return (
-                                  <SelectItem key={opt} value={opt}>
-                                    <div className="flex items-center">
-                                      <Icon className="mr-2 h-3 w-3" />
-                                      {cfg.label}
-                                    </div>
-                                  </SelectItem>
-                                );
-                              })}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      )}
-                      <span className="text-muted-foreground text-xs">
-                        {new Date(idea.createdAt).toLocaleDateString("en-US")}
-                      </span>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </Link>
-          );
-        })}
       </div>
 
       {/* Public board link */}
-      <Card className="bg-muted/30">
-        <CardContent className="py-4">
-          <p className="text-muted-foreground text-sm">
-            <span className="font-medium">Public board:</span>{" "}
-            <a
-              href={`/b/${workspaceSlug}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="bg-muted hover:bg-muted/80 rounded px-2 py-1 font-mono text-xs transition-colors"
-            >
-              /b/{workspaceSlug}
-            </a>
-          </p>
-        </CardContent>
-      </Card>
+      <div className="border-border bg-muted/30 rounded-xl border px-5 py-4">
+        <p className="text-muted-foreground text-sm">
+          <span className="text-foreground font-medium">Public board:</span>{" "}
+          <a
+            href={`/b/${workspaceSlug}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="bg-muted hover:bg-muted/80 rounded px-2 py-1 font-mono text-xs transition-colors"
+          >
+            /b/{workspaceSlug}
+          </a>
+        </p>
+      </div>
     </div>
   );
 }
