@@ -53,7 +53,7 @@ export function IdeaCard({
 
       <div className="min-w-0 flex-1">
         <div className="mb-2 flex items-start gap-3">
-          <h3 className="text-base font-medium leading-tight text-slate-900 dark:text-white">
+          <h3 className="text-base leading-tight font-medium text-slate-900 dark:text-white">
             {idea.title}
           </h3>
           {isOwnPending && (
