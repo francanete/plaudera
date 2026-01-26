@@ -2,7 +2,13 @@ import { NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { eq, count, and, or } from "drizzle-orm";
-import { db, ideas, votes, ideaEmbeddings, duplicateSuggestions } from "@/lib/db";
+import {
+  db,
+  ideas,
+  votes,
+  ideaEmbeddings,
+  duplicateSuggestions,
+} from "@/lib/db";
 import { protectedApiRouteWrapper } from "@/lib/dal";
 import { NotFoundError, ForbiddenError, BadRequestError } from "@/lib/errors";
 
