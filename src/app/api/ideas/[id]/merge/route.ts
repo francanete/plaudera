@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { eq, count } from "drizzle-orm";
-import { db, ideas, votes, ideaEmbeddings } from "@/lib/db";
+import { eq, count, and, or } from "drizzle-orm";
+import { db, ideas, votes, ideaEmbeddings, duplicateSuggestions } from "@/lib/db";
 import { protectedApiRouteWrapper } from "@/lib/dal";
 import { NotFoundError, ForbiddenError, BadRequestError } from "@/lib/errors";
 
@@ -122,7 +123,29 @@ export const POST = protectedApiRouteWrapper<RouteParams>(
       await tx
         .delete(ideaEmbeddings)
         .where(eq(ideaEmbeddings.ideaId, params.id));
+
+      // Auto-dismiss pending duplicate suggestions involving the merged idea
+      await tx
+        .update(duplicateSuggestions)
+        .set({
+          status: "DISMISSED",
+          reviewedAt: new Date(),
+        })
+        .where(
+          and(
+            eq(duplicateSuggestions.workspaceId, sourceIdea.workspaceId),
+            eq(duplicateSuggestions.status, "PENDING"),
+            or(
+              eq(duplicateSuggestions.sourceIdeaId, params.id),
+              eq(duplicateSuggestions.duplicateIdeaId, params.id)
+            )
+          )
+        );
     });
+
+    // Invalidate caches: duplicates page + dashboard layout (for sidebar badge count)
+    revalidatePath("/dashboard/duplicates");
+    revalidatePath("/dashboard", "layout");
 
     return NextResponse.json({ success: true });
   },
