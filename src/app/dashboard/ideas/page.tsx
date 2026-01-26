@@ -74,7 +74,7 @@ export default async function IdeasPage({ searchParams }: PageProps) {
           <div className="rounded-lg bg-amber-100 p-2 dark:bg-amber-900/30">
             <Lightbulb className="h-6 w-6 text-amber-600 dark:text-amber-400" />
           </div>
-          <h1 className="text-2xl font-semibold text-foreground">Ideas</h1>
+          <h1 className="text-foreground text-2xl font-semibold">Ideas</h1>
         </div>
         <p className="text-muted-foreground text-base">
           Collect and manage feature requests from your users.
