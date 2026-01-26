@@ -38,17 +38,22 @@ export function PublicBoardCard({ boardUrl }: PublicBoardCardProps) {
   };
 
   return (
-    <Card className="border-primary/20 bg-primary/5">
-      <CardContent className="flex items-center gap-4 py-4">
-        <div className="bg-primary/10 rounded-full p-3">
-          <Globe className="text-primary h-6 w-6" />
+    <Card className="border-gray-200 bg-gray-50 transition-shadow hover:shadow-md dark:border-gray-800 dark:bg-gray-900">
+      <CardContent className="flex flex-col items-start gap-4 py-4 sm:flex-row sm:items-center">
+        <div className="rounded-full bg-gray-200 p-3 dark:bg-gray-700">
+          <Globe className="h-6 w-6 text-gray-600 dark:text-gray-300" />
         </div>
         <div className="min-w-0 flex-1">
           <h3 className="font-semibold">Your Public Board</h3>
           <p className="text-muted-foreground truncate text-sm">{boardUrl}</p>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={handleCopy}>
+        <div className="flex w-full gap-2 sm:w-auto">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleCopy}
+            className="flex-1 sm:flex-none"
+          >
             {copied ? (
               <>
                 <Check className="mr-1 h-4 w-4" />
@@ -61,7 +66,7 @@ export function PublicBoardCard({ boardUrl }: PublicBoardCardProps) {
               </>
             )}
           </Button>
-          <Button size="sm" asChild>
+          <Button size="sm" asChild className="flex-1 sm:flex-none">
             <a href={boardUrl} target="_blank" rel="noopener noreferrer">
               <ExternalLink className="mr-1 h-4 w-4" />
               Open
