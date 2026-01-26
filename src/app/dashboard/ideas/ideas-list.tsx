@@ -5,6 +5,7 @@ import Link from "next/link";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Plus,
   ChevronUp,
@@ -24,15 +25,15 @@ import {
 } from "@/components/ui/tooltip";
 import type { Idea, IdeaStatus } from "@/lib/db/schema";
 import {
-  ALL_IDEA_STATUSES,
   SELECTABLE_IDEA_STATUSES,
   IDEA_STATUS_CONFIG,
 } from "@/lib/idea-status-config";
 
+type ViewMode = "active" | "archive";
+
 interface IdeasListProps {
   initialIdeas: Idea[];
   workspaceSlug: string;
-  initialStatusFilter?: IdeaStatus;
   ideasWithDuplicates?: string[];
 }
 
@@ -183,87 +184,6 @@ function StatusBadge({
   );
 }
 
-// Filter dropdown component
-function FilterDropdown({
-  value,
-  onChange,
-}: {
-  value: IdeaStatus | "ALL";
-  onChange: (value: IdeaStatus | "ALL") => void;
-}) {
-  const [isOpen, setIsOpen] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (
-        dropdownRef.current &&
-        !dropdownRef.current.contains(event.target as Node)
-      ) {
-        setIsOpen(false);
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
-  const getLabel = () => {
-    if (value === "ALL") return "All statuses";
-    return IDEA_STATUS_CONFIG[value].label;
-  };
-
-  return (
-    <div className="relative" ref={dropdownRef}>
-      <button
-        type="button"
-        onClick={() => setIsOpen(!isOpen)}
-        className="border-border bg-card text-foreground hover:border-primary/50 hover:bg-accent focus:ring-primary inline-flex items-center gap-2 rounded-lg border px-4 py-2.5 text-sm font-medium transition-colors focus:ring-2 focus:ring-offset-2 focus:outline-none"
-        aria-haspopup="listbox"
-        aria-expanded={isOpen}
-      >
-        {getLabel()}
-        <ChevronDown
-          className={`h-4 w-4 transition-transform ${isOpen ? "rotate-180" : ""}`}
-        />
-      </button>
-
-      {isOpen && (
-        <div className="border-border bg-popover absolute top-full right-0 z-50 mt-1 w-40 rounded-lg border py-1 shadow-lg">
-          <button
-            type="button"
-            onClick={() => {
-              onChange("ALL");
-              setIsOpen(false);
-            }}
-            className={`hover:bg-accent w-full px-4 py-2 text-left text-sm transition-colors ${value === "ALL" ? "bg-accent font-medium" : ""}`}
-          >
-            All statuses
-          </button>
-          {ALL_IDEA_STATUSES.map((opt) => {
-            const cfg = IDEA_STATUS_CONFIG[opt];
-            const Icon = STATUS_ICONS[opt];
-            const styles = STATUS_STYLES[opt];
-            return (
-              <button
-                key={opt}
-                type="button"
-                onClick={() => {
-                  onChange(opt);
-                  setIsOpen(false);
-                }}
-                className={`hover:bg-accent flex w-full items-center gap-2 px-4 py-2 text-left text-sm transition-colors ${value === opt ? "bg-accent font-medium" : ""}`}
-              >
-                <Icon className={`h-3.5 w-3.5 ${styles.iconColor}`} />
-                {cfg.label}
-              </button>
-            );
-          })}
-        </div>
-      )}
-    </div>
-  );
-}
-
 // Idea card component
 function IdeaCard({
   idea,
@@ -344,7 +264,6 @@ function IdeaCard({
 export function IdeasList({
   initialIdeas,
   workspaceSlug,
-  initialStatusFilter,
   ideasWithDuplicates = [],
 }: IdeasListProps) {
   const [ideas, setIdeas] = useState(initialIdeas);
@@ -352,15 +271,25 @@ export function IdeasList({
   const [isCreating, setIsCreating] = useState(false);
   const [newTitle, setNewTitle] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [statusFilter, setStatusFilter] = useState<IdeaStatus | "ALL">(
-    initialStatusFilter || "ALL"
-  );
+  const [viewMode, setViewMode] = useState<ViewMode>("active");
 
-  // Filter ideas by status
-  const filteredIdeas =
-    statusFilter === "ALL"
-      ? ideas
-      : ideas.filter((idea) => idea.status === statusFilter);
+  // Filter and sort ideas by view mode
+  const filteredIdeas = ideas
+    .filter((idea) => {
+      if (viewMode === "active") {
+        return idea.status === "PUBLISHED" || idea.status === "UNDER_REVIEW";
+      }
+      return idea.status === "MERGED" || idea.status === "DECLINED";
+    })
+    .sort((a, b) => {
+      if (viewMode === "active") {
+        // PUBLISHED first, then UNDER_REVIEW, each sorted by votes (high to low)
+        if (a.status === "PUBLISHED" && b.status !== "PUBLISHED") return -1;
+        if (a.status !== "PUBLISHED" && b.status === "PUBLISHED") return 1;
+      }
+      // Within same status group, sort by vote count descending
+      return b.voteCount - a.voteCount;
+    });
 
   const handleCreateIdea = async () => {
     if (!newTitle.trim() || isSubmitting) return;
@@ -375,7 +304,12 @@ export function IdeasList({
 
       if (res.ok) {
         const { idea } = await res.json();
-        setIdeas([idea, ...ideas]);
+        // Convert date string back to Date object (JSON serialization loses Date type)
+        const ideaWithDate = {
+          ...idea,
+          createdAt: new Date(idea.createdAt),
+        };
+        setIdeas([ideaWithDate, ...ideas]);
         setNewTitle("");
         setIsCreating(false);
         toast.success("Idea created successfully");
@@ -458,47 +392,63 @@ export function IdeasList({
   return (
     <div className="space-y-6">
       {/* Actions bar */}
-      <div className="flex items-center justify-between gap-4">
-        {isCreating ? (
-          <div className="border-border bg-card flex flex-1 gap-2 rounded-xl border p-4">
-            <Input
-              placeholder="What's your idea?"
-              value={newTitle}
-              onChange={(e) => setNewTitle(e.target.value)}
-              onKeyDown={handleKeyDown}
-              autoFocus
-              className="flex-1"
-            />
-            <Button
-              onClick={handleCreateIdea}
-              disabled={isSubmitting || !newTitle.trim()}
-              className="bg-foreground text-background hover:bg-foreground/90"
-            >
-              {isSubmitting ? "Adding..." : "Add"}
-            </Button>
-            <Button
-              variant="outline"
-              onClick={() => {
-                setIsCreating(false);
-                setNewTitle("");
-              }}
-            >
-              Cancel
-            </Button>
-          </div>
-        ) : (
-          <>
-            <Button
-              onClick={() => setIsCreating(true)}
-              className="bg-foreground text-background hover:bg-foreground/90 gap-2"
-            >
-              <Plus className="h-4 w-4" />
-              New idea
-            </Button>
-            <FilterDropdown value={statusFilter} onChange={setStatusFilter} />
-          </>
-        )}
-      </div>
+      {isCreating ? (
+        <div className="border-border bg-card flex flex-1 gap-2 rounded-xl border p-4">
+          <Input
+            placeholder="What's your idea?"
+            value={newTitle}
+            onChange={(e) => setNewTitle(e.target.value)}
+            onKeyDown={handleKeyDown}
+            autoFocus
+            className="flex-1"
+          />
+          <Button
+            onClick={handleCreateIdea}
+            disabled={isSubmitting || !newTitle.trim()}
+            className="bg-foreground text-background hover:bg-foreground/90"
+          >
+            {isSubmitting ? "Adding..." : "Add"}
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => {
+              setIsCreating(false);
+              setNewTitle("");
+            }}
+          >
+            Cancel
+          </Button>
+        </div>
+      ) : (
+        <div className="flex items-center justify-between">
+          <Tabs
+            value={viewMode}
+            onValueChange={(value) => setViewMode(value as ViewMode)}
+          >
+            <TabsList className="bg-muted/50 h-10 gap-1 rounded-lg p-1">
+              <TabsTrigger
+                value="active"
+                className="data-[state=inactive]:text-muted-foreground data-[state=inactive]:hover:text-foreground data-[state=active]:bg-background data-[state=active]:text-foreground h-8 rounded-md px-4 text-sm font-medium transition-all duration-200 data-[state=active]:shadow-sm data-[state=inactive]:bg-transparent"
+              >
+                Active
+              </TabsTrigger>
+              <TabsTrigger
+                value="archive"
+                className="data-[state=inactive]:text-muted-foreground data-[state=inactive]:hover:text-foreground data-[state=active]:bg-background data-[state=active]:text-foreground h-8 rounded-md px-4 text-sm font-medium transition-all duration-200 data-[state=active]:shadow-sm data-[state=inactive]:bg-transparent"
+              >
+                Archive
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
+          <Button
+            onClick={() => setIsCreating(true)}
+            className="bg-foreground text-background hover:bg-foreground/90 gap-2"
+          >
+            <Plus className="h-4 w-4" />
+            New idea
+          </Button>
+        </div>
+      )}
 
       {/* Ideas list */}
       <div className="space-y-5" role="feed" aria-label="Feature requests">
@@ -506,17 +456,10 @@ export function IdeasList({
           <div className="border-border bg-card rounded-xl border-2 border-dashed py-12 text-center">
             <Lightbulb className="text-muted-foreground/50 mx-auto mb-4 h-12 w-12" />
             <p className="text-muted-foreground">
-              {statusFilter === "ALL"
-                ? "No ideas yet."
-                : `No ideas with "${IDEA_STATUS_CONFIG[statusFilter].label}" status.`}
+              {viewMode === "active"
+                ? "No active ideas yet."
+                : "No archived ideas."}
             </p>
-            <Button
-              variant="link"
-              className="mt-2"
-              onClick={() => setStatusFilter("ALL")}
-            >
-              Show all ideas
-            </Button>
           </div>
         ) : (
           filteredIdeas.map((idea) => (

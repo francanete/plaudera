@@ -6,14 +6,8 @@ import { eq, desc, and } from "drizzle-orm";
 import { getUserWorkspace, createUserWorkspace } from "@/lib/workspace";
 import { IdeasList } from "./ideas-list";
 import { Lightbulb } from "lucide-react";
-import type { IdeaStatus } from "@/lib/db/schema";
-import { ALL_IDEA_STATUSES } from "@/lib/idea-status-config";
 
-type PageProps = {
-  searchParams: Promise<{ status?: string }>;
-};
-
-export default async function IdeasPage({ searchParams }: PageProps) {
+export default async function IdeasPage() {
   const session = await auth.api.getSession({
     headers: await headers(),
   });
@@ -61,12 +55,6 @@ export default async function IdeasPage({ searchParams }: PageProps) {
     ideasWithDuplicates.add(dup.duplicateIdeaId);
   }
 
-  // Get initial status filter from URL
-  const { status } = await searchParams;
-  const initialStatusFilter = ALL_IDEA_STATUSES.includes(status as IdeaStatus)
-    ? (status as IdeaStatus)
-    : undefined;
-
   return (
     <div className="space-y-8">
       <header className="mb-2">
@@ -84,7 +72,6 @@ export default async function IdeasPage({ searchParams }: PageProps) {
       <IdeasList
         initialIdeas={workspaceIdeas}
         workspaceSlug={workspace.slug}
-        initialStatusFilter={initialStatusFilter}
         ideasWithDuplicates={Array.from(ideasWithDuplicates)}
       />
     </div>
