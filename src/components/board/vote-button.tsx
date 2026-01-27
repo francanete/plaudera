@@ -57,10 +57,10 @@ export function VoteButton({
       onClick={handleClick}
       disabled={isPending}
       className={cn(
-        "flex min-w-[60px] flex-col items-center rounded-lg px-3 py-2 transition-colors",
+        "flex w-16 flex-col items-center justify-center rounded-lg border py-3 transition-all duration-200",
         optimisticState.hasVoted
-          ? "bg-primary/10 text-primary border-primary border"
-          : "bg-muted/50 hover:bg-muted",
+          ? "border-blue-500 bg-blue-50 text-blue-600 dark:border-blue-400 dark:bg-blue-950 dark:text-blue-400"
+          : "border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-400 dark:hover:border-slate-500 dark:hover:bg-slate-700",
         isPending && "opacity-50"
       )}
       aria-label={
@@ -69,15 +69,29 @@ export function VoteButton({
     >
       <ChevronUp
         className={cn(
-          "h-4 w-4",
-          optimisticState.hasVoted ? "text-primary" : "text-muted-foreground"
+          "h-5 w-5",
+          optimisticState.hasVoted
+            ? "text-blue-600 dark:text-blue-400"
+            : "text-slate-400 dark:text-slate-500"
         )}
+        strokeWidth={2.5}
       />
-      <span className="text-lg font-semibold">{optimisticState.voteCount}</span>
+      <span
+        className={cn(
+          "text-lg font-semibold",
+          optimisticState.hasVoted
+            ? "text-blue-600 dark:text-blue-400"
+            : "text-slate-900 dark:text-slate-100"
+        )}
+      >
+        {optimisticState.voteCount}
+      </span>
       <span
         className={cn(
           "text-xs",
-          optimisticState.hasVoted ? "text-primary" : "text-muted-foreground"
+          optimisticState.hasVoted
+            ? "text-blue-500 dark:text-blue-400"
+            : "text-slate-500 dark:text-slate-400"
         )}
       >
         votes
