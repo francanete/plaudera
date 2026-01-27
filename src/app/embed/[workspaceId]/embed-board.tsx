@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect, useTransition } from "react";
+import { useState, useCallback, useEffect, useTransition, useRef } from "react";
 import { toast } from "sonner";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -158,10 +158,13 @@ export function EmbedBoard({
 
   // Logout handler
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const logoutInProgress = useRef(false);
 
   const handleLogout = useCallback(async () => {
-    if (isLoggingOut) return;
+    if (logoutInProgress.current) return;
+    logoutInProgress.current = true;
     setIsLoggingOut(true);
+
     try {
       const res = await fetch("/api/contributor/logout", {
         method: "POST",
@@ -179,9 +182,10 @@ export function EmbedBoard({
       console.error("Logout failed:", error);
       toast.error("Failed to sign out. Please try again.");
     } finally {
+      logoutInProgress.current = false;
       setIsLoggingOut(false);
     }
-  }, [isLoggingOut]);
+  }, []);
 
   const handleSubmitSuccess = async () => {
     setSubmitDialogOpen(false);

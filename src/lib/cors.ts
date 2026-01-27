@@ -127,6 +127,35 @@ export async function isWorkspaceOriginAllowed(
 }
 
 /**
+ * Check if an origin is allowed globally (in any workspace's allowlist).
+ * Used for endpoints that don't have workspace context (e.g., logout).
+ * Checks base origins first, then queries all widget settings.
+ */
+export async function isOriginAllowedGlobally(
+  origin: string | null
+): Promise<boolean> {
+  if (!origin) return false;
+
+  const normalizedOrigin = normalizeOrigin(origin);
+  if (!normalizedOrigin) return false;
+
+  // Check base origins first (app's own origin, dev localhost)
+  const baseOrigins = getBaseAllowedOrigins();
+  if (baseOrigins.includes(normalizedOrigin)) {
+    return true;
+  }
+
+  // Check if origin exists in any workspace's allowed origins
+  const allSettings = await db.query.widgetSettings.findMany({
+    columns: { allowedOrigins: true },
+  });
+
+  return allSettings.some((settings) =>
+    settings.allowedOrigins?.includes(normalizedOrigin)
+  );
+}
+
+/**
  * Build CORS headers for a workspace-aware request.
  * Returns proper headers based on whether the origin is in the workspace's allowlist.
  */
