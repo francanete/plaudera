@@ -105,9 +105,7 @@ export function EmbedBoard({
             ? {
                 ...idea,
                 hasVoted: !wasVoted,
-                voteCount: wasVoted
-                  ? idea.voteCount - 1
-                  : idea.voteCount + 1,
+                voteCount: wasVoted ? idea.voteCount - 1 : idea.voteCount + 1,
               }
             : idea
         )
@@ -143,9 +141,7 @@ export function EmbedBoard({
               ? {
                   ...idea,
                   hasVoted: wasVoted,
-                  voteCount: wasVoted
-                    ? idea.voteCount + 1
-                    : idea.voteCount - 1,
+                  voteCount: wasVoted ? idea.voteCount + 1 : idea.voteCount - 1,
                 }
               : idea
           )
@@ -178,10 +174,13 @@ export function EmbedBoard({
 
         // Show specific error message based on error type
         const errorMessages: Record<string, string> = {
-          invalid_token: "Verification link expired or invalid. Please request a new one.",
+          invalid_token:
+            "Verification link expired or invalid. Please request a new one.",
           verification_failed: "Email verification failed. Please try again.",
         };
-        toast.error(errorMessages[error] || "Email verification failed. Please try again.");
+        toast.error(
+          errorMessages[error] || "Email verification failed. Please try again."
+        );
         return;
       }
 
@@ -194,7 +193,16 @@ export function EmbedBoard({
         // Handle pending action from callback URL
         if (action === "vote" && ideaId) {
           const idea = ideas.find((i) => i.id === ideaId);
-          await executeVote(ideaId, idea || { id: ideaId, hasVoted: false, voteCount: 0, title: "", status: "UNDER_REVIEW" as const });
+          await executeVote(
+            ideaId,
+            idea || {
+              id: ideaId,
+              hasVoted: false,
+              voteCount: 0,
+              title: "",
+              status: "UNDER_REVIEW" as const,
+            }
+          );
         } else if (action === "submit") {
           setSubmitDialogOpen(true);
         } else {
