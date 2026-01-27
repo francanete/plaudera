@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
+import { DASHBOARD_ROUTES } from "@/lib/routes";
 import { eq, count, and, or } from "drizzle-orm";
 import {
   db,
@@ -150,8 +151,8 @@ export const POST = protectedApiRouteWrapper<RouteParams>(
     });
 
     // Invalidate caches: duplicates page + dashboard layout (for sidebar badge count)
-    revalidatePath("/dashboard/duplicates");
-    revalidatePath("/dashboard", "layout");
+    revalidatePath(DASHBOARD_ROUTES.DUPLICATES);
+    revalidatePath(DASHBOARD_ROUTES.ROOT, "layout");
 
     return NextResponse.json({ success: true });
   },

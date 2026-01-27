@@ -24,7 +24,7 @@ export default function BoardLayout({
           <p className="text-sm text-slate-500 dark:text-slate-400">
             Powered by{" "}
             <a
-              href={process.env.NEXT_PUBLIC_APP_URL}
+              href={process.env.NEXT_PUBLIC_APP_URL || "/"}
               className="font-medium text-slate-700 underline-offset-4 hover:text-slate-900 hover:underline dark:text-slate-300 dark:hover:text-white"
               target="_blank"
               rel="noopener noreferrer"

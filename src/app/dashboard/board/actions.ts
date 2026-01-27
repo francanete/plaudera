@@ -4,6 +4,7 @@ import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { slugSchema } from "@/lib/slug-validation";
+import { DASHBOARD_ROUTES } from "@/lib/routes";
 import { updateWorkspaceSlug as updateSlug } from "@/lib/workspace";
 
 export async function updateWorkspaceSlug(formData: FormData) {
@@ -28,6 +29,6 @@ export async function updateWorkspaceSlug(formData: FormData) {
     return { error: result.error };
   }
 
-  revalidatePath("/dashboard/board");
+  revalidatePath(DASHBOARD_ROUTES.BOARD);
   return { success: true, slug: result.slug };
 }
