@@ -91,17 +91,23 @@ export function EmbedBoard({
     return search ? `${pathname}?${search}` : pathname;
   }, [pathname, pendingAction]);
 
-  // Handle vote after returning from email verification
-  const handleVoteAfterAuth = useCallback(
-    async (ideaId: string) => {
+  // Shared vote execution logic
+  const executeVote = useCallback(
+    async (ideaId: string, currentIdea: CompactIdea | undefined) => {
+      if (!currentIdea) return;
+
+      const wasVoted = currentIdea.hasVoted;
+
       // Optimistic update
       setIdeas((prev) =>
         prev.map((idea) =>
           idea.id === ideaId
             ? {
                 ...idea,
-                hasVoted: true,
-                voteCount: idea.voteCount + 1,
+                hasVoted: !wasVoted,
+                voteCount: wasVoted
+                  ? idea.voteCount - 1
+                  : idea.voteCount + 1,
               }
             : idea
         )
@@ -124,7 +130,11 @@ export function EmbedBoard({
               : idea
           )
         );
-        toast.success("Vote recorded!");
+
+        // Only show toast for post-auth votes (new votes)
+        if (!wasVoted) {
+          toast.success("Vote recorded!");
+        }
       } catch {
         // Revert optimistic update
         setIdeas((prev) =>
@@ -132,8 +142,10 @@ export function EmbedBoard({
             idea.id === ideaId
               ? {
                   ...idea,
-                  hasVoted: false,
-                  voteCount: idea.voteCount - 1,
+                  hasVoted: wasVoted,
+                  voteCount: wasVoted
+                    ? idea.voteCount + 1
+                    : idea.voteCount - 1,
                 }
               : idea
           )
@@ -151,6 +163,9 @@ export function EmbedBoard({
     const action = searchParams.get("action");
     const ideaId = searchParams.get("ideaId");
 
+    // Track if effect is still active for cleanup
+    let isActive = true;
+
     const handleVerificationCallback = async () => {
       if (error) {
         // Clear error param
@@ -160,21 +175,34 @@ export function EmbedBoard({
           ? `${pathname}?${newParams.toString()}`
           : pathname;
         router.replace(newUrl);
-        toast.error("Email verification failed. Please try again.");
+
+        // Show specific error message based on error type
+        const errorMessages: Record<string, string> = {
+          invalid_token: "Verification link expired or invalid. Please request a new one.",
+          verification_failed: "Email verification failed. Please try again.",
+        };
+        toast.error(errorMessages[error] || "Email verification failed. Please try again.");
         return;
       }
 
       if (verified === "true") {
         await refreshData();
 
+        // Guard against state updates after unmount
+        if (!isActive) return;
+
         // Handle pending action from callback URL
         if (action === "vote" && ideaId) {
-          await handleVoteAfterAuth(ideaId);
+          const idea = ideas.find((i) => i.id === ideaId);
+          await executeVote(ideaId, idea || { id: ideaId, hasVoted: false, voteCount: 0, title: "", status: "UNDER_REVIEW" as const });
         } else if (action === "submit") {
           setSubmitDialogOpen(true);
         } else {
           toast.success("Email verified! You can now vote and submit ideas.");
         }
+
+        // Guard against state updates after unmount
+        if (!isActive) return;
 
         // Clear all verification-related query params
         const newParams = new URLSearchParams(searchParams);
@@ -189,7 +217,11 @@ export function EmbedBoard({
     };
 
     handleVerificationCallback();
-  }, [searchParams, pathname, router, refreshData, handleVoteAfterAuth]);
+
+    return () => {
+      isActive = false;
+    };
+  }, [searchParams, pathname, router, refreshData, executeVote, ideas]);
 
   // Vote handler
   const handleVote = async (ideaId: string) => {
@@ -199,56 +231,8 @@ export function EmbedBoard({
       return;
     }
 
-    // Optimistic update
-    setIdeas((prev) =>
-      prev.map((idea) =>
-        idea.id === ideaId
-          ? {
-              ...idea,
-              hasVoted: !idea.hasVoted,
-              voteCount: idea.hasVoted
-                ? idea.voteCount - 1
-                : idea.voteCount + 1,
-            }
-          : idea
-      )
-    );
-
-    try {
-      const res = await fetch(`/api/public/ideas/${ideaId}/vote`, {
-        method: "POST",
-      });
-
-      if (!res.ok) {
-        throw new Error("Vote failed");
-      }
-
-      const data = await res.json();
-      // Update with server response
-      setIdeas((prev) =>
-        prev.map((idea) =>
-          idea.id === ideaId
-            ? { ...idea, hasVoted: data.voted, voteCount: data.voteCount }
-            : idea
-        )
-      );
-    } catch {
-      // Revert optimistic update
-      setIdeas((prev) =>
-        prev.map((idea) =>
-          idea.id === ideaId
-            ? {
-                ...idea,
-                hasVoted: !idea.hasVoted,
-                voteCount: idea.hasVoted
-                  ? idea.voteCount + 1
-                  : idea.voteCount - 1,
-              }
-            : idea
-        )
-      );
-      toast.error("Failed to vote. Please try again.");
-    }
+    const idea = ideas.find((i) => i.id === ideaId);
+    await executeVote(ideaId, idea);
   };
 
   // Submit handler
