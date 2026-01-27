@@ -17,7 +17,11 @@ export interface IdeaCardProps {
   onStatusChange: (ideaId: string, status: IdeaStatus) => void;
 }
 
-export function IdeaCard({ idea, hasDuplicate, onStatusChange }: IdeaCardProps) {
+export function IdeaCard({
+  idea,
+  hasDuplicate,
+  onStatusChange,
+}: IdeaCardProps) {
   return (
     <Link href={`/dashboard/ideas/${idea.id}`} className="block">
       <article
