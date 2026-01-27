@@ -176,6 +176,26 @@ export function PublicIdeaList({
     setSubmitDialogOpen(true);
   };
 
+  const handleLogout = useCallback(async () => {
+    try {
+      const res = await fetch("/api/contributor/logout", {
+        method: "POST",
+      });
+
+      if (!res.ok) {
+        throw new Error("Logout failed");
+      }
+
+      // Clear local state
+      setContributor(null);
+      toast.success("Signed out successfully");
+    } catch (error) {
+      console.error("Logout failed:", error);
+      toast.error("Failed to sign out. Please try again.");
+      throw error;
+    }
+  }, []);
+
   const handleIdeaSubmit = async (title: string, description?: string) => {
     const res = await fetch(`/api/public/${workspaceId}/ideas`, {
       method: "POST",
@@ -216,6 +236,8 @@ export function PublicIdeaList({
       <BoardHeader
         workspaceName={workspaceName}
         onSubmitIdea={handleSubmitIdea}
+        contributor={contributor}
+        onLogout={handleLogout}
       />
 
       {ideas.length === 0 ? (
