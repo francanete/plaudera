@@ -12,6 +12,11 @@ import type { IdeaStatus } from "@/lib/db/schema";
 import { IDEA_STATUS_CONFIG } from "@/lib/idea-status-config";
 import { appConfig } from "@/lib/config";
 
+type PendingAction =
+  | { type: "vote"; ideaId: string }
+  | { type: "submit" }
+  | null;
+
 interface CompactIdea {
   id: string;
   title: string;
@@ -39,6 +44,7 @@ export function EmbedBoard({
   const [contributor, setContributor] = useState(initialContributor);
   const [authDialogOpen, setAuthDialogOpen] = useState(false);
   const [submitDialogOpen, setSubmitDialogOpen] = useState(false);
+  const [pendingAction, setPendingAction] = useState<PendingAction>(null);
 
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -72,84 +78,181 @@ export function EmbedBoard({
     }
   }, [workspaceId]);
 
-  // Handle URL callback after email verification
-  useEffect(() => {
-    const verified = searchParams.get("verified");
-    if (verified === "true") {
-      // Clear the query param and refresh data
-      const newParams = new URLSearchParams(searchParams);
-      newParams.delete("verified");
-      const newUrl = newParams.toString()
-        ? `${pathname}?${newParams.toString()}`
-        : pathname;
-      router.replace(newUrl);
-      refreshData();
-      toast.success("Email verified! You can now vote and submit ideas.");
+  // Build callback URL with intent params for post-verification redirect
+  const getCallbackUrl = useCallback(() => {
+    const params = new URLSearchParams();
+    if (pendingAction?.type === "vote") {
+      params.set("action", "vote");
+      params.set("ideaId", pendingAction.ideaId);
+    } else if (pendingAction?.type === "submit") {
+      params.set("action", "submit");
     }
-  }, [searchParams, pathname, router, refreshData]);
+    const search = params.toString();
+    return search ? `${pathname}?${search}` : pathname;
+  }, [pathname, pendingAction]);
 
-  // Vote handler
-  const handleVote = async (ideaId: string) => {
-    if (!isAuthenticated) {
-      setAuthDialogOpen(true);
-      return;
-    }
+  // Shared vote execution logic
+  const executeVote = useCallback(
+    async (ideaId: string, currentIdea: CompactIdea | undefined) => {
+      if (!currentIdea) return;
 
-    // Optimistic update
-    setIdeas((prev) =>
-      prev.map((idea) =>
-        idea.id === ideaId
-          ? {
-              ...idea,
-              hasVoted: !idea.hasVoted,
-              voteCount: idea.hasVoted
-                ? idea.voteCount - 1
-                : idea.voteCount + 1,
-            }
-          : idea
-      )
-    );
+      const wasVoted = currentIdea.hasVoted;
 
-    try {
-      const res = await fetch(`/api/public/ideas/${ideaId}/vote`, {
-        method: "POST",
-      });
-
-      if (!res.ok) {
-        throw new Error("Vote failed");
-      }
-
-      const data = await res.json();
-      // Update with server response
-      setIdeas((prev) =>
-        prev.map((idea) =>
-          idea.id === ideaId
-            ? { ...idea, hasVoted: data.voted, voteCount: data.voteCount }
-            : idea
-        )
-      );
-    } catch {
-      // Revert optimistic update
+      // Optimistic update
       setIdeas((prev) =>
         prev.map((idea) =>
           idea.id === ideaId
             ? {
                 ...idea,
-                hasVoted: !idea.hasVoted,
-                voteCount: idea.hasVoted
-                  ? idea.voteCount + 1
-                  : idea.voteCount - 1,
+                hasVoted: !wasVoted,
+                voteCount: wasVoted ? idea.voteCount - 1 : idea.voteCount + 1,
               }
             : idea
         )
       );
-      toast.error("Failed to vote. Please try again.");
+
+      try {
+        const res = await fetch(`/api/public/ideas/${ideaId}/vote`, {
+          method: "POST",
+        });
+
+        if (!res.ok) {
+          throw new Error("Vote failed");
+        }
+
+        const data = await res.json();
+        setIdeas((prev) =>
+          prev.map((idea) =>
+            idea.id === ideaId
+              ? { ...idea, hasVoted: data.voted, voteCount: data.voteCount }
+              : idea
+          )
+        );
+
+        // Only show toast for post-auth votes (new votes)
+        if (!wasVoted) {
+          toast.success("Vote recorded!");
+        }
+      } catch {
+        // Revert optimistic update
+        setIdeas((prev) =>
+          prev.map((idea) =>
+            idea.id === ideaId
+              ? {
+                  ...idea,
+                  hasVoted: wasVoted,
+                  voteCount: wasVoted ? idea.voteCount + 1 : idea.voteCount - 1,
+                }
+              : idea
+          )
+        );
+        toast.error("Failed to vote. Please try again.");
+      }
+    },
+    []
+  );
+
+  /**
+   * Verification callback handler - processes URL params after email
+   * verification Note: `ideas` intentionally excluded from deps - refreshData()
+   * fetches fresh data before usage
+   */
+  useEffect(() => {
+    const verified = searchParams.get("verified");
+    const error = searchParams.get("error");
+    const action = searchParams.get("action");
+    const ideaId = searchParams.get("ideaId");
+
+    // Track if effect is still active for cleanup
+    let isActive = true;
+
+    const handleVerificationCallback = async () => {
+      if (error) {
+        // Clear error param
+        const newParams = new URLSearchParams(searchParams);
+        newParams.delete("error");
+        const newUrl = newParams.toString()
+          ? `${pathname}?${newParams.toString()}`
+          : pathname;
+        router.replace(newUrl);
+
+        // Show specific error message based on error type
+        const errorMessages: Record<string, string> = {
+          invalid_token:
+            "Verification link expired or invalid. Please request a new one.",
+          verification_failed: "Email verification failed. Please try again.",
+        };
+        toast.error(
+          errorMessages[error] || "Email verification failed. Please try again."
+        );
+        return;
+      }
+
+      if (verified === "true") {
+        await refreshData();
+
+        // Guard against state updates after unmount
+        if (!isActive) return;
+
+        // Handle pending action from callback URL
+        if (action === "vote" && ideaId) {
+          const idea = ideas.find((i) => i.id === ideaId);
+          await executeVote(
+            ideaId,
+            idea || {
+              id: ideaId,
+              hasVoted: false,
+              voteCount: 0,
+              title: "",
+              status: "UNDER_REVIEW" as const,
+            }
+          );
+        } else if (action === "submit") {
+          setSubmitDialogOpen(true);
+        } else {
+          toast.success("Email verified! You can now vote and submit ideas.");
+        }
+
+        // Guard against state updates after unmount
+        if (!isActive) return;
+
+        // Clear all verification-related query params
+        const newParams = new URLSearchParams(searchParams);
+        newParams.delete("verified");
+        newParams.delete("action");
+        newParams.delete("ideaId");
+        const newUrl = newParams.toString()
+          ? `${pathname}?${newParams.toString()}`
+          : pathname;
+        router.replace(newUrl);
+      }
+    };
+
+    handleVerificationCallback();
+
+    return () => {
+      isActive = false;
+    };
+    /** `ideas` intentionally excluded, see comment above */
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams, pathname, router, refreshData, executeVote]);
+
+  // Vote handler
+  const handleVote = async (ideaId: string) => {
+    if (!isAuthenticated) {
+      setPendingAction({ type: "vote", ideaId });
+      setAuthDialogOpen(true);
+      return;
     }
+
+    const idea = ideas.find((i) => i.id === ideaId);
+    await executeVote(ideaId, idea);
   };
 
   // Submit handler
   const handleSubmitClick = () => {
     if (!isAuthenticated) {
+      setPendingAction({ type: "submit" });
       setAuthDialogOpen(true);
       return;
     }
@@ -231,8 +334,11 @@ export function EmbedBoard({
       {/* Dialogs */}
       <ContributorAuthDialog
         open={authDialogOpen}
-        onOpenChange={setAuthDialogOpen}
-        callbackUrl={`/embed/${workspaceId}?verified=true`}
+        onOpenChange={(open) => {
+          setAuthDialogOpen(open);
+          if (!open) setPendingAction(null);
+        }}
+        callbackUrl={getCallbackUrl()}
       />
 
       <IdeaSubmissionDialog

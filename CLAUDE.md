@@ -268,6 +268,24 @@ Main config in `/src/lib/config.ts` (AppConfig):
 - **Email**: `RESEND_API_KEY`, `EMAIL_FROM`, `RESEND_AUDIENCE_ID` (waitlist)
 - **Inngest**: `INNGEST_SIGNING_KEY`
 
+## Dependency Management
+
+### TypeScript Version Pin
+
+TypeScript is pinned to exact version `5.9.3` (as of commit debafea, January 27, 2026).
+
+**Background:** This pin was made without documented technical rationale. Investigation found no known incompatibilities between TypeScript 5.10+ and the current dependency stack (Next.js 16, React 19, Vitest 4, Better Auth, Drizzle ORM, Inngest).
+
+**Current Status:** The pin can remain for stability, but can be safely updated to `^5.9.3` (allow patches) or upgraded to the latest 5.x version in a future maintenance cycle if desired.
+
+**Testing Before Upgrade:** If upgrading TypeScript:
+
+1. Update version in package.json
+2. Run `npm install`
+3. Run `npm run build`
+4. Run `npm run test:run`
+5. Run `npm run lint`
+
 ## Testing
 
 Tests in `/tests` directory using Vitest with React Testing Library. Run individual test files:
