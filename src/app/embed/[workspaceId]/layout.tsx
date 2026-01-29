@@ -1,6 +1,7 @@
 import { appConfig } from "@/lib/config";
+import { Metadata } from "next";
 
-export const metadata = {
+export const metadata: Metadata = {
   title: "Feedback Widget",
 };
 
