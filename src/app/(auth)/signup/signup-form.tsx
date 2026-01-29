@@ -12,7 +12,7 @@ const emailSchema = z.object({
   email: z.string().email("Please enter a valid email"),
 });
 
-export function LoginForm() {
+export function SignupForm() {
   const [email, setEmail] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -113,9 +113,9 @@ export function LoginForm() {
       {/* Main Card */}
       <div className="rounded-2xl border border-slate-200/60 bg-white p-8 shadow-xl md:p-10">
         <div className="mb-6">
-          <h1 className="mb-2 text-2xl font-bold text-slate-900">Sign in</h1>
+          <h1 className="mb-2 text-2xl font-bold text-slate-900">Sign up</h1>
           <p className="text-slate-600">
-            Enter your email to receive a magic link
+            Create your account with a magic link
           </p>
         </div>
 
@@ -182,12 +182,12 @@ export function LoginForm() {
       {/* Footer */}
       <div className="mt-6 space-y-4 text-center">
         <p className="text-slate-600">
-          Don&apos;t have an account?{" "}
+          Already have an account?{" "}
           <Link
-            href="/signup"
+            href="/login"
             className="font-medium text-indigo-600 transition-colors duration-200 hover:text-indigo-700"
           >
-            Sign up
+            Sign in
           </Link>
         </p>
         <div className="flex items-center justify-center gap-4 text-sm text-slate-500">
