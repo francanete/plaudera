@@ -1,12 +1,13 @@
 "use client";
 
 import { useState, useCallback, useEffect, useTransition } from "react";
+import { useContributorLogout } from "@/hooks/use-contributor-logout";
 import { toast } from "sonner";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { ContributorAuthDialog } from "@/components/board/contributor-auth-dialog";
 import { IdeaSubmissionDialog } from "@/components/board/idea-submission-dialog";
-import { ChevronUp, Plus, ExternalLink } from "lucide-react";
+import { ChevronUp, Plus, ExternalLink, User, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { IdeaStatus } from "@/lib/db/schema";
 import { IDEA_STATUS_CONFIG } from "@/lib/idea-status-config";
@@ -259,6 +260,38 @@ export function EmbedBoard({
     setSubmitDialogOpen(true);
   };
 
+  // Notify parent window
+  // Security: Use document.referrer to determine parent origin instead of wildcard
+  const notifyParent = useCallback(
+    (message: { type: string; [key: string]: unknown }) => {
+      if (window.parent !== window) {
+        // Get parent origin from referrer for secure messaging
+        // This prevents message leakage to potentially malicious parent frames
+        const parentOrigin = document.referrer
+          ? new URL(document.referrer).origin
+          : null;
+
+        if (parentOrigin) {
+          window.parent.postMessage(message, parentOrigin);
+        } else {
+          // Fallback: if no referrer (privacy settings), log but don't send to wildcard
+          console.warn(
+            "[Plaudera] Cannot determine parent origin, skipping postMessage"
+          );
+        }
+      }
+    },
+    []
+  );
+
+  // Logout handler - uses shared hook for proper cross-origin cookie handling
+  const { logout: handleLogout, isLoggingOut } = useContributorLogout({
+    onSuccess: () => {
+      setContributor(null);
+      notifyParent({ type: "plaudera:logout" });
+    },
+  });
+
   const handleSubmitSuccess = async () => {
     setSubmitDialogOpen(false);
     await refreshData();
@@ -267,38 +300,35 @@ export function EmbedBoard({
     notifyParent({ type: "plaudera:submitted" });
   };
 
-  // Notify parent window
-  // Security: Use document.referrer to determine parent origin instead of wildcard
-  const notifyParent = (message: { type: string; [key: string]: unknown }) => {
-    if (window.parent !== window) {
-      // Get parent origin from referrer for secure messaging
-      // This prevents message leakage to potentially malicious parent frames
-      const parentOrigin = document.referrer
-        ? new URL(document.referrer).origin
-        : null;
-
-      if (parentOrigin) {
-        window.parent.postMessage(message, parentOrigin);
-      } else {
-        // Fallback: if no referrer (privacy settings), log but don't send to wildcard
-        console.warn(
-          "[Plaudera] Cannot determine parent origin, skipping postMessage"
-        );
-      }
-    }
-  };
-
   const boardUrl = `${appConfig.seo.siteUrl}/b/${workspaceSlug}`;
 
   return (
     <div className="flex h-full flex-col">
       {/* Header */}
-      <div className="mb-4 flex items-center justify-between">
-        <h1 className="text-lg font-semibold">{workspaceName}</h1>
-        <Button size="sm" onClick={handleSubmitClick}>
-          <Plus className="mr-1 h-4 w-4" />
-          Submit Idea
-        </Button>
+      <div className="mb-4 flex flex-col gap-2">
+        <div className="flex items-center justify-between">
+          <h1 className="text-lg font-semibold">{workspaceName}</h1>
+          <Button size="sm" onClick={handleSubmitClick}>
+            <Plus className="mr-1 h-4 w-4" />
+            Submit Idea
+          </Button>
+        </div>
+        {contributor && (
+          <div className="bg-muted/50 flex items-center justify-between rounded-md border px-2 py-1.5 text-xs">
+            <span className="text-muted-foreground max-w-[160px] truncate">
+              <User className="mr-1 inline-block h-3 w-3" />
+              {contributor.email}
+            </span>
+            <button
+              onClick={handleLogout}
+              disabled={isLoggingOut}
+              className="text-muted-foreground hover:text-destructive ml-2 shrink-0 transition-colors disabled:opacity-50"
+            >
+              <LogOut className="h-3 w-3" />
+              <span className="sr-only">Sign out</span>
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Ideas list */}

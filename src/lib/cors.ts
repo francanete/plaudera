@@ -12,7 +12,7 @@
 
 import { db } from "@/lib/db";
 import { widgetSettings } from "@/lib/db/schema";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 
 // ============ Origin Validation Utilities ============
 
@@ -124,6 +124,37 @@ export async function isWorkspaceOriginAllowed(
 
   const allowedOrigins = settings?.allowedOrigins ?? [];
   return allowedOrigins.includes(normalizedOrigin);
+}
+
+/**
+ * Check if an origin is allowed globally (in any workspace's allowlist).
+ * Used for endpoints that don't have workspace context (e.g., logout).
+ * Checks base origins first, then queries all widget settings.
+ */
+export async function isOriginAllowedGlobally(
+  origin: string | null
+): Promise<boolean> {
+  if (!origin) return false;
+
+  const normalizedOrigin = normalizeOrigin(origin);
+  if (!normalizedOrigin) return false;
+
+  // Check base origins first (app's own origin, dev localhost)
+  const baseOrigins = getBaseAllowedOrigins();
+  if (baseOrigins.includes(normalizedOrigin)) {
+    return true;
+  }
+
+  // Check if origin exists in any workspace's allowed origins
+  // Uses PostgreSQL array containment operator for O(1) indexed lookup
+  // instead of fetching all rows and filtering in JS (O(n))
+  const result = await db
+    .select({ workspaceId: widgetSettings.workspaceId })
+    .from(widgetSettings)
+    .where(sql`${normalizedOrigin} = ANY(${widgetSettings.allowedOrigins})`)
+    .limit(1);
+
+  return result.length > 0;
 }
 
 /**

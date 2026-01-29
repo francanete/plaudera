@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { toast } from "sonner";
+import { useContributorLogout } from "@/hooks/use-contributor-logout";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { IdeaCard, type IdeaCardData } from "./idea-card";
 import { BoardHeader } from "./board-header";
@@ -25,7 +26,7 @@ type PendingAction =
 export function PublicIdeaList({
   workspaceName,
   workspaceId,
-  workspaceSlug,
+  workspaceSlug: _workspaceSlug,
   initialIdeas,
   initialContributor,
 }: PublicIdeaListProps) {
@@ -175,6 +176,16 @@ export function PublicIdeaList({
     setSubmitDialogOpen(true);
   };
 
+  const handleLogin = useCallback(() => {
+    setPendingAction(null);
+    setAuthDialogOpen(true);
+  }, []);
+
+  // Logout handler - uses shared hook for proper cross-origin cookie handling
+  const { logout: handleLogout } = useContributorLogout({
+    onSuccess: () => setContributor(null),
+  });
+
   const handleIdeaSubmit = async (title: string, description?: string) => {
     const res = await fetch(`/api/public/${workspaceId}/ideas`, {
       method: "POST",
@@ -215,6 +226,9 @@ export function PublicIdeaList({
       <BoardHeader
         workspaceName={workspaceName}
         onSubmitIdea={handleSubmitIdea}
+        contributor={contributor}
+        onLogout={handleLogout}
+        onLogin={handleLogin}
       />
 
       {ideas.length === 0 ? (
