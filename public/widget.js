@@ -266,61 +266,62 @@
       transition: 'transform 0.3s ease',
       display: 'flex',
       flexDirection: 'column',
-      overflow: 'hidden',
+      overflow: 'visible',
     });
     panel.style[panelSide] = '0';
 
-    // Header with close button
-    const header = document.createElement('div');
-    Object.assign(header.style, {
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      padding: '12px 16px',
-      borderBottom: '1px solid #e4e4e7',
-      backgroundColor: '#fafafa',
-    });
-
-    const title = document.createElement('span');
-    title.textContent = 'Feedback';
-    Object.assign(title.style, {
-      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-      fontWeight: '600',
-      fontSize: '14px',
-      color: '#18181b',
-    });
-
+    // Edge close button (positioned on the inner edge of the panel)
     const closeBtn = document.createElement('button');
-    closeBtn.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>';
-    closeBtn.setAttribute('aria-label', 'Close');
+    // Chevron points in the direction the panel slides away
+    const chevronIcon = isLeft
+      ? '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>'
+      : '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>';
+    closeBtn.innerHTML = chevronIcon;
+    closeBtn.setAttribute('aria-label', 'Close sidebar');
     Object.assign(closeBtn.style, {
+      position: 'absolute',
+      top: '50%',
+      transform: 'translateY(-50%)',
+      width: '24px',
+      height: '40px',
       border: 'none',
-      background: 'transparent',
+      backgroundColor: '#ffffff',
       cursor: 'pointer',
-      padding: '4px',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
       color: '#71717a',
-      borderRadius: '4px',
+      boxShadow: isLeft
+        ? '2px 0 8px rgba(0, 0, 0, 0.1)'
+        : '-2px 0 8px rgba(0, 0, 0, 0.1)',
+      transition: 'background-color 0.2s ease, color 0.2s ease',
+      zIndex: '1',
     });
+    // Position on the inner edge with rounded corners on the outside
+    if (isLeft) {
+      closeBtn.style.right = '-12px';
+      closeBtn.style.borderRadius = '0 6px 6px 0';
+    } else {
+      closeBtn.style.left = '-12px';
+      closeBtn.style.borderRadius = '6px 0 0 6px';
+    }
     closeBtn.onmouseenter = function() {
-      closeBtn.style.backgroundColor = '#e4e4e7';
+      closeBtn.style.backgroundColor = '#f4f4f5';
+      closeBtn.style.color = '#18181b';
     };
     closeBtn.onmouseleave = function() {
-      closeBtn.style.backgroundColor = 'transparent';
+      closeBtn.style.backgroundColor = '#ffffff';
+      closeBtn.style.color = '#71717a';
     };
     closeBtn.onclick = closePanel;
-
-    header.appendChild(title);
-    header.appendChild(closeBtn);
-    panel.appendChild(header);
+    panel.appendChild(closeBtn);
 
     // Iframe container
     const iframeContainer = document.createElement('div');
     Object.assign(iframeContainer.style, {
       flex: '1',
       overflow: 'hidden',
+      borderRadius: '0',
     });
 
     iframe = document.createElement('iframe');
