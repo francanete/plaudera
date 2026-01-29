@@ -333,8 +333,8 @@ export function EmbedBoard({
           </Button>
         </div>
         {contributor && (
-          <div className="flex items-center justify-between rounded-md border bg-muted/50 px-2 py-1.5 text-xs">
-            <span className="text-muted-foreground truncate max-w-[160px]">
+          <div className="bg-muted/50 flex items-center justify-between rounded-md border px-2 py-1.5 text-xs">
+            <span className="text-muted-foreground max-w-[160px] truncate">
               <User className="mr-1 inline-block h-3 w-3" />
               {contributor.email}
             </span>
