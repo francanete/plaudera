@@ -313,7 +313,7 @@ export function EmbedBoard({
             Submit Idea
           </Button>
         </div>
-        {contributor && (
+        {contributor ? (
           <div className="bg-muted/50 flex items-center justify-between rounded-md border px-2 py-1.5 text-xs">
             <span className="text-muted-foreground max-w-[160px] truncate">
               <User className="mr-1 inline-block h-3 w-3" />
@@ -328,6 +328,14 @@ export function EmbedBoard({
               <span className="sr-only">Sign out</span>
             </button>
           </div>
+        ) : (
+          <button
+            onClick={() => setAuthDialogOpen(true)}
+            className="bg-muted/50 hover:bg-muted flex items-center justify-center gap-1.5 rounded-md border px-3 py-1.5 text-xs font-medium transition-colors"
+          >
+            <User className="h-3 w-3" />
+            Sign in
+          </button>
         )}
       </div>
 
