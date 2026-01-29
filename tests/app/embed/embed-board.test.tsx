@@ -6,7 +6,10 @@ describe("EmbedBoard - Dependency Array Fix Verification", () => {
   describe("useEffect dependency array correctness", () => {
     it("verification callback useEffect excludes ideas from dependencies", async () => {
       const fileContent = await fs.readFile(
-        path.resolve(process.cwd(), "src/app/embed/[workspaceId]/embed-board.tsx"),
+        path.resolve(
+          process.cwd(),
+          "src/app/embed/[workspaceId]/embed-board.tsx"
+        ),
         "utf-8"
       );
 
@@ -36,7 +39,10 @@ describe("EmbedBoard - Dependency Array Fix Verification", () => {
   describe("verification flow structure", () => {
     it("refreshData is called before using ideas in verification callback", async () => {
       const fileContent = await fs.readFile(
-        path.resolve(process.cwd(), "src/app/embed/[workspaceId]/embed-board.tsx"),
+        path.resolve(
+          process.cwd(),
+          "src/app/embed/[workspaceId]/embed-board.tsx"
+        ),
         "utf-8"
       );
 
@@ -54,7 +60,10 @@ describe("EmbedBoard - Dependency Array Fix Verification", () => {
 
     it("cleanup function prevents state updates after unmount", async () => {
       const fileContent = await fs.readFile(
-        path.resolve(process.cwd(), "src/app/embed/[workspaceId]/embed-board.tsx"),
+        path.resolve(
+          process.cwd(),
+          "src/app/embed/[workspaceId]/embed-board.tsx"
+        ),
         "utf-8"
       );
 
@@ -106,7 +115,10 @@ describe("EmbedBoard - Dependency Array Fix Verification", () => {
   describe("PR #12 code review fixes - verification", () => {
     it("all three fixes from PR #12 are implemented", async () => {
       const embedBoardContent = await fs.readFile(
-        path.resolve(process.cwd(), "src/app/embed/[workspaceId]/embed-board.tsx"),
+        path.resolve(
+          process.cwd(),
+          "src/app/embed/[workspaceId]/embed-board.tsx"
+        ),
         "utf-8"
       );
 
