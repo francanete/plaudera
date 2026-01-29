@@ -1,5 +1,4 @@
 import { vi, describe, it, expect, beforeEach, afterEach } from "vitest";
-import { sql } from "drizzle-orm";
 
 // Mock dependencies
 const mockFindFirst = vi.fn();
