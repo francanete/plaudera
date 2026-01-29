@@ -152,7 +152,11 @@ export function EmbedBoard({
     []
   );
 
-  // Handle URL callback after email verification
+  /**
+   * Verification callback handler - processes URL params after email
+   * verification Note: `ideas` intentionally excluded from deps - refreshData()
+   * fetches fresh data before usage
+   */
   useEffect(() => {
     const verified = searchParams.get("verified");
     const error = searchParams.get("error");
@@ -229,7 +233,9 @@ export function EmbedBoard({
     return () => {
       isActive = false;
     };
-  }, [searchParams, pathname, router, refreshData, executeVote, ideas]);
+    /** `ideas` intentionally excluded, see comment above */
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams, pathname, router, refreshData, executeVote]);
 
   // Vote handler
   const handleVote = async (ideaId: string) => {
