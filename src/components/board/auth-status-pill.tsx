@@ -47,7 +47,7 @@ export function AuthStatusPill({
           "text-sm font-medium text-slate-600",
           "transition-all duration-200 ease-out",
           "hover:border-slate-300 hover:bg-white hover:text-slate-900 hover:shadow-sm",
-          "focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2",
+          "focus:ring-2 focus:ring-slate-400 focus:ring-offset-2 focus:outline-none",
           "dark:border-slate-600 dark:bg-slate-800/80 dark:text-slate-300",
           "dark:hover:border-slate-500 dark:hover:bg-slate-800 dark:hover:text-white"
         )}
@@ -71,7 +71,7 @@ export function AuthStatusPill({
             "text-sm font-medium text-teal-700",
             "transition-all duration-200 ease-out",
             "hover:border-teal-300 hover:bg-teal-50 hover:shadow-sm",
-            "focus:outline-none focus:ring-2 focus:ring-teal-400 focus:ring-offset-2",
+            "focus:ring-2 focus:ring-teal-400 focus:ring-offset-2 focus:outline-none",
             "dark:border-teal-700 dark:bg-teal-900/30 dark:text-teal-300",
             "dark:hover:border-teal-600 dark:hover:bg-teal-900/40",
             "data-[state=open]:border-teal-300 data-[state=open]:shadow-sm",
@@ -89,7 +89,7 @@ export function AuthStatusPill({
         className="w-64 rounded-xl border-slate-200 p-1.5 shadow-lg dark:border-slate-700"
       >
         <div className="px-3 py-2.5">
-          <p className="text-xs font-medium uppercase tracking-wide text-slate-400 dark:text-slate-500">
+          <p className="text-xs font-medium tracking-wide text-slate-400 uppercase dark:text-slate-500">
             Signed in as
           </p>
           <p className="mt-1 truncate text-sm font-medium text-slate-900 dark:text-white">
