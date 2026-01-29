@@ -192,14 +192,14 @@ export function LoginForm() {
         </p>
         <div className="flex items-center justify-center gap-4 text-sm text-slate-500">
           <a
-            href="/legal/terms"
+            href="/terms"
             className="transition-colors duration-200 hover:text-slate-700"
           >
             Terms
           </a>
           <span className="text-slate-300">•</span>
           <a
-            href="/legal/privacy"
+            href="/privacy"
             className="transition-colors duration-200 hover:text-slate-700"
           >
             Privacy
