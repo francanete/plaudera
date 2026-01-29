@@ -20,8 +20,9 @@ npm run dev:ngrok     # Webhook tunnel
 # Database (Drizzle ORM + PostgreSQL)
 npm run db:generate   # Generate migration from schema changes
 npm run db:migrate    # Run migrations locally
-npm run db:push       # Push to remote DB
+npm run db:push       # ⚠️ NEVER USE - Bypasses migration tracking, breaks deployments
 npm run db:studio     # Open Drizzle Studio UI
+npm run db:migrate:deploy  # Production migration (auto-runs in build)
 
 # Testing (Vitest)
 npm run test          # Watch mode
@@ -226,9 +227,23 @@ Events defined in `/src/lib/inngest/client.ts`, functions in `/src/lib/inngest/f
 
 ### Database Changes
 
-1. Modify `/src/lib/db/schema.ts`
-2. Run `npm run db:generate`
-3. Run `npm run db:migrate`
+> **📖 Full Guide:** See [`.claude/docs/database-migrations.md`](.claude/docs/database-migrations.md) for detailed migration workflow, troubleshooting, and how to fix mistakes.
+
+**⚠️ CRITICAL RULES:**
+
+1. **NEVER use `npm run db:push`** - Bypasses migration tracking, breaks deployments
+2. **NEVER modify or delete deployed migrations** - Create new migrations to fix mistakes
+3. **NEVER make schema changes that weren't explicitly requested** - Only change what was asked for
+
+**✅ ALWAYS follow this workflow:**
+
+1. Modify `/src/lib/db/schema.ts` - Only the requested changes
+2. Run `npm run db:generate` - Generates migration file
+3. Run `npm run db:migrate` - Applies migration locally and updates tracking
+
+**Fixing Mistakes:** If a migration with wrong changes was already deployed, DO NOT delete it. Create a NEW migration that reverts/fixes the issue. See the full guide for details.
+
+**Deployment:** Migrations auto-run during deployment via `db:migrate:deploy` (in build script).
 
 ### Adding API Routes
 

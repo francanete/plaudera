@@ -28,6 +28,7 @@ interface CompactIdea {
 
 interface EmbedBoardProps {
   workspaceName: string;
+  workspaceDescription: string | null;
   workspaceId: string;
   workspaceSlug: string;
   initialIdeas: CompactIdea[];
@@ -36,6 +37,7 @@ interface EmbedBoardProps {
 
 export function EmbedBoard({
   workspaceName,
+  workspaceDescription,
   workspaceId,
   workspaceSlug,
   initialIdeas,
@@ -307,12 +309,21 @@ export function EmbedBoard({
       {/* Header */}
       <div className="mb-4 flex flex-col gap-2">
         <div className="flex items-center justify-between">
-          <h1 className="text-lg font-semibold">{workspaceName}</h1>
+          <h1 className="truncate text-lg font-semibold">{workspaceName}</h1>
           <Button size="sm" onClick={handleSubmitClick}>
             <Plus className="mr-1 h-4 w-4" />
             Submit Idea
           </Button>
         </div>
+
+        {/* Description */}
+        {workspaceDescription && (
+          <p className="text-muted-foreground text-sm leading-relaxed">
+            {workspaceDescription}
+          </p>
+        )}
+
+        {/* Auth UI */}
         {contributor ? (
           <div className="bg-muted/50 flex items-center justify-between rounded-md border px-2 py-1.5 text-xs">
             <span className="text-muted-foreground max-w-[160px] truncate">

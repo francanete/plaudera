@@ -20,6 +20,7 @@ vi.mock("@/hooks/use-contributor-logout", () => ({
 describe("EmbedBoard - Login Button", () => {
   const mockProps = {
     workspaceName: "Test Workspace",
+    workspaceDescription: null,
     workspaceId: "test-workspace-id",
     workspaceSlug: "test-workspace",
     initialIdeas: [],

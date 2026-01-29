@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/card";
 import { WidgetSection } from "@/components/settings/widget-section";
 import { WorkspaceSlugForm } from "@/components/settings/workspace-slug-form";
+import { WorkspaceBrandingForm } from "@/components/settings/workspace-branding-form";
 import { getUserWorkspace } from "@/lib/workspace";
 import { db, widgetSettings, slugChangeHistory } from "@/lib/db";
 import type { WidgetPosition } from "@/lib/db/schema";
@@ -56,6 +57,22 @@ export default async function BoardPage() {
 
       {workspace ? (
         <>
+          <Card>
+            <CardHeader>
+              <CardTitle>Branding</CardTitle>
+              <CardDescription>
+                Customize how your workspace appears on the public board and
+                widget.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <WorkspaceBrandingForm
+                currentName={workspace.name}
+                currentDescription={workspace.description}
+              />
+            </CardContent>
+          </Card>
+
           <Card>
             <CardHeader>
               <CardTitle>Public Board URL</CardTitle>

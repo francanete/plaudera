@@ -56,6 +56,9 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         position: workspace.widgetSettings?.position ?? "bottom-right",
         pageRules: workspace.widgetSettings?.pageRules ?? [],
         showLabel: workspace.widgetSettings?.showLabel ?? true,
+        name: workspace.name,
+        description: workspace.description,
+        slug: workspace.slug,
       },
       { headers: corsHeaders }
     );
