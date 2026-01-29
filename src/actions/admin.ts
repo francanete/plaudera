@@ -7,6 +7,7 @@ import { requireAdminAccess, AuthError } from "@/lib/dal";
 import { clearAILimitCache } from "@/lib/rate-limit";
 import { eq, and, asc } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
+import { DASHBOARD_ROUTES } from "@/lib/routes";
 
 const updateRateLimitSchema = z.object({
   requestsPerDay: z.number().int().min(1).max(100000).nullable().optional(),
@@ -74,7 +75,7 @@ export async function updateFeatureRateLimit(
     // Clear rate limit cache so changes take effect immediately
     clearAILimitCache();
 
-    revalidatePath("/dashboard/admin/tiers");
+    revalidatePath(DASHBOARD_ROUTES.ADMIN_TIERS);
     return { success: true };
   } catch (error) {
     if (error instanceof AuthError) {
@@ -117,7 +118,7 @@ export async function addFeatureRateLimit(
     });
 
     clearAILimitCache();
-    revalidatePath("/dashboard/admin/tiers");
+    revalidatePath(DASHBOARD_ROUTES.ADMIN_TIERS);
     return { success: true };
   } catch (error) {
     if (error instanceof AuthError) {
@@ -144,7 +145,7 @@ export async function deleteFeatureRateLimit(plan: string, feature: string) {
       );
 
     clearAILimitCache();
-    revalidatePath("/dashboard/admin/tiers");
+    revalidatePath(DASHBOARD_ROUTES.ADMIN_TIERS);
     return { success: true };
   } catch (error) {
     if (error instanceof AuthError) {

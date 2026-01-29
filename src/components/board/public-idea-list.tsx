@@ -8,7 +8,6 @@ import { BoardHeader } from "./board-header";
 import { ContributorAuthDialog } from "./contributor-auth-dialog";
 import { IdeaSubmissionDialog } from "./idea-submission-dialog";
 import { Lightbulb } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
 
 interface PublicIdeaListProps {
   workspaceName: string;
@@ -241,15 +240,15 @@ export function PublicIdeaList({
       />
 
       {ideas.length === 0 ? (
-        <Card className="border-dashed">
-          <CardContent className="flex flex-col items-center justify-center py-16">
-            <Lightbulb className="text-muted-foreground mb-4 h-12 w-12" />
-            <h3 className="mb-2 text-lg font-semibold">No ideas yet</h3>
-            <p className="text-muted-foreground mb-4 max-w-md text-center">
-              Be the first to share a feature request or suggestion!
-            </p>
-          </CardContent>
-        </Card>
+        <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-slate-300 bg-white py-16 dark:border-slate-600 dark:bg-slate-800">
+          <Lightbulb className="mb-4 h-12 w-12 text-slate-400 dark:text-slate-500" />
+          <h3 className="mb-2 text-lg font-semibold text-slate-900 dark:text-white">
+            No ideas yet
+          </h3>
+          <p className="mb-4 max-w-md text-center text-slate-600 dark:text-slate-400">
+            Be the first to share a feature request or suggestion!
+          </p>
+        </div>
       ) : (
         <div className="space-y-3">
           {ideas.map((idea) => (

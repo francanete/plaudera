@@ -1,28 +1,21 @@
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
-import { db, subscriptions, ideas } from "@/lib/db";
-import { eq, sql } from "drizzle-orm";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Lightbulb,
-  ChevronUp,
-  Calendar,
-  CreditCard,
-  AlertCircle,
-} from "lucide-react";
-import Link from "next/link";
+import { db, ideas } from "@/lib/db";
+import { eq, sql, desc } from "drizzle-orm";
+import { Lightbulb, ChevronUp, Calendar, AlertCircle } from "lucide-react";
 import { getUserWorkspace } from "@/lib/workspace";
+import { PublicBoardCard } from "@/components/dashboard/public-board-card";
+import { DashboardHeader } from "@/components/dashboard/dashboard-header";
+import { StatsCard } from "@/components/dashboard/stats-card";
+import { QuickActions } from "@/components/dashboard/quick-actions";
+import { RecentActivity } from "@/components/dashboard/recent-activity";
+import { appConfig } from "@/lib/config";
+import type { IdeaStatus } from "@/lib/db/schema";
 
 export default async function DashboardPage() {
   const session = await auth.api.getSession({
     headers: await headers(),
   });
-
-  const [subscription] = await db
-    .select()
-    .from(subscriptions)
-    .where(eq(subscriptions.userId, session!.user.id))
-    .limit(1);
 
   // Get user's workspace for analytics
   const workspace = await getUserWorkspace(session!.user.id);
@@ -32,6 +25,12 @@ export default async function DashboardPage() {
   let totalVotes = 0;
   let weeklyIdeas = 0;
   let pendingIdeas = 0;
+  let topIdeas: {
+    id: string;
+    title: string;
+    voteCount: number;
+    status: IdeaStatus;
+  }[] = [];
 
   if (workspace) {
     const oneWeekAgo = new Date();
@@ -52,114 +51,85 @@ export default async function DashboardPage() {
     totalVotes = analytics?.totalVotes ?? 0;
     weeklyIdeas = analytics?.weeklyIdeas ?? 0;
     pendingIdeas = analytics?.pendingIdeas ?? 0;
+
+    // Fetch top 5 voted ideas
+    topIdeas = await db
+      .select({
+        id: ideas.id,
+        title: ideas.title,
+        voteCount: ideas.voteCount,
+        status: ideas.status,
+      })
+      .from(ideas)
+      .where(eq(ideas.workspaceId, workspace.id))
+      .orderBy(desc(ideas.voteCount))
+      .limit(5);
   }
 
   const stats = [
     {
-      title: "Total Ideas",
-      value: totalIdeas.toString(),
-      description: "Feature requests",
+      label: "Total Ideas",
+      value: totalIdeas,
+      subtext: "Feature requests",
       icon: Lightbulb,
       tourId: "stat-ideas",
     },
     {
-      title: "Total Votes",
-      value: totalVotes.toString(),
-      description: "Community engagement",
+      label: "Total Votes",
+      value: totalVotes,
+      subtext: "Community engagement",
       icon: ChevronUp,
       tourId: "stat-votes",
     },
     {
-      title: "This Week",
-      value: weeklyIdeas.toString(),
-      description: "New ideas",
+      label: "This Week",
+      value: weeklyIdeas,
+      subtext: "New ideas",
       icon: Calendar,
       tourId: "stat-weekly",
     },
     {
-      title: "Plan",
-      value: subscription?.plan || "FREE",
-      description:
-        subscription?.status === "TRIALING" ? "Trial active" : "Current plan",
-      icon: CreditCard,
-      tourId: "stat-plan",
+      label: "Pending Review",
+      value: pendingIdeas,
+      subtext: pendingIdeas > 0 ? "Click to review" : "All caught up!",
+      icon: AlertCircle,
+      tourId: "stat-pending",
+      href: pendingIdeas > 0 ? "/dashboard/ideas?status=UNDER_REVIEW" : null,
+      variant: pendingIdeas > 0 ? ("warning" as const) : ("default" as const),
     },
   ];
 
+  const boardUrl = workspace
+    ? `${appConfig.seo.siteUrl}/b/${workspace.slug}`
+    : null;
+
   return (
     <div className="space-y-8">
-      <div>
-        <h1 className="text-3xl font-bold">
-          Welcome back, {session!.user.name || "there"}!
-        </h1>
-        <p className="text-muted-foreground mt-1">
-          Here&apos;s what&apos;s happening with your account.
-        </p>
-      </div>
+      <DashboardHeader userName={session!.user.name || "there"} />
 
-      {/* Pending Ideas Alert */}
-      {pendingIdeas > 0 && (
-        <Link href="/dashboard/ideas?status=UNDER_REVIEW">
-          <Card className="cursor-pointer border-orange-500/50 bg-orange-50 transition-colors hover:border-orange-500 dark:bg-orange-950/20">
-            <CardContent className="flex items-center gap-4 py-4">
-              <div className="rounded-full bg-orange-500/20 p-3">
-                <AlertCircle className="h-6 w-6 text-orange-600 dark:text-orange-400" />
-              </div>
-              <div className="flex-1">
-                <h3 className="font-semibold text-orange-900 dark:text-orange-100">
-                  {pendingIdeas} idea{pendingIdeas > 1 ? "s" : ""} awaiting
-                  review
-                </h3>
-                <p className="text-sm text-orange-700 dark:text-orange-300">
-                  Click to review and approve new submissions
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-        </Link>
-      )}
+      {/* Public Board URL */}
+      {boardUrl && <PublicBoardCard boardUrl={boardUrl} />}
 
+      {/* Stats Grid */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         {stats.map((stat) => (
-          <Card key={stat.title} id={`tour-${stat.tourId}`}>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-muted-foreground text-sm font-medium">
-                {stat.title}
-              </CardTitle>
-              <stat.icon className="text-muted-foreground h-4 w-4" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stat.value}</div>
-              <p className="text-muted-foreground text-xs">
-                {stat.description}
-              </p>
-            </CardContent>
-          </Card>
+          <StatsCard
+            key={stat.label}
+            label={stat.label}
+            value={stat.value}
+            subtext={stat.subtext}
+            icon={stat.icon}
+            tourId={stat.tourId}
+            href={stat.href}
+            variant={stat.variant}
+          />
         ))}
       </div>
 
+      {/* Quick Actions & Recent Activity */}
       <div className="grid gap-4 md:grid-cols-2">
-        <Card id="tour-quick-actions">
-          <CardHeader>
-            <CardTitle>Quick Actions</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            <p className="text-muted-foreground text-sm">
-              Start a new AI conversation, create a project, or manage your
-              settings.
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle>Recent Activity</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-muted-foreground text-sm">
-              No recent activity to show.
-            </p>
-          </CardContent>
-        </Card>
+        <QuickActions />
+        <RecentActivity topIdeas={topIdeas} />
       </div>
     </div>
   );

@@ -2,10 +2,9 @@
 
 import { useState } from "react";
 import { toast } from "sonner";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Copy, ChevronUp, Check, X, Loader2 } from "lucide-react";
+import { ArrowUp, Check, X, Loader2, Sparkles, Calendar } from "lucide-react";
+import { cn } from "@/lib/utils";
 import type { DuplicateSuggestion, Idea } from "@/lib/db/schema";
 
 type IdeaPreview = Pick<
@@ -22,6 +21,13 @@ interface DuplicatesListProps {
   initialSuggestions: SuggestionWithIdeas[];
 }
 
+function getSimilarityBadgeStyles(similarity: number) {
+  if (similarity > 90) {
+    return "bg-amber-50 text-amber-700 border-amber-100";
+  }
+  return "bg-blue-50 text-blue-700 border-blue-100";
+}
+
 export function DuplicatesList({ initialSuggestions }: DuplicatesListProps) {
   const [suggestions, setSuggestions] =
     useState<SuggestionWithIdeas[]>(initialSuggestions);
@@ -33,7 +39,7 @@ export function DuplicatesList({ initialSuggestions }: DuplicatesListProps) {
     setLoadingStates((prev) => {
       if (action === null) {
         const { [id]: _removed, ...rest } = prev;
-        void _removed; // Silence unused variable warning
+        void _removed;
         return rest;
       }
       return { ...prev, [id]: action };
@@ -43,7 +49,6 @@ export function DuplicatesList({ initialSuggestions }: DuplicatesListProps) {
   const handleMerge = async (suggestionId: string, keepIdeaId: string) => {
     setLoading(suggestionId, "merge");
 
-    // Optimistic update - remove from list
     const previousSuggestions = suggestions;
     setSuggestions(suggestions.filter((s) => s.id !== suggestionId));
 
@@ -60,7 +65,6 @@ export function DuplicatesList({ initialSuggestions }: DuplicatesListProps) {
 
       toast.success("Ideas merged successfully");
     } catch {
-      // Rollback on error
       setSuggestions(previousSuggestions);
       toast.error("Failed to merge ideas");
     } finally {
@@ -71,7 +75,6 @@ export function DuplicatesList({ initialSuggestions }: DuplicatesListProps) {
   const handleDismiss = async (suggestionId: string) => {
     setLoading(suggestionId, "dismiss");
 
-    // Optimistic update - remove from list
     const previousSuggestions = suggestions;
     setSuggestions(suggestions.filter((s) => s.id !== suggestionId));
 
@@ -86,7 +89,6 @@ export function DuplicatesList({ initialSuggestions }: DuplicatesListProps) {
 
       toast.success("Marked as not duplicates");
     } catch {
-      // Rollback on error
       setSuggestions(previousSuggestions);
       toast.error("Failed to dismiss suggestion");
     } finally {
@@ -96,16 +98,20 @@ export function DuplicatesList({ initialSuggestions }: DuplicatesListProps) {
 
   if (suggestions.length === 0) {
     return (
-      <Card className="border-dashed">
-        <CardContent className="flex flex-col items-center justify-center py-16">
-          <Copy className="text-muted-foreground mb-4 h-12 w-12" />
-          <h3 className="mb-2 text-lg font-semibold">No duplicates detected</h3>
-          <p className="text-muted-foreground mb-6 max-w-md text-center">
+      <div className="rounded-2xl border-2 border-dashed border-slate-200 bg-white">
+        <div className="flex flex-col items-center justify-center py-16">
+          <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-slate-50">
+            <Sparkles className="h-8 w-8 text-slate-400" />
+          </div>
+          <h3 className="mb-2 text-lg font-semibold text-slate-900">
+            All clear!
+          </h3>
+          <p className="max-w-md text-center text-slate-500">
             Our AI scans your ideas daily to find potential duplicates.
             Detection runs at 3 AM UTC for workspaces with 5+ ideas.
           </p>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     );
   }
 
@@ -116,21 +122,34 @@ export function DuplicatesList({ initialSuggestions }: DuplicatesListProps) {
         const loadingAction = loadingStates[suggestion.id];
 
         return (
-          <Card key={suggestion.id}>
-            <CardHeader className="pb-4">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-lg">Potential Duplicate</CardTitle>
-                <Badge variant="secondary">
-                  {suggestion.similarity}% similar
-                </Badge>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {/* Side-by-side comparison */}
-              <div className="grid gap-4 md:grid-cols-2">
+          <div
+            key={suggestion.id}
+            className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition-shadow hover:shadow-md"
+          >
+            {/* Header bar */}
+            <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4">
+              <h3 className="font-semibold text-slate-900">
+                Potential Duplicate Detected
+              </h3>
+              <span
+                className={cn(
+                  "rounded-full border px-3 py-1 text-sm font-medium",
+                  getSimilarityBadgeStyles(suggestion.similarity)
+                )}
+              >
+                {suggestion.similarity}% similar
+              </span>
+            </div>
+
+            {/* Comparison area */}
+            <div className="relative p-6">
+              <div className="grid gap-6 md:grid-cols-2">
+                {/* Vertical divider - only visible on md+ */}
+                <div className="absolute inset-y-6 left-1/2 hidden w-px -translate-x-1/2 bg-slate-200 md:block" />
+
                 <IdeaCard
                   idea={suggestion.sourceIdea}
-                  label="Original"
+                  type="original"
                   onKeep={() =>
                     handleMerge(suggestion.id, suggestion.sourceIdea.id)
                   }
@@ -139,7 +158,7 @@ export function DuplicatesList({ initialSuggestions }: DuplicatesListProps) {
                 />
                 <IdeaCard
                   idea={suggestion.duplicateIdea}
-                  label="Potential Duplicate"
+                  type="duplicate"
                   onKeep={() =>
                     handleMerge(suggestion.id, suggestion.duplicateIdea.id)
                   }
@@ -147,29 +166,30 @@ export function DuplicatesList({ initialSuggestions }: DuplicatesListProps) {
                   isKeeping={loadingAction === "merge"}
                 />
               </div>
+            </div>
 
-              {/* Dismiss button */}
-              <div className="flex justify-center pt-2">
-                <Button
-                  variant="outline"
-                  onClick={() => handleDismiss(suggestion.id)}
-                  disabled={isLoading}
-                >
-                  {loadingAction === "dismiss" ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Dismissing...
-                    </>
-                  ) : (
-                    <>
-                      <X className="mr-2 h-4 w-4" />
-                      Not duplicates
-                    </>
-                  )}
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+            {/* Footer */}
+            <div className="flex justify-center border-t border-slate-100 bg-slate-50/50 px-6 py-4">
+              <Button
+                variant="outline"
+                onClick={() => handleDismiss(suggestion.id)}
+                disabled={isLoading}
+                className="border-slate-200 text-slate-600 hover:bg-slate-100"
+              >
+                {loadingAction === "dismiss" ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Dismissing...
+                  </>
+                ) : (
+                  <>
+                    <X className="mr-2 h-4 w-4" />
+                    Not duplicates
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
         );
       })}
     </div>
@@ -178,38 +198,56 @@ export function DuplicatesList({ initialSuggestions }: DuplicatesListProps) {
 
 interface IdeaCardProps {
   idea: IdeaPreview;
-  label: string;
+  type: "original" | "duplicate";
   onKeep: () => void;
   isLoading: boolean;
   isKeeping: boolean;
 }
 
-function IdeaCard({
-  idea,
-  label,
-  onKeep,
-  isLoading,
-  isKeeping,
-}: IdeaCardProps) {
+function IdeaCard({ idea, type, onKeep, isLoading, isKeeping }: IdeaCardProps) {
+  const isOriginal = type === "original";
+
   return (
-    <div className="bg-muted/30 rounded-lg border p-4">
-      <div className="mb-2 flex items-center justify-between">
-        <span className="text-muted-foreground text-xs font-medium uppercase">
-          {label}
+    <div
+      className={cn(
+        "rounded-xl border p-5",
+        isOriginal
+          ? "border-slate-200 bg-white"
+          : "border-slate-200 bg-slate-50/50"
+      )}
+    >
+      {/* Header with label and votes */}
+      <div className="mb-3 flex items-center justify-between">
+        <span
+          className={cn(
+            "text-[10px] font-medium tracking-wider uppercase",
+            isOriginal ? "text-slate-500" : "text-amber-600"
+          )}
+        >
+          {isOriginal ? "Original" : "Potential Duplicate"}
         </span>
-        <div className="bg-muted flex items-center gap-1 rounded px-2 py-1">
-          <ChevronUp className="text-muted-foreground h-3 w-3" />
-          <span className="text-sm font-medium">{idea.voteCount}</span>
+        <div className="flex items-center gap-1 rounded-md bg-slate-100 px-2 py-1">
+          <ArrowUp className="h-3 w-3 text-slate-500" />
+          <span className="text-sm font-medium text-slate-700">
+            {idea.voteCount}
+          </span>
         </div>
       </div>
-      <h4 className="mb-1 font-medium">{idea.title}</h4>
+
+      {/* Title */}
+      <h4 className="mb-2 font-semibold text-slate-900">{idea.title}</h4>
+
+      {/* Description */}
       {idea.description && (
-        <p className="text-muted-foreground mb-3 line-clamp-2 text-sm">
+        <p className="mb-3 line-clamp-2 text-sm text-slate-500">
           {idea.description}
         </p>
       )}
-      <div className="mb-3 flex items-center gap-2 text-xs">
-        <span className="text-muted-foreground">
+
+      {/* Date with icon */}
+      <div className="mb-4 flex items-center gap-1.5 text-xs text-slate-400">
+        <Calendar className="h-3 w-3" />
+        <span>
           {new Date(idea.createdAt).toLocaleDateString("en-US", {
             month: "short",
             day: "numeric",
@@ -217,9 +255,17 @@ function IdeaCard({
           })}
         </span>
       </div>
+
+      {/* Action button */}
       <Button
         size="sm"
-        className="w-full"
+        variant={isOriginal ? "secondary" : "default"}
+        className={cn(
+          "w-full",
+          isOriginal
+            ? "border border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+            : ""
+        )}
         onClick={onKeep}
         disabled={isLoading}
       >
