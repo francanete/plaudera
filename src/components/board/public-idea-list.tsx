@@ -175,6 +175,11 @@ export function PublicIdeaList({
     setSubmitDialogOpen(true);
   };
 
+  const handleLogin = useCallback(() => {
+    setPendingAction(null);
+    setAuthDialogOpen(true);
+  }, []);
+
   const handleLogout = useCallback(async () => {
     try {
       const res = await fetch("/api/contributor/logout", {
@@ -237,6 +242,7 @@ export function PublicIdeaList({
         onSubmitIdea={handleSubmitIdea}
         contributor={contributor}
         onLogout={handleLogout}
+        onLogin={handleLogin}
       />
 
       {ideas.length === 0 ? (
