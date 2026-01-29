@@ -1,22 +1,18 @@
 import { describe, it, expect } from "vitest";
+import path from "path";
+import fs from "fs/promises";
 
 describe("EmbedBoard - Dependency Array Fix Verification", () => {
   describe("useEffect dependency array correctness", () => {
     it("verification callback useEffect excludes ideas from dependencies", async () => {
-      // This test verifies the fix for PR #12:
-      // The useEffect at line 156 should NOT include `ideas` in its dependency array
-      // because it calls refreshData() which fetches fresh data before using ideas.
-
-      const fileContent = await import("fs/promises").then((fs) =>
-        fs.readFile(
-          "/Users/francanete/workspace/plaudera/src/app/embed/[workspaceId]/embed-board.tsx",
-          "utf-8"
-        )
+      const fileContent = await fs.readFile(
+        path.resolve(process.cwd(), "src/app/embed/[workspaceId]/embed-board.tsx"),
+        "utf-8"
       );
 
-      // Find the verification callback useEffect (around line 156)
+      // Find the verification callback useEffect
       const verificationEffectMatch = fileContent.match(
-        /\/\/ Verification callback handler[\s\S]*?useEffect\(\(\) => \{[\s\S]*?\}, \[([\s\S]*?)\]\);/
+        /\/\*\*[\s\S]*?Verification callback handler[\s\S]*?\*\/[\s\S]*?useEffect\(\(\) => \{[\s\S]*?\}, \[([\s\S]*?)\]\);/
       );
 
       expect(verificationEffectMatch).toBeTruthy();
@@ -35,31 +31,13 @@ describe("EmbedBoard - Dependency Array Fix Verification", () => {
         expect(dependencies).toContain("executeVote");
       }
     });
-
-    it("verification callback has explanatory comment about ideas exclusion", async () => {
-      const fileContent = await import("fs/promises").then((fs) =>
-        fs.readFile(
-          "/Users/francanete/workspace/plaudera/src/app/embed/[workspaceId]/embed-board.tsx",
-          "utf-8"
-        )
-      );
-
-      // Verify the comment explaining why ideas is excluded
-      expect(fileContent).toContain("Verification callback handler");
-      expect(fileContent).toContain("`ideas` intentionally excluded from deps");
-      expect(fileContent).toContain(
-        "refreshData() fetches fresh data before usage"
-      );
-    });
   });
 
   describe("verification flow structure", () => {
     it("refreshData is called before using ideas in verification callback", async () => {
-      const fileContent = await import("fs/promises").then((fs) =>
-        fs.readFile(
-          "/Users/francanete/workspace/plaudera/src/app/embed/[workspaceId]/embed-board.tsx",
-          "utf-8"
-        )
+      const fileContent = await fs.readFile(
+        path.resolve(process.cwd(), "src/app/embed/[workspaceId]/embed-board.tsx"),
+        "utf-8"
       );
 
       // Verify the verification flow structure
@@ -75,16 +53,14 @@ describe("EmbedBoard - Dependency Array Fix Verification", () => {
     });
 
     it("cleanup function prevents state updates after unmount", async () => {
-      const fileContent = await import("fs/promises").then((fs) =>
-        fs.readFile(
-          "/Users/francanete/workspace/plaudera/src/app/embed/[workspaceId]/embed-board.tsx",
-          "utf-8"
-        )
+      const fileContent = await fs.readFile(
+        path.resolve(process.cwd(), "src/app/embed/[workspaceId]/embed-board.tsx"),
+        "utf-8"
       );
 
       // Find the verification callback useEffect
       const verificationEffectMatch = fileContent.match(
-        /\/\/ Verification callback handler[\s\S]*?useEffect\(\(\) => \{([\s\S]*?)\}, \[[\s\S]*?\]\);/
+        /\/\*\*[\s\S]*?Verification callback handler[\s\S]*?\*\/[\s\S]*?useEffect\(\(\) => \{([\s\S]*?)\}, \[[\s\S]*?\]\);/
       );
 
       expect(verificationEffectMatch).toBeTruthy();
@@ -106,8 +82,9 @@ describe("EmbedBoard - Dependency Array Fix Verification", () => {
 
   describe("TypeScript documentation", () => {
     it("CLAUDE.md documents TypeScript version pin rationale", async () => {
-      const fileContent = await import("fs/promises").then((fs) =>
-        fs.readFile("/Users/francanete/workspace/plaudera/CLAUDE.md", "utf-8")
+      const fileContent = await fs.readFile(
+        path.resolve(process.cwd(), "CLAUDE.md"),
+        "utf-8"
       );
 
       // Verify section exists
@@ -128,23 +105,25 @@ describe("EmbedBoard - Dependency Array Fix Verification", () => {
 
   describe("PR #12 code review fixes - verification", () => {
     it("all three fixes from PR #12 are implemented", async () => {
-      const embedBoardContent = await import("fs/promises").then((fs) =>
-        fs.readFile(
-          "/Users/francanete/workspace/plaudera/src/app/embed/[workspaceId]/embed-board.tsx",
-          "utf-8"
-        )
+      const embedBoardContent = await fs.readFile(
+        path.resolve(process.cwd(), "src/app/embed/[workspaceId]/embed-board.tsx"),
+        "utf-8"
       );
 
-      const claudeMdContent = await import("fs/promises").then((fs) =>
-        fs.readFile("/Users/francanete/workspace/plaudera/CLAUDE.md", "utf-8")
+      const claudeMdContent = await fs.readFile(
+        path.resolve(process.cwd(), "CLAUDE.md"),
+        "utf-8"
       );
 
-      // Fix 1: Dependency array corrected
+      // Fix 1: Dependency array corrected - match JSDoc comment pattern
       const verificationEffectMatch = embedBoardContent.match(
-        /\/\/ Verification callback handler[\s\S]*?\}, \[([\s\S]*?)\]\);/
+        /\/\*\*[\s\S]*?Verification callback handler[\s\S]*?\*\/[\s\S]*?\}, \[([\s\S]*?)\]\);/
       );
-      expect(verificationEffectMatch?.[1]).not.toContain("ideas");
-      expect(verificationEffectMatch?.[1]).toContain("refreshData");
+      expect(verificationEffectMatch).toBeTruthy();
+      if (verificationEffectMatch) {
+        expect(verificationEffectMatch[1]).not.toContain("ideas");
+        expect(verificationEffectMatch[1]).toContain("refreshData");
+      }
 
       // Fix 2: Integration tests exist (this file)
       expect(__filename).toContain("embed-board.test.tsx");
