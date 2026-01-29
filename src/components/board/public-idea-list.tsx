@@ -13,7 +13,6 @@ import { Lightbulb } from "lucide-react";
 interface PublicIdeaListProps {
   workspaceName: string;
   workspaceId: string;
-  workspaceSlug: string;
   initialIdeas: IdeaCardData[];
   initialContributor: { email: string; id: string } | null;
 }
@@ -26,7 +25,6 @@ type PendingAction =
 export function PublicIdeaList({
   workspaceName,
   workspaceId,
-  workspaceSlug,
   initialIdeas,
   initialContributor,
 }: PublicIdeaListProps) {
