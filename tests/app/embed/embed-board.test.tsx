@@ -7,8 +7,11 @@ describe("EmbedBoard - Dependency Array Fix Verification", () => {
       // The useEffect at line 156 should NOT include `ideas` in its dependency array
       // because it calls refreshData() which fetches fresh data before using ideas.
 
-      const fileContent = await import("fs/promises").then(fs =>
-        fs.readFile("/Users/francanete/workspace/plaudera/src/app/embed/[workspaceId]/embed-board.tsx", "utf-8")
+      const fileContent = await import("fs/promises").then((fs) =>
+        fs.readFile(
+          "/Users/francanete/workspace/plaudera/src/app/embed/[workspaceId]/embed-board.tsx",
+          "utf-8"
+        )
       );
 
       // Find the verification callback useEffect (around line 156)
@@ -34,21 +37,29 @@ describe("EmbedBoard - Dependency Array Fix Verification", () => {
     });
 
     it("verification callback has explanatory comment about ideas exclusion", async () => {
-      const fileContent = await import("fs/promises").then(fs =>
-        fs.readFile("/Users/francanete/workspace/plaudera/src/app/embed/[workspaceId]/embed-board.tsx", "utf-8")
+      const fileContent = await import("fs/promises").then((fs) =>
+        fs.readFile(
+          "/Users/francanete/workspace/plaudera/src/app/embed/[workspaceId]/embed-board.tsx",
+          "utf-8"
+        )
       );
 
       // Verify the comment explaining why ideas is excluded
       expect(fileContent).toContain("Verification callback handler");
       expect(fileContent).toContain("`ideas` intentionally excluded from deps");
-      expect(fileContent).toContain("refreshData() fetches fresh data before usage");
+      expect(fileContent).toContain(
+        "refreshData() fetches fresh data before usage"
+      );
     });
   });
 
   describe("verification flow structure", () => {
     it("refreshData is called before using ideas in verification callback", async () => {
-      const fileContent = await import("fs/promises").then(fs =>
-        fs.readFile("/Users/francanete/workspace/plaudera/src/app/embed/[workspaceId]/embed-board.tsx", "utf-8")
+      const fileContent = await import("fs/promises").then((fs) =>
+        fs.readFile(
+          "/Users/francanete/workspace/plaudera/src/app/embed/[workspaceId]/embed-board.tsx",
+          "utf-8"
+        )
       );
 
       // Verify the verification flow structure
@@ -64,8 +75,11 @@ describe("EmbedBoard - Dependency Array Fix Verification", () => {
     });
 
     it("cleanup function prevents state updates after unmount", async () => {
-      const fileContent = await import("fs/promises").then(fs =>
-        fs.readFile("/Users/francanete/workspace/plaudera/src/app/embed/[workspaceId]/embed-board.tsx", "utf-8")
+      const fileContent = await import("fs/promises").then((fs) =>
+        fs.readFile(
+          "/Users/francanete/workspace/plaudera/src/app/embed/[workspaceId]/embed-board.tsx",
+          "utf-8"
+        )
       );
 
       // Find the verification callback useEffect
@@ -92,7 +106,7 @@ describe("EmbedBoard - Dependency Array Fix Verification", () => {
 
   describe("TypeScript documentation", () => {
     it("CLAUDE.md documents TypeScript version pin rationale", async () => {
-      const fileContent = await import("fs/promises").then(fs =>
+      const fileContent = await import("fs/promises").then((fs) =>
         fs.readFile("/Users/francanete/workspace/plaudera/CLAUDE.md", "utf-8")
       );
 
@@ -114,11 +128,14 @@ describe("EmbedBoard - Dependency Array Fix Verification", () => {
 
   describe("PR #12 code review fixes - verification", () => {
     it("all three fixes from PR #12 are implemented", async () => {
-      const embedBoardContent = await import("fs/promises").then(fs =>
-        fs.readFile("/Users/francanete/workspace/plaudera/src/app/embed/[workspaceId]/embed-board.tsx", "utf-8")
+      const embedBoardContent = await import("fs/promises").then((fs) =>
+        fs.readFile(
+          "/Users/francanete/workspace/plaudera/src/app/embed/[workspaceId]/embed-board.tsx",
+          "utf-8"
+        )
       );
 
-      const claudeMdContent = await import("fs/promises").then(fs =>
+      const claudeMdContent = await import("fs/promises").then((fs) =>
         fs.readFile("/Users/francanete/workspace/plaudera/CLAUDE.md", "utf-8")
       );
 

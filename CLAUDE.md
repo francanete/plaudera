@@ -279,6 +279,7 @@ TypeScript is pinned to exact version `5.9.3` (as of commit debafea, January 27,
 **Current Status:** The pin can remain for stability, but can be safely updated to `^5.9.3` (allow patches) or upgraded to the latest 5.x version in a future maintenance cycle if desired.
 
 **Testing Before Upgrade:** If upgrading TypeScript:
+
 1. Update version in package.json
 2. Run `npm install`
 3. Run `npm run build`
