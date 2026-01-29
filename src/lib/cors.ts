@@ -12,7 +12,7 @@
 
 import { db } from "@/lib/db";
 import { widgetSettings } from "@/lib/db/schema";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 
 // ============ Origin Validation Utilities ============
 
@@ -146,13 +146,15 @@ export async function isOriginAllowedGlobally(
   }
 
   // Check if origin exists in any workspace's allowed origins
-  const allSettings = await db.query.widgetSettings.findMany({
-    columns: { allowedOrigins: true },
-  });
+  // Uses PostgreSQL array containment operator for O(1) indexed lookup
+  // instead of fetching all rows and filtering in JS (O(n))
+  const result = await db
+    .select({ workspaceId: widgetSettings.workspaceId })
+    .from(widgetSettings)
+    .where(sql`${normalizedOrigin} = ANY(${widgetSettings.allowedOrigins})`)
+    .limit(1);
 
-  return allSettings.some((settings) =>
-    settings.allowedOrigins?.includes(normalizedOrigin)
-  );
+  return result.length > 0;
 }
 
 /**

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { toast } from "sonner";
+import { useContributorLogout } from "@/hooks/use-contributor-logout";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { IdeaCard, type IdeaCardData } from "./idea-card";
 import { BoardHeader } from "./board-header";
@@ -180,25 +181,10 @@ export function PublicIdeaList({
     setAuthDialogOpen(true);
   }, []);
 
-  const handleLogout = useCallback(async () => {
-    try {
-      const res = await fetch("/api/contributor/logout", {
-        method: "POST",
-      });
-
-      if (!res.ok) {
-        throw new Error("Logout failed");
-      }
-
-      // Clear local state
-      setContributor(null);
-      toast.success("Signed out successfully");
-    } catch (error) {
-      console.error("Logout failed:", error);
-      toast.error("Failed to sign out. Please try again.");
-      throw error;
-    }
-  }, []);
+  // Logout handler - uses shared hook for proper cross-origin cookie handling
+  const { logout: handleLogout } = useContributorLogout({
+    onSuccess: () => setContributor(null),
+  });
 
   const handleIdeaSubmit = async (title: string, description?: string) => {
     const res = await fetch(`/api/public/${workspaceId}/ideas`, {

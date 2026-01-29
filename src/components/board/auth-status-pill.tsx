@@ -41,6 +41,7 @@ export function AuthStatusPill({
     return (
       <button
         onClick={onLogin}
+        aria-label="Sign in to vote on ideas"
         className={cn(
           "group relative flex items-center gap-2 rounded-full px-4 py-2",
           "border border-slate-200 bg-white/80 backdrop-blur-sm",

@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useCallback, useEffect, useTransition, useRef } from "react";
+import { useState, useCallback, useEffect, useTransition } from "react";
+import { useContributorLogout } from "@/hooks/use-contributor-logout";
 import { toast } from "sonner";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -259,36 +260,37 @@ export function EmbedBoard({
     setSubmitDialogOpen(true);
   };
 
-  // Logout handler
-  const [isLoggingOut, setIsLoggingOut] = useState(false);
-  const logoutInProgress = useRef(false);
+  // Notify parent window
+  // Security: Use document.referrer to determine parent origin instead of wildcard
+  const notifyParent = useCallback(
+    (message: { type: string; [key: string]: unknown }) => {
+      if (window.parent !== window) {
+        // Get parent origin from referrer for secure messaging
+        // This prevents message leakage to potentially malicious parent frames
+        const parentOrigin = document.referrer
+          ? new URL(document.referrer).origin
+          : null;
 
-  const handleLogout = useCallback(async () => {
-    if (logoutInProgress.current) return;
-    logoutInProgress.current = true;
-    setIsLoggingOut(true);
-
-    try {
-      const res = await fetch("/api/contributor/logout", {
-        method: "POST",
-      });
-
-      if (!res.ok) {
-        throw new Error("Logout failed");
+        if (parentOrigin) {
+          window.parent.postMessage(message, parentOrigin);
+        } else {
+          // Fallback: if no referrer (privacy settings), log but don't send to wildcard
+          console.warn(
+            "[Plaudera] Cannot determine parent origin, skipping postMessage"
+          );
+        }
       }
+    },
+    []
+  );
 
-      // Clear local state
+  // Logout handler - uses shared hook for proper cross-origin cookie handling
+  const { logout: handleLogout, isLoggingOut } = useContributorLogout({
+    onSuccess: () => {
       setContributor(null);
-      toast.success("Signed out successfully");
       notifyParent({ type: "plaudera:logout" });
-    } catch (error) {
-      console.error("Logout failed:", error);
-      toast.error("Failed to sign out. Please try again.");
-    } finally {
-      logoutInProgress.current = false;
-      setIsLoggingOut(false);
-    }
-  }, []);
+    },
+  });
 
   const handleSubmitSuccess = async () => {
     setSubmitDialogOpen(false);
@@ -296,27 +298,6 @@ export function EmbedBoard({
     toast.success("Idea submitted!");
     // Notify parent to potentially close panel
     notifyParent({ type: "plaudera:submitted" });
-  };
-
-  // Notify parent window
-  // Security: Use document.referrer to determine parent origin instead of wildcard
-  const notifyParent = (message: { type: string; [key: string]: unknown }) => {
-    if (window.parent !== window) {
-      // Get parent origin from referrer for secure messaging
-      // This prevents message leakage to potentially malicious parent frames
-      const parentOrigin = document.referrer
-        ? new URL(document.referrer).origin
-        : null;
-
-      if (parentOrigin) {
-        window.parent.postMessage(message, parentOrigin);
-      } else {
-        // Fallback: if no referrer (privacy settings), log but don't send to wildcard
-        console.warn(
-          "[Plaudera] Cannot determine parent origin, skipping postMessage"
-        );
-      }
-    }
   };
 
   const boardUrl = `${appConfig.seo.siteUrl}/b/${workspaceSlug}`;
