@@ -281,6 +281,7 @@ export function PricingCards({ tiers, mode }: PricingCardsProps) {
 
   return (
     <section
+      id="pricing"
       ref={ref}
       className="relative bg-gradient-to-b from-slate-50 to-white py-16 sm:py-24 lg:py-32"
     >
