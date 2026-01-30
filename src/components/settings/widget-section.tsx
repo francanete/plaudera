@@ -566,8 +566,8 @@ export function WidgetSection({
                     No domains configured
                   </p>
                   <p className="mt-1 text-amber-700">
-                    The widget won&apos;t work on your website until you add your
-                    domain. Add your site&apos;s URL above (e.g.,
+                    The widget won&apos;t work on your website until you add
+                    your domain. Add your site&apos;s URL above (e.g.,
                     https://yoursite.com).
                   </p>
                 </div>
