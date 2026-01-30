@@ -90,6 +90,23 @@ export const onboardingFlows: Record<string, OnboardingFlow> = {
       },
     ],
   },
+  widgetPreview: {
+    id: "widgetPreview",
+    name: "Widget Preview Tour",
+    description: "See how your feedback widget works",
+    autoStart: true,
+    autoStartDelay: 1000,
+    steps: [
+      {
+        id: "widget-button",
+        title: "Your Feedback Widget",
+        content:
+          "This is your feedback widget! Click it to open the feedback panel where users can submit ideas and vote.",
+        selector: "#tour-widgetPreview-widget-button",
+        position: "top",
+      },
+    ],
+  },
 };
 
 /**
