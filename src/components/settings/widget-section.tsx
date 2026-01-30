@@ -22,6 +22,8 @@ import {
   Globe,
   Route,
   Type,
+  Palette,
+  Link as LinkIcon,
 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
@@ -347,233 +349,96 @@ export function WidgetSection({
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Code2 className="h-5 w-5" />
-          Embed Widget
-        </CardTitle>
-        <CardDescription>
-          Add a feedback widget to your website. Your customers can submit ideas
-          and vote without leaving your site.
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        {/* Position selector */}
-        <div className="space-y-3">
-          <div className="flex items-center gap-2">
-            <Label>Button Position</Label>
-            {isPending && <Loader2 className="h-4 w-4 animate-spin" />}
-          </div>
-          <RadioGroup
-            value={position}
-            onValueChange={(v) => handlePositionChange(v as WidgetPosition)}
-            className="flex gap-4"
-            disabled={isPending}
-          >
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="bottom-left" id="bottom-left" />
-              <Label
-                htmlFor="bottom-left"
-                className="cursor-pointer font-normal"
-              >
-                Bottom Left
-              </Label>
-            </div>
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="bottom-right" id="bottom-right" />
-              <Label
-                htmlFor="bottom-right"
-                className="cursor-pointer font-normal"
-              >
-                Bottom Right
-              </Label>
-            </div>
-          </RadioGroup>
-        </div>
-
-        {/* Show Label toggle */}
-        <div className="space-y-3">
-          <div className="flex items-center justify-between">
+    <div className="grid gap-6 lg:grid-cols-2">
+      {/* Appearance Card */}
+      <Card className="rounded-xl border-slate-200 shadow-sm">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-slate-900">
+            <Palette className="h-5 w-5" />
+            Appearance
+          </CardTitle>
+          <CardDescription>
+            Configure how the widget button looks and behaves on your site.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {/* Position selector */}
+          <div className="space-y-3">
             <div className="flex items-center gap-2">
-              <Type className="h-4 w-4" />
-              <Label htmlFor="show-label">
-                Show &quot;Feedback&quot; label
-              </Label>
-              {isLabelPending && <Loader2 className="h-4 w-4 animate-spin" />}
+              <Label className="text-slate-700">Button Position</Label>
+              {isPending && (
+                <Loader2 className="h-4 w-4 animate-spin text-slate-400" />
+              )}
             </div>
-            <Switch
-              id="show-label"
-              checked={showLabel}
-              onCheckedChange={handleShowLabelChange}
-              disabled={isLabelPending}
-            />
-          </div>
-          <p className="text-muted-foreground text-sm">
-            When enabled, the widget button expands on hover to show
-            &quot;Feedback&quot; text. When disabled, only the icon is shown.
-          </p>
-        </div>
-
-        {/* Allowed Domains */}
-        <div className="space-y-3">
-          <div className="flex items-center gap-2">
-            <Globe className="h-4 w-4" />
-            <Label>Allowed Domains</Label>
-            {isOriginPending && <Loader2 className="h-4 w-4 animate-spin" />}
-          </div>
-          <p className="text-muted-foreground text-sm">
-            Configure which websites can embed your feedback widget. Your
-            app&apos;s domain is always allowed.
-          </p>
-
-          {/* Add domain input */}
-          <div className="flex gap-2">
-            <Input
-              placeholder="https://example.com"
-              value={newOrigin}
-              onChange={(e) => {
-                setNewOrigin(e.target.value);
-                setOriginError(null);
-              }}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  e.preventDefault();
-                  handleAddOrigin();
-                }
-              }}
-              disabled={
-                isOriginPending || allowedOrigins.length >= MAX_ALLOWED_ORIGINS
-              }
-              className="flex-1"
-            />
-            <Button
-              onClick={handleAddOrigin}
-              disabled={
-                isOriginPending || allowedOrigins.length >= MAX_ALLOWED_ORIGINS
-              }
-              size="sm"
+            <RadioGroup
+              value={position}
+              onValueChange={(v) => handlePositionChange(v as WidgetPosition)}
+              className="flex gap-4"
+              disabled={isPending}
             >
-              <Plus className="mr-1 h-4 w-4" />
-              Add
-            </Button>
-          </div>
-          {originError && (
-            <p className="text-destructive text-sm">{originError}</p>
-          )}
-
-          {/* Domain list */}
-          {allowedOrigins.length > 0 ? (
-            <ul className="space-y-2">
-              {allowedOrigins.map((origin) => (
-                <li
-                  key={origin}
-                  className="bg-muted flex items-center justify-between rounded-md px-3 py-2"
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="bottom-left" id="bottom-left" />
+                <Label
+                  htmlFor="bottom-left"
+                  className="cursor-pointer font-normal text-slate-600"
                 >
-                  <span className="truncate font-mono text-sm">{origin}</span>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleRemoveOrigin(origin)}
-                    disabled={isOriginPending}
-                    className="hover:bg-destructive/10 h-6 w-6 p-0"
-                  >
-                    <X className="h-4 w-4" />
-                    <span className="sr-only">Remove {origin}</span>
-                  </Button>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="text-muted-foreground border-muted rounded-md border border-dashed p-4 text-center text-sm">
-              No custom domains configured. The widget will only work on your
-              app&apos;s domain.
-            </p>
-          )}
-          <p className="text-muted-foreground text-xs">
-            {allowedOrigins.length}/{MAX_ALLOWED_ORIGINS} domains configured
-          </p>
-        </div>
-
-        {/* Page Targeting */}
-        <div className="space-y-3">
-          <div className="flex items-center gap-2">
-            <Route className="h-4 w-4" />
-            <Label>Page Targeting</Label>
-            {isRulePending && <Loader2 className="h-4 w-4 animate-spin" />}
-          </div>
-          <p className="text-muted-foreground text-sm">
-            Specify which pages should show the widget using path patterns.
-            Leave empty to show the widget on all pages.
-          </p>
-
-          {/* Add rule input */}
-          <div className="flex gap-2">
-            <Input
-              placeholder="/pricing, /docs/**, /blog/*"
-              value={newRule}
-              onChange={(e) => {
-                setNewRule(e.target.value);
-                setRuleError(null);
-              }}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  e.preventDefault();
-                  handleAddRule();
-                }
-              }}
-              disabled={isRulePending || pageRules.length >= MAX_PAGE_RULES}
-              className="flex-1"
-            />
-            <Button
-              onClick={handleAddRule}
-              disabled={isRulePending || pageRules.length >= MAX_PAGE_RULES}
-              size="sm"
-            >
-              <Plus className="mr-1 h-4 w-4" />
-              Add
-            </Button>
-          </div>
-          {ruleError && <p className="text-destructive text-sm">{ruleError}</p>}
-
-          {/* Rules list */}
-          {pageRules.length > 0 ? (
-            <ul className="space-y-2">
-              {pageRules.map((rule) => (
-                <li
-                  key={rule}
-                  className="bg-muted flex items-center justify-between rounded-md px-3 py-2"
+                  Bottom Left
+                </Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="bottom-right" id="bottom-right" />
+                <Label
+                  htmlFor="bottom-right"
+                  className="cursor-pointer font-normal text-slate-600"
                 >
-                  <span className="truncate font-mono text-sm">{rule}</span>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleRemoveRule(rule)}
-                    disabled={isRulePending}
-                    className="hover:bg-destructive/10 h-6 w-6 p-0"
-                  >
-                    <X className="h-4 w-4" />
-                    <span className="sr-only">Remove {rule}</span>
-                  </Button>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="text-muted-foreground border-muted rounded-md border border-dashed p-4 text-center text-sm">
-              No page rules configured. The widget will show on all pages.
-            </p>
-          )}
-          <p className="text-muted-foreground text-xs">
-            {pageRules.length}/{MAX_PAGE_RULES} page rules configured
-          </p>
-        </div>
+                  Bottom Right
+                </Label>
+              </div>
+            </RadioGroup>
+          </div>
 
-        {/* Embed code */}
-        <div className="space-y-3">
-          <Label>Your Embed Code</Label>
+          {/* Show Label toggle */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Type className="h-4 w-4 text-slate-500" />
+                <Label htmlFor="show-label" className="text-slate-700">
+                  Show &quot;Feedback&quot; label
+                </Label>
+                {isLabelPending && (
+                  <Loader2 className="h-4 w-4 animate-spin text-slate-400" />
+                )}
+              </div>
+              <Switch
+                id="show-label"
+                checked={showLabel}
+                onCheckedChange={handleShowLabelChange}
+                disabled={isLabelPending}
+              />
+            </div>
+            <p className="text-sm text-slate-500">
+              When enabled, the widget button expands on hover to show
+              &quot;Feedback&quot; text. When disabled, only the icon is shown.
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Embed Code Card */}
+      <Card className="rounded-xl border-slate-200 shadow-sm">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-slate-900">
+            <Code2 className="h-5 w-5" />
+            Embed Code
+          </CardTitle>
+          <CardDescription>
+            Add this code to your website to display the feedback widget.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
           <div className="relative">
-            <pre className="bg-muted overflow-x-auto rounded-lg p-4 text-sm">
-              <code>{embedCode}</code>
+            <pre className="overflow-x-auto rounded-lg bg-slate-100 p-4 text-sm">
+              <code className="text-slate-700">{embedCode}</code>
             </pre>
             <Button
               size="sm"
@@ -594,72 +459,195 @@ export function WidgetSection({
               )}
             </Button>
           </div>
-          <p className="text-muted-foreground text-sm">
+          <p className="text-sm text-slate-500">
             Paste this code before the closing <code>&lt;/body&gt;</code> tag on
             your website.
           </p>
-        </div>
 
-        {/* Preview */}
-        <div className="space-y-3">
-          <Label>Preview</Label>
-          <p className="text-muted-foreground text-sm">
-            {showLabel
-              ? 'The button starts as an icon and expands on hover to show "Feedback".'
-              : "The button shows only the lightbulb icon."}
-          </p>
-          <div className="bg-muted relative h-40 overflow-hidden rounded-lg border">
-            {/* Mock browser content */}
-            <div className="text-muted-foreground flex h-full items-center justify-center text-sm">
-              Your website content
-            </div>
-            {/* Floating button preview */}
-            <div
-              className={`group absolute bottom-4 ${
-                position === "bottom-right" ? "right-4" : "left-4"
-              }`}
-            >
-              <div className="flex h-11 items-center gap-2 rounded-full bg-zinc-900 px-3 text-sm font-medium text-white shadow-lg transition-all duration-300 group-hover:shadow-xl">
-                <svg
-                  width="20"
-                  height="20"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  className="shrink-0"
-                >
-                  <path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5" />
-                  <path d="M9 18h6" />
-                  <path d="M10 22h4" />
-                </svg>
-                {showLabel && (
-                  <span className="max-w-0 overflow-hidden opacity-0 transition-all duration-300 group-hover:max-w-[80px] group-hover:opacity-100">
-                    Feedback
-                  </span>
-                )}
-              </div>
+          {/* Public board link */}
+          <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+            <div className="flex items-center gap-2 text-sm">
+              <LinkIcon className="h-4 w-4 text-slate-500" />
+              <span className="text-slate-600">Public board:</span>
+              <a
+                href={`${siteUrl}/b/${workspaceSlug}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-medium text-indigo-600 hover:text-indigo-500 hover:underline"
+              >
+                {siteUrl}/b/{workspaceSlug}
+              </a>
             </div>
           </div>
-        </div>
+        </CardContent>
+      </Card>
 
-        {/* Public board link */}
-        <div className="border-t pt-4">
-          <p className="text-muted-foreground text-sm">
-            Or share your public feedback board directly:{" "}
-            <a
-              href={`${siteUrl}/b/${workspaceSlug}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-primary hover:underline"
+      {/* Allowed Domains Card */}
+      <Card className="rounded-xl border-slate-200 shadow-sm">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-slate-900">
+            <Globe className="h-5 w-5" />
+            Allowed Domains
+          </CardTitle>
+          <CardDescription>
+            Configure which websites can embed your feedback widget. Your
+            app&apos;s domain is always allowed.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {/* Add domain input */}
+          <div className="flex gap-2">
+            <Input
+              placeholder="https://example.com"
+              value={newOrigin}
+              onChange={(e) => {
+                setNewOrigin(e.target.value);
+                setOriginError(null);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  handleAddOrigin();
+                }
+              }}
+              disabled={
+                isOriginPending || allowedOrigins.length >= MAX_ALLOWED_ORIGINS
+              }
+              className="flex-1 border-slate-200 focus:border-indigo-300 focus:ring-indigo-200"
+            />
+            <Button
+              onClick={handleAddOrigin}
+              disabled={
+                isOriginPending || allowedOrigins.length >= MAX_ALLOWED_ORIGINS
+              }
+              size="sm"
             >
-              {siteUrl}/b/{workspaceSlug}
-            </a>
+              {isOriginPending ? (
+                <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+              ) : (
+                <Plus className="mr-1 h-4 w-4" />
+              )}
+              Add
+            </Button>
+          </div>
+          {originError && <p className="text-sm text-red-600">{originError}</p>}
+
+          {/* Domain list */}
+          {allowedOrigins.length > 0 ? (
+            <ul className="space-y-2">
+              {allowedOrigins.map((origin) => (
+                <li
+                  key={origin}
+                  className="flex items-center justify-between rounded-md bg-slate-50 px-3 py-2"
+                >
+                  <span className="truncate font-mono text-sm text-slate-700">
+                    {origin}
+                  </span>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleRemoveOrigin(origin)}
+                    disabled={isOriginPending}
+                    className="h-6 w-6 p-0 hover:bg-red-50 hover:text-red-600"
+                  >
+                    <X className="h-4 w-4" />
+                    <span className="sr-only">Remove {origin}</span>
+                  </Button>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="rounded-md border border-dashed border-slate-200 p-4 text-center text-sm text-slate-500">
+              No custom domains configured. The widget will only work on your
+              app&apos;s domain.
+            </p>
+          )}
+          <p className="text-right text-xs text-slate-500">
+            {allowedOrigins.length}/{MAX_ALLOWED_ORIGINS} domains configured
           </p>
-        </div>
-      </CardContent>
-    </Card>
+        </CardContent>
+      </Card>
+
+      {/* Page Targeting Card */}
+      <Card className="rounded-xl border-slate-200 shadow-sm">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-slate-900">
+            <Route className="h-5 w-5" />
+            Page Targeting
+          </CardTitle>
+          <CardDescription>
+            Specify which pages should show the widget using path patterns.
+            Leave empty to show the widget on all pages.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {/* Add rule input */}
+          <div className="flex gap-2">
+            <Input
+              placeholder="/pricing, /docs/**, /blog/*"
+              value={newRule}
+              onChange={(e) => {
+                setNewRule(e.target.value);
+                setRuleError(null);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  handleAddRule();
+                }
+              }}
+              disabled={isRulePending || pageRules.length >= MAX_PAGE_RULES}
+              className="flex-1 border-slate-200 focus:border-indigo-300 focus:ring-indigo-200"
+            />
+            <Button
+              onClick={handleAddRule}
+              disabled={isRulePending || pageRules.length >= MAX_PAGE_RULES}
+              size="sm"
+            >
+              {isRulePending ? (
+                <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+              ) : (
+                <Plus className="mr-1 h-4 w-4" />
+              )}
+              Add
+            </Button>
+          </div>
+          {ruleError && <p className="text-sm text-red-600">{ruleError}</p>}
+
+          {/* Rules list */}
+          {pageRules.length > 0 ? (
+            <ul className="space-y-2">
+              {pageRules.map((rule) => (
+                <li
+                  key={rule}
+                  className="flex items-center justify-between rounded-md bg-slate-50 px-3 py-2"
+                >
+                  <span className="truncate font-mono text-sm text-slate-700">
+                    {rule}
+                  </span>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleRemoveRule(rule)}
+                    disabled={isRulePending}
+                    className="h-6 w-6 p-0 hover:bg-red-50 hover:text-red-600"
+                  >
+                    <X className="h-4 w-4" />
+                    <span className="sr-only">Remove {rule}</span>
+                  </Button>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="rounded-md border border-dashed border-slate-200 p-4 text-center text-sm text-slate-500">
+              No page rules configured. The widget will show on all pages.
+            </p>
+          )}
+          <p className="text-right text-xs text-slate-500">
+            {pageRules.length}/{MAX_PAGE_RULES} page rules configured
+          </p>
+        </CardContent>
+      </Card>
+    </div>
   );
 }
