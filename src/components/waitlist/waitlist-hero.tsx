@@ -74,8 +74,11 @@ export function WaitlistHero({ className }: WaitlistHeroProps) {
 
             {/* Headline */}
             <h1 className="mb-8 text-5xl font-bold tracking-tight text-slate-900 sm:text-6xl lg:text-7xl">
-              Your customers know <br />
-              <span className="text-slate-400">what to build next</span>
+              Stop guessing.
+              <br />
+              <span className="text-slate-400">
+                Start building what users actually want.
+              </span>
             </h1>
 
             {/* Subheadline */}
@@ -88,9 +91,9 @@ export function WaitlistHero({ className }: WaitlistHeroProps) {
                   : "translate-y-8 opacity-0"
               )}
             >
-              Collect feedback with public boards and embeddable widgets. Let
-              users vote on ideas, and let AI surface duplicates — so you focus
-              on shipping what matters.
+              Collect feature requests in one place. Let users vote on
+              priorities. Ship the ideas that matter most — with AI handling the
+              duplicates.
             </p>
 
             {/* Waitlist Form */}
