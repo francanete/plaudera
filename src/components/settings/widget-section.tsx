@@ -24,6 +24,7 @@ import {
   Type,
   Palette,
   Link as LinkIcon,
+  AlertTriangle,
 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
@@ -557,10 +558,21 @@ export function WidgetSection({
               ))}
             </ul>
           ) : (
-            <p className="rounded-md border border-dashed border-slate-200 p-4 text-center text-sm text-slate-500">
-              No custom domains configured. The widget will only work on your
-              app&apos;s domain.
-            </p>
+            <div className="rounded-md border border-amber-200 bg-amber-50 p-4">
+              <div className="flex gap-3">
+                <AlertTriangle className="h-5 w-5 flex-shrink-0 text-amber-500" />
+                <div className="text-sm">
+                  <p className="font-medium text-amber-800">
+                    No domains configured
+                  </p>
+                  <p className="mt-1 text-amber-700">
+                    The widget won&apos;t work on your website until you add your
+                    domain. Add your site&apos;s URL above (e.g.,
+                    https://yoursite.com).
+                  </p>
+                </div>
+              </div>
+            </div>
           )}
           <p className="text-right text-xs text-slate-500">
             {allowedOrigins.length}/{MAX_ALLOWED_ORIGINS} domains configured
