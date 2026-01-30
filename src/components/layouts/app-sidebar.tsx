@@ -3,7 +3,6 @@
 import Link from "next/link";
 import {
   LayoutDashboard,
-  MessageSquare,
   Shield,
   Lightbulb,
   LayoutPanelLeft,
@@ -53,7 +52,6 @@ const navigation = [
   { name: "Duplicates", href: "/dashboard/duplicates", icon: Copy },
   { name: "Board", href: "/dashboard/board", icon: LayoutPanelLeft },
   { name: "Widget", href: "/dashboard/widget", icon: Code2 },
-  { name: "Chat", href: "/dashboard/chat", icon: MessageSquare },
 ];
 
 const adminNavigation = [

@@ -32,14 +32,6 @@ export const onboardingFlows: Record<string, OnboardingFlow> = {
     autoStartDelay: 500,
     steps: [
       {
-        id: "chat",
-        title: "AI Chat",
-        content: "Chat with AI to get help with your projects and tasks.",
-        selector: "#tour-nav-chat",
-        position: "right",
-        desktopOnly: true,
-      },
-      {
         id: "projects",
         title: "Your Projects",
         content:
