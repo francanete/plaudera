@@ -32,18 +32,19 @@ export const onboardingFlows: Record<string, OnboardingFlow> = {
     autoStartDelay: 500,
     steps: [
       {
-        id: "projects",
-        title: "Your Projects",
+        id: "public-board",
+        title: "Your Public Board",
         content:
-          "Track all your active projects here. This is your command center.",
-        selector: "#tour-stat-projects",
+          "Share this link with your users to collect feedback. Copy or open it to see your board in action.",
+        selector: "#tour-public-board",
         position: "bottom",
       },
       {
-        id: "plan",
-        title: "Your Plan",
-        content: "View your current subscription plan and usage limits.",
-        selector: "#tour-stat-plan",
+        id: "pending-review",
+        title: "Pending Reviews",
+        content:
+          "New ideas land here for your review. Click to approve or manage submissions from your users.",
+        selector: "#tour-stat-pending",
         position: "bottom",
       },
       {
