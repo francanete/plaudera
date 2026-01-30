@@ -1,1 +1,0 @@
-ALTER TABLE "widget_settings" ALTER COLUMN "show_label" SET DEFAULT true;
