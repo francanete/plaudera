@@ -8,6 +8,7 @@ import {
   Lightbulb,
   LayoutPanelLeft,
   Copy,
+  Code2,
 } from "lucide-react";
 import { PlauderaLogo } from "@/components/plaudera-logo";
 import {
@@ -51,6 +52,7 @@ const navigation = [
   { name: "Ideas", href: "/dashboard/ideas", icon: Lightbulb },
   { name: "Duplicates", href: "/dashboard/duplicates", icon: Copy },
   { name: "Board", href: "/dashboard/board", icon: LayoutPanelLeft },
+  { name: "Widget", href: "/dashboard/widget", icon: Code2 },
   { name: "Chat", href: "/dashboard/chat", icon: MessageSquare },
 ];
 

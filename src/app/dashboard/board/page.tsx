@@ -8,12 +8,10 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { WidgetSection } from "@/components/settings/widget-section";
 import { WorkspaceSlugForm } from "@/components/settings/workspace-slug-form";
 import { WorkspaceBrandingForm } from "@/components/settings/workspace-branding-form";
 import { getUserWorkspace } from "@/lib/workspace";
-import { db, widgetSettings, slugChangeHistory } from "@/lib/db";
-import type { WidgetPosition } from "@/lib/db/schema";
+import { db, slugChangeHistory } from "@/lib/db";
 
 export default async function BoardPage() {
   const session = await auth.api.getSession({
@@ -22,27 +20,14 @@ export default async function BoardPage() {
 
   const workspace = await getUserWorkspace(session!.user.id);
 
-  let initialPosition: WidgetPosition = "bottom-right";
-  let initialAllowedOrigins: string[] = [];
-  let initialPageRules: string[] = [];
-  let initialShowLabel = true;
   let slugChangesUsed = 0;
 
   if (workspace) {
-    const [settings, [slugCountResult]] = await Promise.all([
-      db.query.widgetSettings.findFirst({
-        where: eq(widgetSettings.workspaceId, workspace.id),
-      }),
-      db
-        .select({ count: count() })
-        .from(slugChangeHistory)
-        .where(eq(slugChangeHistory.workspaceId, workspace.id)),
-    ]);
+    const [slugCountResult] = await db
+      .select({ count: count() })
+      .from(slugChangeHistory)
+      .where(eq(slugChangeHistory.workspaceId, workspace.id));
 
-    initialPosition = settings?.position ?? "bottom-right";
-    initialAllowedOrigins = settings?.allowedOrigins ?? [];
-    initialPageRules = settings?.pageRules ?? [];
-    initialShowLabel = settings?.showLabel ?? true;
     slugChangesUsed = slugCountResult?.count ?? 0;
   }
 
@@ -51,7 +36,7 @@ export default async function BoardPage() {
       <div>
         <h1 className="text-3xl font-bold">Board</h1>
         <p className="text-muted-foreground mt-1">
-          Configure your public feedback board and embed widget.
+          Configure your public feedback board.
         </p>
       </div>
 
@@ -87,15 +72,6 @@ export default async function BoardPage() {
               />
             </CardContent>
           </Card>
-
-          <WidgetSection
-            workspaceId={workspace.id}
-            workspaceSlug={workspace.slug}
-            initialPosition={initialPosition}
-            initialAllowedOrigins={initialAllowedOrigins}
-            initialPageRules={initialPageRules}
-            initialShowLabel={initialShowLabel}
-          />
         </>
       ) : (
         <Card>
