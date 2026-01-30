@@ -28,6 +28,7 @@ interface CompactIdea {
 
 interface EmbedBoardProps {
   workspaceName: string;
+  workspaceDescription: string | null;
   workspaceId: string;
   workspaceSlug: string;
   initialIdeas: CompactIdea[];
@@ -36,6 +37,7 @@ interface EmbedBoardProps {
 
 export function EmbedBoard({
   workspaceName,
+  workspaceDescription,
   workspaceId,
   workspaceSlug,
   initialIdeas,
@@ -307,15 +309,24 @@ export function EmbedBoard({
       {/* Header */}
       <div className="mb-4 flex flex-col gap-2">
         <div className="flex items-center justify-between">
-          <h1 className="text-lg font-semibold">{workspaceName}</h1>
+          <h1 className="truncate text-lg font-semibold">{workspaceName}</h1>
           <Button size="sm" onClick={handleSubmitClick}>
             <Plus className="mr-1 h-4 w-4" />
             Submit Idea
           </Button>
         </div>
-        {contributor && (
+
+        {/* Description */}
+        {workspaceDescription && (
+          <p className="text-muted-foreground text-sm leading-relaxed">
+            {workspaceDescription}
+          </p>
+        )}
+
+        {/* Auth UI */}
+        {contributor ? (
           <div className="bg-muted/50 flex items-center justify-between rounded-md border px-2 py-1.5 text-xs">
-            <span className="text-muted-foreground max-w-[160px] truncate">
+            <span className="text-muted-foreground max-w-40 truncate">
               <User className="mr-1 inline-block h-3 w-3" />
               {contributor.email}
             </span>
@@ -328,6 +339,14 @@ export function EmbedBoard({
               <span className="sr-only">Sign out</span>
             </button>
           </div>
+        ) : (
+          <button
+            onClick={() => setAuthDialogOpen(true)}
+            className="bg-muted/50 hover:bg-muted flex items-center justify-center gap-1.5 rounded-md border px-3 py-1.5 text-xs font-medium transition-colors"
+          >
+            <User className="h-3 w-3" />
+            Sign in
+          </button>
         )}
       </div>
 

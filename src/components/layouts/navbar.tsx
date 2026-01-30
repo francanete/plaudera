@@ -25,7 +25,7 @@ import { useSession, signOut } from "@/lib/auth-client";
 
 const navigation = [
   { name: "Features", href: "/#features" },
-  { name: "Pricing", href: "/pricing" },
+  { name: "Pricing", href: "/#pricing" },
   { name: "Blog", href: "/blog" },
 ];
 
@@ -172,7 +172,7 @@ export function Navbar() {
                       Sign in
                     </Link>
                     <Link
-                      href="/register"
+                      href="/signup"
                       className="inline-flex items-center justify-center rounded-full bg-slate-900 px-4 py-2 text-sm font-medium text-white shadow-sm transition-all duration-200 hover:bg-slate-800 focus:ring-2 focus:ring-slate-500 focus:ring-offset-2 focus:outline-none"
                     >
                       Get Started
@@ -280,7 +280,7 @@ export function Navbar() {
                   Sign in
                 </Link>
                 <Link
-                  href="/register"
+                  href="/signup"
                   className="block w-full rounded-lg bg-indigo-600 px-3 py-3 text-center text-base font-medium text-white shadow-md transition-colors hover:bg-indigo-700"
                   onClick={() => setIsMobileMenuOpen(false)}
                 >

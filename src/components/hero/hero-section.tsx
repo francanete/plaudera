@@ -110,7 +110,7 @@ export function HeroSection({ className }: HeroSectionProps) {
                 asChild
                 className="h-12 rounded-full bg-slate-900 px-8 text-base font-semibold text-white shadow-lg shadow-slate-900/20 transition-all hover:-translate-y-0.5 hover:bg-slate-800 hover:shadow-xl hover:shadow-slate-900/30"
               >
-                <Link href="/register">
+                <Link href="/signup">
                   Start Collecting Feedback
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Link>

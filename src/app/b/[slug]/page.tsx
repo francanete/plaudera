@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { Suspense } from "react";
+import { Suspense, cache } from "react";
 import { db } from "@/lib/db";
 import {
   ideas,
@@ -14,14 +14,18 @@ import type { Metadata } from "next";
 
 type PageProps = { params: Promise<{ slug: string }> };
 
+// Cached to avoid duplicate queries between generateMetadata and page render
+const getWorkspaceBySlug = cache(async (slug: string) => {
+  return db.query.workspaces.findFirst({
+    where: eq(workspaces.slug, slug),
+  });
+});
+
 export async function generateMetadata({
   params,
 }: PageProps): Promise<Metadata> {
   const { slug } = await params;
-
-  const workspace = await db.query.workspaces.findFirst({
-    where: eq(workspaces.slug, slug),
-  });
+  const workspace = await getWorkspaceBySlug(slug);
 
   if (!workspace) {
     return { title: "Not Found" };
@@ -29,14 +33,14 @@ export async function generateMetadata({
 
   return {
     title: workspace.name,
-    description: `Vote on features and share your ideas for ${workspace.name}`,
+    description:
+      workspace.description ||
+      `Vote on features and share your ideas for ${workspace.name}`,
   };
 }
 
 async function BoardContent({ slug }: { slug: string }) {
-  const workspace = await db.query.workspaces.findFirst({
-    where: eq(workspaces.slug, slug),
-  });
+  const workspace = await getWorkspaceBySlug(slug);
 
   if (!workspace) {
     notFound();
@@ -101,6 +105,7 @@ async function BoardContent({ slug }: { slug: string }) {
   return (
     <PublicIdeaList
       workspaceName={workspace.name}
+      workspaceDescription={workspace.description}
       workspaceId={workspace.id}
       workspaceSlug={workspace.slug}
       initialIdeas={ideasWithVoteStatus}

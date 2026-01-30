@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { appConfig } from "@/lib/config";
-import { Twitter, Github, Linkedin } from "lucide-react";
+// import { Twitter, Github, Linkedin } from "lucide-react";
 import { PlauderaLogo } from "@/components/plaudera-logo";
 
 const footerSections = [
@@ -39,7 +39,7 @@ export function Footer() {
             <p className="max-w-xs text-sm leading-relaxed text-gray-500">
               {appConfig.description}
             </p>
-            <div className="flex space-x-5">
+            {/*<div className="flex space-x-5">
               <a
                 href={appConfig.socials.twitter}
                 target="_blank"
@@ -67,7 +67,7 @@ export function Footer() {
                 <span className="sr-only">LinkedIn</span>
                 <Linkedin className="h-5 w-5" />
               </a>
-            </div>
+            </div>*/}
           </div>
 
           {/* Links Columns */}

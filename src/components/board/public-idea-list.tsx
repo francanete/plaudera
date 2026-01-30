@@ -12,6 +12,7 @@ import { Lightbulb } from "lucide-react";
 
 interface PublicIdeaListProps {
   workspaceName: string;
+  workspaceDescription: string | null;
   workspaceId: string;
   workspaceSlug: string;
   initialIdeas: IdeaCardData[];
@@ -25,6 +26,7 @@ type PendingAction =
 
 export function PublicIdeaList({
   workspaceName,
+  workspaceDescription,
   workspaceId,
   workspaceSlug: _workspaceSlug,
   initialIdeas,
@@ -225,6 +227,7 @@ export function PublicIdeaList({
     <div className="space-y-6">
       <BoardHeader
         workspaceName={workspaceName}
+        workspaceDescription={workspaceDescription}
         onSubmitIdea={handleSubmitIdea}
         contributor={contributor}
         onLogout={handleLogout}

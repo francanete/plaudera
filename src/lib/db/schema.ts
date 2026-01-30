@@ -441,6 +441,7 @@ export const workspaces = pgTable(
       .$defaultFn(() => createId()),
     name: text("name").notNull(),
     slug: text("slug").notNull().unique(),
+    description: text("description"),
     ownerId: text("owner_id")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),

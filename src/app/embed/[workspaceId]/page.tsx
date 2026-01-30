@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { Suspense } from "react";
+import { Suspense, cache } from "react";
 import { db } from "@/lib/db";
 import {
   ideas,
@@ -10,15 +10,38 @@ import {
 import { eq, desc, and, inArray } from "drizzle-orm";
 import { getContributor } from "@/lib/contributor-auth";
 import { EmbedBoard } from "./embed-board";
+import type { Metadata } from "next";
 
 type PageProps = { params: Promise<{ workspaceId: string }> };
+
+// Cached to avoid duplicate queries between generateMetadata and page render
+const getWorkspace = cache(async (workspaceId: string) => {
+  return db.query.workspaces.findFirst({
+    where: eq(workspaces.id, workspaceId),
+  });
+});
+
+export async function generateMetadata({
+  params,
+}: PageProps): Promise<Metadata> {
+  const { workspaceId } = await params;
+  const workspace = await getWorkspace(workspaceId);
+
+  if (!workspace) {
+    return { title: "Feedback Widget" };
+  }
+
+  return {
+    title: `${workspace.name} - Feedback`,
+    description:
+      workspace.description || `Submit feedback for ${workspace.name}`,
+  };
+}
 
 const MAX_EMBED_IDEAS = 10;
 
 async function EmbedContent({ workspaceId }: { workspaceId: string }) {
-  const workspace = await db.query.workspaces.findFirst({
-    where: eq(workspaces.id, workspaceId),
-  });
+  const workspace = await getWorkspace(workspaceId);
 
   if (!workspace) {
     notFound();
@@ -65,6 +88,7 @@ async function EmbedContent({ workspaceId }: { workspaceId: string }) {
   return (
     <EmbedBoard
       workspaceName={workspace.name}
+      workspaceDescription={workspace.description}
       workspaceId={workspace.id}
       workspaceSlug={workspace.slug}
       initialIdeas={ideasWithVoteStatus}
