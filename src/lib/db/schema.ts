@@ -259,51 +259,6 @@ export const emailsSent = pgTable(
   ]
 );
 
-// ============ Tier System Tables ============
-export const tierConfigs = pgTable("tier_configs", {
-  plan: planEnum("plan").primaryKey(),
-  displayName: text("display_name").notNull(),
-  description: text("description"),
-  sortOrder: integer("sort_order").notNull().default(0),
-  isActive: boolean("is_active").notNull().default(true),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at")
-    .defaultNow()
-    .notNull()
-    .$onUpdate(() => new Date()),
-});
-
-export const featureRateLimits = pgTable(
-  "feature_rate_limits",
-  {
-    id: text("id")
-      .primaryKey()
-      .$defaultFn(() => createId()),
-    plan: planEnum("plan").notNull(),
-    feature: text("feature").notNull(), // e.g., "chat", "generation"
-    requestsPerHour: integer("requests_per_hour"),
-    requestsPerDay: integer("requests_per_day"),
-    tokensPerDay: integer("tokens_per_day"),
-    isActive: boolean("is_active").notNull().default(true),
-    createdAt: timestamp("created_at").defaultNow().notNull(),
-    updatedAt: timestamp("updated_at")
-      .defaultNow()
-      .notNull()
-      .$onUpdate(() => new Date()),
-  },
-  (table) => [
-    uniqueIndex("feature_rate_limits_plan_feature_idx").on(
-      table.plan,
-      table.feature
-    ),
-    index("feature_rate_limits_plan_feature_active_idx").on(
-      table.plan,
-      table.feature,
-      table.isActive
-    ),
-  ]
-);
-
 // ============ Relations ============
 export const usersRelations = relations(users, ({ many, one }) => ({
   sessions: many(sessions),
@@ -362,20 +317,6 @@ export const emailsSentRelations = relations(emailsSent, ({ one }) => ({
     references: [users.id],
   }),
 }));
-
-export const tierConfigsRelations = relations(tierConfigs, ({ many }) => ({
-  rateLimits: many(featureRateLimits),
-}));
-
-export const featureRateLimitsRelations = relations(
-  featureRateLimits,
-  ({ one }) => ({
-    tier: one(tierConfigs, {
-      fields: [featureRateLimits.plan],
-      references: [tierConfigs.plan],
-    }),
-  })
-);
 
 // ============ Idea Status Enum ============
 export const ideaStatusEnum = pgEnum("idea_status", [
@@ -754,10 +695,6 @@ export type Subscription = typeof subscriptions.$inferSelect;
 export type NewSubscription = typeof subscriptions.$inferInsert;
 export type AIUsage = typeof aiUsage.$inferSelect;
 export type NewAIUsage = typeof aiUsage.$inferInsert;
-export type TierConfig = typeof tierConfigs.$inferSelect;
-export type NewTierConfig = typeof tierConfigs.$inferInsert;
-export type FeatureRateLimit = typeof featureRateLimits.$inferSelect;
-export type NewFeatureRateLimit = typeof featureRateLimits.$inferInsert;
 export type OnboardingFlow = typeof onboardingFlows.$inferSelect;
 export type NewOnboardingFlow = typeof onboardingFlows.$inferInsert;
 export type EmailSent = typeof emailsSent.$inferSelect;
