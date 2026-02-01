@@ -9,6 +9,7 @@ import {
   Menu,
   X,
   ChevronDown,
+  ChevronRight,
 } from "lucide-react";
 import { PlauderaLogo } from "@/components/plaudera-logo";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -199,98 +200,142 @@ export function Navbar() {
             </div>
           </div>
         </div>
-        {/* Mobile Menu Overlay */}
+      </nav>
+
+      {/* Mobile Menu Overlay - Outside nav to avoid stacking context issues */}
+      {isMobileMenuOpen && (
         <div
-          className={`fixed inset-0 z-40 bg-white/95 backdrop-blur-sm transition-all duration-300 md:hidden ${
-            isMobileMenuOpen
-              ? "pointer-events-auto opacity-100"
-              : "pointer-events-none opacity-0"
-          }`}
-          style={{ top: "60px" }}
+          className="fixed inset-x-0 top-[60px] bottom-0 z-[100] bg-slate-50 md:hidden"
+          style={{ backgroundColor: "#f8fafc" }}
         >
-          <div className="space-y-1 border-t border-slate-100 px-4 pt-4 pb-3">
-            {navigation.map((item) => (
-              <Link
-                key={item.name}
-                href={item.href}
-                className="block rounded-lg px-3 py-3 text-base font-medium text-slate-700 transition-colors hover:bg-slate-50 hover:text-indigo-600"
-                onClick={() => setIsMobileMenuOpen(false)}
-              >
-                {item.name}
-              </Link>
-            ))}
+          <div className="h-full overflow-y-auto border-t border-slate-200/60 p-4">
+            {/* Navigation Card */}
+            <div className="animate-in fade-in slide-in-from-top-2 rounded-2xl border border-slate-100 bg-white shadow-sm duration-200">
+              {navigation.map((item, index) => (
+                <Link
+                  key={item.name}
+                  href={item.href}
+                  className={`flex items-center justify-between px-4 py-3.5 text-base font-medium text-slate-700 transition-all duration-150 hover:bg-indigo-50 hover:text-indigo-600 ${
+                    index === 0 ? "rounded-t-2xl" : ""
+                  } ${index === navigation.length - 1 ? "rounded-b-2xl" : "border-b border-slate-100"}`}
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  style={{ animationDelay: `${index * 50}ms` }}
+                >
+                  <span>{item.name}</span>
+                  <ChevronRight className="h-4 w-4 text-slate-400 transition-colors group-hover:text-indigo-500" />
+                </Link>
+              ))}
+            </div>
 
             {isPending ? null : session ? (
-              <div className="mt-6 border-t border-slate-100 pt-6">
-                <div className="mb-4 flex items-center px-3">
-                  <Avatar className="h-10 w-10">
-                    <AvatarImage
-                      src={session.user.image || undefined}
-                      alt={session.user.name || session.user.email || "User"}
-                    />
-                    <AvatarFallback className="bg-slate-100 text-slate-600">
-                      {getInitials(session.user.name, session.user.email)}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="ml-3">
-                    {session.user.name && (
-                      <div className="text-base font-medium text-slate-900">
-                        {session.user.name}
+              <>
+                {/* User Card */}
+                <div
+                  className="animate-in fade-in slide-in-from-top-2 mt-4 rounded-2xl border border-slate-100 bg-white shadow-sm duration-200"
+                  style={{ animationDelay: "150ms" }}
+                >
+                  {/* User Info */}
+                  <div className="flex items-center gap-4 border-b border-slate-100 px-4 py-4">
+                    <Avatar className="h-14 w-14 ring-2 ring-slate-100">
+                      <AvatarImage
+                        src={session.user.image || undefined}
+                        alt={session.user.name || session.user.email || "User"}
+                      />
+                      <AvatarFallback className="bg-indigo-50 text-lg font-semibold text-indigo-600">
+                        {getInitials(session.user.name, session.user.email)}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="min-w-0 flex-1">
+                      {session.user.name && (
+                        <div className="truncate text-base font-semibold text-slate-900">
+                          {session.user.name}
+                        </div>
+                      )}
+                      <div className="truncate text-sm text-slate-500">
+                        {session.user.email}
                       </div>
-                    )}
-                    <div className="text-sm font-medium text-slate-500">
-                      {session.user.email}
                     </div>
                   </div>
+                  {/* Dashboard Link */}
+                  <Link
+                    href="/dashboard"
+                    className="flex items-center justify-between border-b border-slate-100 px-4 py-3.5 text-base font-medium text-slate-700 transition-all duration-150 hover:bg-indigo-50 hover:text-indigo-600"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-slate-100 transition-colors group-hover:bg-indigo-100">
+                        <LayoutDashboard className="h-5 w-5 text-slate-500" />
+                      </div>
+                      <span>Dashboard</span>
+                    </div>
+                    <ChevronRight className="h-4 w-4 text-slate-400" />
+                  </Link>
+                  {/* Account Link */}
+                  <Link
+                    href="/dashboard/account"
+                    className="flex items-center justify-between rounded-b-2xl px-4 py-3.5 text-base font-medium text-slate-700 transition-all duration-150 hover:bg-indigo-50 hover:text-indigo-600"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-slate-100 transition-colors group-hover:bg-indigo-100">
+                        <User className="h-5 w-5 text-slate-500" />
+                      </div>
+                      <span>Account</span>
+                    </div>
+                    <ChevronRight className="h-4 w-4 text-slate-400" />
+                  </Link>
+                </div>
+
+                {/* Sign Out Card */}
+                <div
+                  className="animate-in fade-in slide-in-from-top-2 mt-4 rounded-2xl border border-slate-100 bg-white shadow-sm duration-200"
+                  style={{ animationDelay: "200ms" }}
+                >
+                  <button
+                    onClick={() => {
+                      signOut();
+                      setIsMobileMenuOpen(false);
+                    }}
+                    className="flex w-full items-center justify-between rounded-2xl px-4 py-3.5 text-base font-medium text-slate-500 transition-all duration-150 hover:bg-red-50 hover:text-red-600"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-slate-100 transition-colors">
+                        <LogOut className="h-5 w-5 text-slate-400" />
+                      </div>
+                      <span>Sign out</span>
+                    </div>
+                  </button>
+                </div>
+              </>
+            ) : (
+              /* Logged Out State */
+              <div
+                className="animate-in fade-in slide-in-from-top-2 mt-6 duration-200"
+                style={{ animationDelay: "150ms" }}
+              >
+                <div className="mb-3 text-center">
+                  <Link
+                    href="/login"
+                    className="text-sm font-medium text-slate-600 transition-colors hover:text-indigo-600"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    Already have an account?{" "}
+                    <span className="text-indigo-600">Sign in</span>
+                  </Link>
                 </div>
                 <Link
-                  href="/dashboard"
-                  className="flex items-center rounded-lg px-3 py-3 text-base font-medium text-slate-700 transition-colors hover:bg-slate-50"
-                  onClick={() => setIsMobileMenuOpen(false)}
-                >
-                  <LayoutDashboard className="mr-3 h-5 w-5 text-slate-400" />
-                  Dashboard
-                </Link>
-                <Link
-                  href="/dashboard/account"
-                  className="flex items-center rounded-lg px-3 py-3 text-base font-medium text-slate-700 transition-colors hover:bg-slate-50"
-                  onClick={() => setIsMobileMenuOpen(false)}
-                >
-                  <User className="mr-3 h-5 w-5 text-slate-400" />
-                  Account
-                </Link>
-                <button
-                  onClick={() => {
-                    signOut();
-                    setIsMobileMenuOpen(false);
-                  }}
-                  className="flex w-full items-center rounded-lg px-3 py-3 text-base font-medium text-red-600 transition-colors hover:bg-red-50"
-                >
-                  <LogOut className="mr-3 h-5 w-5" />
-                  Sign out
-                </button>
-              </div>
-            ) : (
-              <div className="mt-6 space-y-3 border-t border-slate-100 px-3 pt-6">
-                <Link
-                  href="/login"
-                  className="block w-full rounded-lg border border-slate-200 px-3 py-3 text-center text-base font-medium text-slate-700 transition-colors hover:bg-slate-50"
-                  onClick={() => setIsMobileMenuOpen(false)}
-                >
-                  Sign in
-                </Link>
-                <Link
                   href="/signup"
-                  className="block w-full rounded-lg bg-indigo-600 px-3 py-3 text-center text-base font-medium text-white shadow-md transition-colors hover:bg-indigo-700"
+                  className="flex w-full items-center justify-center gap-2 rounded-2xl bg-indigo-600 px-4 py-4 text-base font-semibold text-white shadow-lg shadow-indigo-600/25 transition-all duration-200 hover:bg-indigo-700 hover:shadow-xl hover:shadow-indigo-600/30 active:scale-[0.98]"
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
-                  Get Started
+                  <span>Get Started</span>
+                  <ChevronRight className="h-5 w-5" />
                 </Link>
               </div>
             )}
           </div>
         </div>
-      </nav>
+      )}
       {/* Spacer to prevent content from going under fixed navbar */}
       <div className="h-16 md:h-20" />
     </>
