@@ -1,7 +1,8 @@
 import "server-only";
 import { db } from "./db";
-import { aiUsage, featureRateLimits, Plan } from "./db/schema";
+import { aiUsage, Plan } from "./db/schema";
 import { eq, gte, sql, and } from "drizzle-orm";
+import { appConfig } from "./config";
 
 export type AIRateLimitResult = {
   success: boolean;
@@ -9,21 +10,6 @@ export type AIRateLimitResult = {
   resetAt: Date;
   limit: number;
 };
-
-// Cache for AI limits per plan
-const limitCache = new Map<
-  string,
-  { limit: number | null; expiresAt: number }
->();
-const CACHE_TTL_MS = 60_000; // 1 minute
-
-/**
- * Clear the AI limit cache.
- * Call this after admin updates rate limits.
- */
-export function clearAILimitCache(): void {
-  limitCache.clear();
-}
 
 /**
  * Get the next day start (midnight UTC) for reset time
@@ -45,39 +31,17 @@ function getTodayStart(): Date {
 }
 
 /**
- * Get AI rate limit for a plan from the database.
- * Uses in-memory cache with 60s TTL.
- * DB is the single source of truth - seeded by seed-tiers.ts
+ * Get AI rate limit for a plan from config.
+ * Returns null for unlimited.
  */
-async function getAILimit(plan: string): Promise<number | null> {
-  const cached = limitCache.get(plan);
+function getAILimit(plan: string, feature: string = "chat"): number | null {
+  const planLimits = appConfig.pricing.rateLimits[plan as Plan];
+  if (!planLimits) return null;
 
-  if (cached && cached.expiresAt > Date.now()) {
-    return cached.limit;
-  }
+  const featureLimits = planLimits[feature];
+  if (!featureLimits) return null;
 
-  try {
-    const config = await db.query.featureRateLimits.findFirst({
-      where: and(
-        eq(featureRateLimits.plan, plan as Plan),
-        eq(featureRateLimits.isActive, true)
-      ),
-    });
-
-    // DB is the source of truth - null means not configured or unlimited
-    const limit = config?.requestsPerDay ?? null;
-
-    limitCache.set(plan, {
-      limit,
-      expiresAt: Date.now() + CACHE_TTL_MS,
-    });
-
-    return limit;
-  } catch (error) {
-    console.error("Failed to fetch AI limit from DB:", error);
-    // Fail open - allow request if database unavailable
-    return null;
-  }
+  return featureLimits.requestsPerDay;
 }
 
 /**
@@ -100,10 +64,11 @@ async function countAIRequestsToday(userId: string): Promise<number> {
  */
 export async function checkAIRateLimit(
   userId: string,
-  plan: string
+  plan: string,
+  feature: string = "chat"
 ): Promise<AIRateLimitResult> {
   try {
-    const limit = await getAILimit(plan);
+    const limit = getAILimit(plan, feature);
 
     // Unlimited plan
     if (limit === null) {

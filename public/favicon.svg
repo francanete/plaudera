@@ -1,0 +1,22 @@
+<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Indigo background -->
+  <rect width="24" height="24" rx="4" fill="#4F46E5" />
+  <!-- Top layer -->
+  <path d="M12 5L5 9.5L12 14L19 9.5L12 5Z" fill="#FFFFFF" />
+  <!-- Middle layer -->
+  <path
+    d="M5 12.5L12 17L19 12.5"
+    stroke="#FFFFFF"
+    stroke-width="1.5"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
+  <!-- Bottom layer -->
+  <path
+    d="M5 15.5L12 20L19 15.5"
+    stroke="#FFFFFF"
+    stroke-width="1.5"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
+</svg>

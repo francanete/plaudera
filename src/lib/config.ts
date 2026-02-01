@@ -23,6 +23,15 @@ export type TierConfig = {
   marketing: TierMarketing;
 };
 
+export type FeatureRateLimits = {
+  requestsPerDay: number | null; // null = unlimited
+  tokensPerDay?: number | null;
+};
+
+export type PlanRateLimits = {
+  [feature: string]: FeatureRateLimits;
+};
+
 export type ResendSegments = {
   waitlist: string;
 };
@@ -45,6 +54,8 @@ export type AppConfig = {
     tiers: Record<PaidTier, TierConfig>;
     freeMarketing: TierMarketing;
     ltdExtraFeatures: string[];
+    /** Rate limits per plan per feature. null = unlimited */
+    rateLimits: Record<Plan, PlanRateLimits>;
   };
   plans: { hierarchy: Record<Plan, number> };
   legal: {
@@ -200,6 +211,22 @@ export const appConfig: AppConfig = {
       "All future updates included",
       "No recurring fees ever",
     ],
+
+    /** Rate limits per plan. null = unlimited */
+    rateLimits: {
+      FREE: {
+        chat: { requestsPerDay: 10, tokensPerDay: 10000 },
+      },
+      STARTER: {
+        chat: { requestsPerDay: 50, tokensPerDay: 50000 },
+      },
+      GROWTH: {
+        chat: { requestsPerDay: 200, tokensPerDay: 200000 },
+      },
+      SCALE: {
+        chat: { requestsPerDay: 1000, tokensPerDay: 1000000 },
+      },
+    },
   },
   plans: {
     hierarchy: {

@@ -145,7 +145,7 @@ function BoardSkeleton() {
             key={i}
             className="flex gap-4 rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-700 dark:bg-slate-800"
           >
-            <div className="h-[76px] w-16 animate-pulse rounded-lg bg-slate-200 dark:bg-slate-700" />
+            <div className="h-19 w-16 animate-pulse rounded-lg bg-slate-200 dark:bg-slate-700" />
             <div className="flex-1 space-y-3">
               <div className="h-5 w-3/4 animate-pulse rounded bg-slate-200 dark:bg-slate-700" />
               <div className="h-4 w-1/2 animate-pulse rounded bg-slate-200 dark:bg-slate-700" />
