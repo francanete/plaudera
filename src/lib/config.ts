@@ -1,6 +1,38 @@
 import type { Plan } from "./db/schema";
 
 export type BillingCycle = "ltd" | "monthly" | "annual";
+type PolarEnv = "sandbox" | "production";
+
+/**
+ * Polar product IDs per environment.
+ * POLAR_SERVER env var controls which set is used.
+ */
+const polarProductIdsByEnv: Record<
+  PolarEnv,
+  Record<PaidTier, Record<BillingCycle, string>>
+> = {
+  sandbox: {
+    STARTER: {
+      ltd: "64e937b4-4da7-4c09-9bd3-f38f440799e1",
+      monthly: "64e937b4-4da7-4c09-9bd3-f38f440799e1",
+      annual: "64e937b4-4da7-4c09-9bd3-f38f440799e1",
+    },
+    GROWTH: { ltd: "", monthly: "", annual: "" },
+    SCALE: { ltd: "", monthly: "", annual: "" },
+  },
+  production: {
+    STARTER: {
+      ltd: "", // TODO: Add production ID
+      monthly: "ecaed00a-eede-49cb-9354-c6cad0923ba7",
+      annual: "c4b18ec4-7889-4c7f-8ad9-37cb8259702f",
+    },
+    GROWTH: { ltd: "", monthly: "", annual: "" },
+    SCALE: { ltd: "", monthly: "", annual: "" },
+  },
+};
+
+const polarEnv = (process.env.POLAR_SERVER || "sandbox") as PolarEnv;
+const polarProductIds = polarProductIdsByEnv[polarEnv];
 export type PaidTier = Exclude<Plan, "FREE">;
 
 export type TierMarketing = {
@@ -124,11 +156,7 @@ export const appConfig: AppConfig = {
         enabled: true,
         prices: { ltd: 6700, monthly: 1900, annual: 19000 },
         originalPrices: { ltd: 9900, monthly: 1900, annual: 22800 },
-        polarProductIds: {
-          ltd: "64e937b4-4da7-4c09-9bd3-f38f440799e1",
-          monthly: "64e937b4-4da7-4c09-9bd3-f38f440799e1",
-          annual: "64e937b4-4da7-4c09-9bd3-f38f440799e1",
-        },
+        polarProductIds: polarProductIds.STARTER,
         marketing: {
           name: "Starter",
           description:
@@ -150,11 +178,7 @@ export const appConfig: AppConfig = {
       GROWTH: {
         enabled: false,
         prices: { ltd: 0, monthly: 0, annual: 0 },
-        polarProductIds: {
-          ltd: "",
-          monthly: "",
-          annual: "",
-        },
+        polarProductIds: polarProductIds.GROWTH,
         marketing: {
           name: "Growth",
           description: "For growing businesses",
@@ -174,7 +198,7 @@ export const appConfig: AppConfig = {
       SCALE: {
         enabled: false,
         prices: { ltd: 0, monthly: 0, annual: 0 },
-        polarProductIds: { ltd: "", monthly: "", annual: "" },
+        polarProductIds: polarProductIds.SCALE,
         marketing: {
           name: "Scale",
           description: "For enterprises",
