@@ -75,13 +75,19 @@ export function HeroSection({ className }: HeroSectionProps) {
             </div>
 
             {/* Headline */}
-            <h1 className="mb-8 text-4xl font-bold tracking-tight text-slate-900 sm:text-5xl lg:text-6xl">
+            <h1 className="mb-4 text-4xl font-bold tracking-tight text-slate-900 sm:text-5xl lg:text-6xl">
               Stop guessing.
               <br />
               <span className="text-slate-400">
                 Start building what users actually want.
               </span>
             </h1>
+
+            {/* Keyword-rich clarifier */}
+            <p className="mb-8 text-base font-medium text-slate-500 md:text-lg">
+              Plaudera is a customer feedback tool with a public feature request
+              board, voting, and an embeddable widget.
+            </p>
 
             {/* Subheadline */}
             <p
@@ -93,9 +99,9 @@ export function HeroSection({ className }: HeroSectionProps) {
                   : "translate-y-8 opacity-0"
               )}
             >
-              Collect feature requests in one place. Let users vote on
-              priorities. Ship the ideas that matter most — with AI handling the
-              duplicates.
+              Collect customer feedback and feature requests in one place. Let
+              users vote on priorities. Ship the ideas that matter most — with
+              AI handling the duplicates.
             </p>
 
             {/* CTAs */}
