@@ -46,7 +46,7 @@ export default async function BoardPage() {
         {workspace ? (
           <div className="grid gap-4 sm:gap-6 lg:grid-cols-2">
             <Card className="rounded-xl border-slate-200 shadow-sm">
-              <CardHeader className="px-4 pb-3 pt-4 sm:px-6 sm:pb-4 sm:pt-6">
+              <CardHeader className="px-4 pt-4 pb-3 sm:px-6 sm:pt-6 sm:pb-4">
                 <CardTitle className="text-base text-slate-900 sm:text-lg">
                   Branding
                 </CardTitle>
@@ -64,7 +64,7 @@ export default async function BoardPage() {
             </Card>
 
             <Card className="rounded-xl border-slate-200 shadow-sm">
-              <CardHeader className="px-4 pb-3 pt-4 sm:px-6 sm:pb-4 sm:pt-6">
+              <CardHeader className="px-4 pt-4 pb-3 sm:px-6 sm:pt-6 sm:pb-4">
                 <CardTitle className="text-base text-slate-900 sm:text-lg">
                   Public Board URL
                 </CardTitle>
@@ -82,7 +82,7 @@ export default async function BoardPage() {
           </div>
         ) : (
           <Card className="rounded-xl border-slate-200 shadow-sm">
-            <CardHeader className="px-4 pb-3 pt-4 sm:px-6 sm:pb-4 sm:pt-6">
+            <CardHeader className="px-4 pt-4 pb-3 sm:px-6 sm:pt-6 sm:pb-4">
               <CardTitle className="text-base text-slate-900 sm:text-lg">
                 No Workspace Yet
               </CardTitle>
