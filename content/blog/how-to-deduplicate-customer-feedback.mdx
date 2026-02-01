@@ -1,0 +1,303 @@
+---
+title: "How to Deduplicate Customer Feedback (and Stop Building the Same Feature Twice)"
+description: "Duplicate feature requests waste engineering time and split your voting data. Learn how to detect, merge, and manage duplicates—manually or with AI."
+date: "2026-02-01"
+category: "Product Management"
+featured: false
+image: "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?q=80&w=2070&auto=format&fit=crop"
+author:
+  name: "Plaudera Team"
+  role: "Product Team"
+tags:
+  - "customer feedback"
+  - "product management"
+  - "duplicate detection"
+  - "ai"
+---
+
+"We need dark mode."
+
+"Can you add a night theme?"
+
+"The app is too bright—black background please?"
+
+"Dark UI would be awesome."
+
+Four requests. One feature. If your feedback board treats these as separate items, you've got a duplicate problem—and it's costing you more than you think.
+
+## The Hidden Cost of Duplicate Feedback
+
+Duplicates seem like a minor annoyance. They're not. Here's what they actually cost your team:
+
+### Vote Splitting
+
+Your users want dark mode. But instead of 47 votes on one request, you have:
+
+- "Dark mode" — 18 votes
+- "Night theme" — 12 votes
+- "Dark UI option" — 9 votes
+- "Black background" — 8 votes
+
+None of these hit your "top 10" list individually. The feature that would actually win gets buried because votes are scattered across duplicates.
+
+### Roadmap Confusion
+
+Your PM looks at the feedback board and sees dark mode mentioned... somewhere. Is it a priority? The data says "maybe." In reality, it's your #1 most-requested feature hiding in plain sight.
+
+### Wasted Engineering Time
+
+Worst case? You build the feature twice. One engineer implements "night mode" while another builds "dark theme settings" because nobody realized they're the same thing.
+
+### User Frustration
+
+Users search for "dark mode," don't find it, and create a new request. Now you have five duplicate posts. Users who submitted the original feel ignored. Everyone loses.
+
+## Why Duplicates Happen in the First Place
+
+Understanding the problem helps solve it. Duplicates appear because:
+
+**Different words, same idea**: "Export to CSV" vs "Download spreadsheet" vs "Excel export" all mean the same thing to users.
+
+**Multiple channels**: The same feature gets requested via support tickets, in-app feedback, sales calls, and your public board—each logged separately.
+
+**Time gaps**: Someone requested "mobile app" two years ago. A new user requests it today without finding the old post.
+
+**Specificity differences**: "Better search" and "search should support filters" are related but not identical. Are they duplicates? It depends.
+
+**Language barriers**: Non-native speakers describe features differently. "Make notifications less" vs "notification preferences" vs "do not disturb mode."
+
+## Manual Deduplication: A Step-by-Step Process
+
+If you're handling duplicates manually, here's a systematic approach:
+
+### Step 1: Establish Naming Conventions
+
+Create a standard format for feature requests:
+
+**Good**: `[Category] Feature name - Brief description`
+
+- `[UI] Dark mode - System-wide dark color theme`
+- `[Export] CSV download - Export data as spreadsheet`
+
+**Bad**: Whatever users type
+
+- `can u add dark mode plz`
+- `THE APP IS TOO BRIGHT`
+
+You can't control what users submit, but you _can_ rename and categorize posts after the fact.
+
+### Step 2: Regular Duplicate Audits
+
+Schedule weekly or bi-weekly "duplicate sweeps":
+
+1. Sort requests by newest first
+2. Search for keywords from each new request
+3. Check for similar existing requests
+4. Merge or link related posts
+
+This takes 30-60 minutes per week depending on feedback volume.
+
+### Step 3: Create Merge Policies
+
+Define clear rules for what counts as a duplicate:
+
+**Merge when**:
+
+- Requests describe the identical feature in different words
+- One request is a subset of another (specific → general)
+- The implementation would be the same regardless of wording
+
+**Keep separate when**:
+
+- Requests have different use cases, even if related
+- One is a feature, the other is a bug report
+- Implementation would actually differ
+
+### Step 4: Communicate Merges
+
+When you merge duplicates, notify affected users:
+
+> "Hi [Name], we merged your request 'night theme' with our existing 'dark mode' request. Your vote has been transferred, and you'll receive updates as this feature progresses. Thanks for the feedback!"
+
+This closes the loop and shows users their input matters.
+
+## AI-Assisted Deduplication: The Modern Approach
+
+Manual deduplication doesn't scale. Once you're getting 10+ requests per day, you need automation.
+
+### How AI Duplicate Detection Works
+
+Modern AI-powered tools (like Plaudera) use semantic similarity to catch duplicates:
+
+1. **Embedding generation**: Each request gets converted into a numerical representation capturing its meaning—not just keywords
+2. **Similarity comparison**: New requests are compared against existing ones
+3. **Threshold matching**: If similarity exceeds a threshold (typically 55-70%), the system flags a potential duplicate
+4. **Human review**: You approve or reject the merge suggestion
+
+The key insight: AI understands that "dark mode" and "night theme" mean the same thing, even though they share zero words.
+
+### AI vs. Keyword Matching
+
+Traditional tools use keyword matching. They'd catch "dark mode" and "dark mode please" but miss "night theme" entirely.
+
+AI catches semantic duplicates that keyword matching never would:
+
+| Request A        | Request B              | Keyword Match? | AI Match? |
+| ---------------- | ---------------------- | -------------- | --------- |
+| "Dark mode"      | "Night theme"          | No             | Yes       |
+| "Export to PDF"  | "Download as PDF file" | Partial        | Yes       |
+| "Faster loading" | "App is slow"          | No             | Yes       |
+| "Mobile app"     | "iPhone version"       | No             | Yes       |
+
+### The Best Workflow: AI + Human Review
+
+Don't let AI merge automatically (at least not at first). The ideal workflow:
+
+1. **AI suggests**: System flags "Night theme" as a potential duplicate of "Dark mode"
+2. **Human reviews**: You verify it's actually a duplicate
+3. **One-click merge**: Approve the merge, consolidate votes automatically
+4. **User notification**: System notifies affected users
+
+This combines AI speed with human judgment. Over time, as you trust the system, you can increase automation.
+
+## Merge Best Practices
+
+### When to Merge
+
+**Do merge**:
+
+- Identical features described differently
+- Specific requests that fit under a broader feature
+- Old requests that got resubmitted
+
+**Don't merge**:
+
+- Related but distinct features (keep them linked instead)
+- Bug reports with feature requests
+- Requests for different platforms (iOS vs Android)
+
+### Preserving Context
+
+When merging, preserve valuable context from both requests:
+
+- **Consolidate votes**: All voters from both posts should count
+- **Keep comments**: Merge comment threads or link to the original
+- **Note the merge**: Add an internal note explaining what was combined
+
+### Handling Edge Cases
+
+**Partial overlaps**: Request A wants "dark mode." Request B wants "dark mode + custom accent colors." These aren't quite duplicates. Options:
+
+1. Keep separate and link them
+2. Merge into "Theme customization" with dark mode as first milestone
+3. Implement dark mode and keep custom colors as a follow-up
+
+**Feature vs. bug**: "App crashes in dark mode" isn't a duplicate of "add dark mode"—it's a bug report. Keep these separate.
+
+**Platform-specific**: "Dark mode on iOS" vs "Dark mode on Android" might be one feature or two, depending on your architecture.
+
+## Creating a Duplicate Handling Policy
+
+Document your approach so your whole team handles duplicates consistently:
+
+---
+
+### Sample Policy: Duplicate Feature Request Guidelines
+
+**Definition**: A duplicate is a feature request that describes the same functionality as an existing request, regardless of wording.
+
+**Detection**:
+
+- AI flags potential duplicates automatically
+- Team reviews suggestions within 24 hours
+- Weekly manual audit catches anything AI missed
+
+**Merge criteria**:
+
+- Implementation would be identical
+- User intent is the same
+- One request doesn't add meaningful scope beyond the other
+
+**Keep separate when**:
+
+- Different use cases require different implementations
+- Platform-specific considerations apply
+- One is significantly broader in scope
+
+**Merge process**:
+
+1. Review AI suggestion or identify duplicate manually
+2. Consolidate votes to the older/better-titled request
+3. Update title/description if the newer request had better framing
+4. Send notification to affected voters
+5. Add internal note documenting the merge
+
+**Responsibility**: Product team reviews duplicates; support team flags suspected duplicates they notice.
+
+---
+
+## Tools That Handle Duplicates Well
+
+Not all feedback tools treat duplicates seriously. Here's what to look for:
+
+**AI-powered detection**: Catches semantic duplicates, not just keyword matches. Plaudera and Canny both offer this.
+
+**Merge with vote consolidation**: Votes should transfer automatically. Some tools make you do this manually (painful at scale).
+
+**Merge history**: You should be able to see what was merged and undo if needed.
+
+**User notifications**: Automated emails to affected users when their request gets merged.
+
+**Suggestion queue**: A dedicated view for reviewing potential duplicates, not scattered alerts.
+
+## The ROI of Good Duplicate Management
+
+Let's put numbers to this:
+
+**Without duplicate detection**:
+
+- 500 feature requests, ~30% are duplicates (150 duplicates)
+- 2 hours/week manual auditing = 104 hours/year
+- Vote splitting hides your top 3 most-requested features
+- You build one feature twice (let's say 2 dev weeks wasted)
+
+**With AI duplicate detection**:
+
+- 150 duplicates auto-flagged, 5 minutes each to review = 12.5 hours/year
+- Clear priority data because votes consolidate automatically
+- Zero duplicate features built
+
+**Time saved**: 90+ hours/year
+**Better decisions**: Priceless
+
+## Getting Started
+
+If duplicate feedback is already a problem, here's your action plan:
+
+### Week 1: Audit
+
+Go through your existing requests. Identify obvious duplicates. Merge them manually to establish a clean baseline.
+
+### Week 2: Policy
+
+Document your duplicate handling policy (use our template above). Share with your team.
+
+### Week 3: Tooling
+
+If you're still on spreadsheets or a tool without duplicate detection, consider switching. The time savings compound quickly.
+
+### Ongoing: Review
+
+Whether AI-assisted or manual, make duplicate review part of your weekly routine. 15 minutes prevents hours of confusion later.
+
+---
+
+## Stop Losing Votes to Duplicates
+
+Plaudera's AI duplicate detection automatically finds and merges similar requests—so your voting data actually reflects what users want.
+
+[Try AI duplicate detection free](/pricing) | [See how it works](/)
+
+---
+
+_Already drowning in duplicates? We can help you clean up your feedback backlog. [Talk to us](/contact)._
