@@ -24,12 +24,12 @@ export function BoardHeader({
   return (
     <header className="rounded-xl border border-slate-200 bg-white px-4 py-3 dark:border-slate-700 dark:bg-slate-800">
       <div className="flex flex-col gap-3">
-        {/* Title row */}
-        <div className="flex items-center justify-between gap-4">
-          <h1 className="truncate text-2xl font-bold text-slate-900 dark:text-white">
+        {/* Title row - stacked on mobile, inline on desktop */}
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+          <h1 className="text-center text-2xl font-bold text-slate-900 sm:truncate sm:text-left dark:text-white">
             {workspaceName}
           </h1>
-          <div className="flex shrink-0 items-center gap-2">
+          <div className="flex items-center justify-center gap-2 sm:shrink-0 sm:justify-end">
             <AuthStatusPill
               contributor={contributor}
               onLogin={onLogin}

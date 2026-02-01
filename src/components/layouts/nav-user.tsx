@@ -18,6 +18,7 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  useSidebar,
 } from "@/components/ui/sidebar";
 import { signOut } from "@/lib/auth-client";
 
@@ -55,6 +56,8 @@ export function NavUser({
   expiresAt,
 }: NavUserProps) {
   const router = useRouter();
+  const { isMobile, setOpenMobile } = useSidebar();
+
   const initials = user.name
     ? user.name
         .split(" ")
@@ -77,6 +80,68 @@ export function NavUser({
     return formatPlanName(plan);
   };
 
+  const handleSignOut = () => {
+    signOut({
+      fetchOptions: {
+        onSuccess: () => {
+          router.push("/");
+        },
+      },
+    });
+  };
+
+  // Mobile: Expanded layout with direct actions (no dropdown)
+  if (isMobile) {
+    return (
+      <div className="flex flex-col gap-1">
+        {/* User Info Card */}
+        <div className="flex items-center gap-3 px-2 py-3" id="tour-nav-user">
+          <Avatar className="h-8 w-8 shrink-0 rounded-full">
+            <AvatarImage
+              src={user.image || undefined}
+              alt={user.name || user.email}
+            />
+            <AvatarFallback className="rounded-full">{initials}</AvatarFallback>
+          </Avatar>
+          <div className="grid min-w-0 flex-1 text-left text-sm leading-tight">
+            <span className="truncate font-semibold">
+              {user.name || user.email}
+            </span>
+            <span className="text-muted-foreground truncate text-xs">
+              {getPlanDisplay()}
+            </span>
+          </div>
+        </div>
+
+        {/* Separator */}
+        <div className="bg-sidebar-border mx-2 h-px" />
+
+        {/* Direct Actions */}
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton
+              asChild
+              className="h-9"
+              onClick={() => setOpenMobile(false)}
+            >
+              <Link href="/dashboard/account">
+                <User className="h-4 w-4" />
+                <span>Account</span>
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+          <SidebarMenuItem>
+            <SidebarMenuButton className="h-9" onClick={handleSignOut}>
+              <LogOut className="h-4 w-4" />
+              <span>Sign out</span>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        </SidebarMenu>
+      </div>
+    );
+  }
+
+  // Desktop: Existing dropdown behavior
   return (
     <SidebarMenu>
       <SidebarMenuItem>
@@ -144,17 +209,7 @@ export function NavUser({
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
-            <DropdownMenuItem
-              onClick={() =>
-                signOut({
-                  fetchOptions: {
-                    onSuccess: () => {
-                      router.push("/");
-                    },
-                  },
-                })
-              }
-            >
+            <DropdownMenuItem onClick={handleSignOut}>
               <LogOut className="mr-2 h-4 w-4" />
               Sign out
             </DropdownMenuItem>

@@ -111,7 +111,7 @@ export default async function DashboardLayout({
           {subscription.status === "TRIALING" && subscription.expiresAt && (
             <TrialBanner endsAt={subscription.expiresAt} />
           )}
-          <main className="flex-1 p-6">{children}</main>
+          <main className="flex-1 p-3 sm:p-4 lg:p-6">{children}</main>
         </SidebarInset>
       </SidebarProvider>
     </OnboardingProvider>

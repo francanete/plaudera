@@ -14,7 +14,7 @@ import { PricingSection } from "@/components/pricing/pricing-section";
 import { HowItWorksSection } from "@/components/how-it-works/how-it-works-section";
 
 export const metadata: Metadata = seo.page({
-  title: "Customer Feedback & Idea Management for Product Teams",
+  title: "Customer Feedback Tool & Feature Request Board",
   description:
     "Collect, organize, and prioritize customer feedback with public boards, embeddable widgets, voting, and AI-powered duplicate detection.",
   path: "/",

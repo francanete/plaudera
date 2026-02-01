@@ -352,23 +352,25 @@ export function WidgetSection({
   };
 
   return (
-    <div className="grid gap-6 lg:grid-cols-2">
+    <div className="grid gap-4 sm:gap-6 lg:grid-cols-2">
       {/* Appearance Card */}
       <Card className="rounded-xl border-slate-200 shadow-sm">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-slate-900">
-            <Palette className="h-5 w-5" />
+        <CardHeader className="px-4 pt-4 pb-3 sm:px-6 sm:pt-6 sm:pb-4">
+          <CardTitle className="flex items-center gap-2 text-base text-slate-900 sm:text-lg">
+            <Palette className="h-4 w-4 sm:h-5 sm:w-5" />
             Appearance
           </CardTitle>
-          <CardDescription>
+          <CardDescription className="text-sm">
             Configure how the widget button looks and behaves on your site.
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-6">
+        <CardContent className="space-y-5 px-4 pb-4 sm:space-y-6 sm:px-6 sm:pb-6">
           {/* Position selector */}
-          <div className="space-y-3">
+          <div className="space-y-2 sm:space-y-3">
             <div className="flex items-center gap-2">
-              <Label className="text-slate-700">Button Position</Label>
+              <Label className="text-sm text-slate-700 sm:text-base">
+                Button Position
+              </Label>
               {isPending && (
                 <Loader2 className="h-4 w-4 animate-spin text-slate-400" />
               )}
@@ -376,14 +378,14 @@ export function WidgetSection({
             <RadioGroup
               value={position}
               onValueChange={(v) => handlePositionChange(v as WidgetPosition)}
-              className="flex gap-4"
+              className="flex flex-col gap-2 sm:flex-row sm:gap-4"
               disabled={isPending}
             >
               <div className="flex items-center space-x-2">
                 <RadioGroupItem value="bottom-left" id="bottom-left" />
                 <Label
                   htmlFor="bottom-left"
-                  className="cursor-pointer font-normal text-slate-600"
+                  className="cursor-pointer text-sm font-normal text-slate-600"
                 >
                   Bottom Left
                 </Label>
@@ -392,7 +394,7 @@ export function WidgetSection({
                 <RadioGroupItem value="bottom-right" id="bottom-right" />
                 <Label
                   htmlFor="bottom-right"
-                  className="cursor-pointer font-normal text-slate-600"
+                  className="cursor-pointer text-sm font-normal text-slate-600"
                 >
                   Bottom Right
                 </Label>
@@ -401,15 +403,18 @@ export function WidgetSection({
           </div>
 
           {/* Show Label toggle */}
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Type className="h-4 w-4 text-slate-500" />
-                <Label htmlFor="show-label" className="text-slate-700">
+          <div className="space-y-2 sm:space-y-3">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex min-w-0 items-center gap-2">
+                <Type className="h-4 w-4 flex-shrink-0 text-slate-500" />
+                <Label
+                  htmlFor="show-label"
+                  className="text-sm text-slate-700 sm:text-base"
+                >
                   Show &quot;Feedback&quot; label
                 </Label>
                 {isLabelPending && (
-                  <Loader2 className="h-4 w-4 animate-spin text-slate-400" />
+                  <Loader2 className="h-4 w-4 flex-shrink-0 animate-spin text-slate-400" />
                 )}
               </div>
               <Switch
@@ -417,9 +422,10 @@ export function WidgetSection({
                 checked={showLabel}
                 onCheckedChange={handleShowLabelChange}
                 disabled={isLabelPending}
+                className="flex-shrink-0"
               />
             </div>
-            <p className="text-sm text-slate-500">
+            <p className="text-xs text-slate-500 sm:text-sm">
               When enabled, the widget button expands on hover to show
               &quot;Feedback&quot; text. When disabled, only the icon is shown.
             </p>
@@ -438,41 +444,43 @@ export function WidgetSection({
       </Card>
 
       {/* Embed Code Card */}
-      <Card className="rounded-xl border-slate-200 shadow-sm">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-slate-900">
-            <Code2 className="h-5 w-5" />
+      <Card className="overflow-hidden rounded-xl border-slate-200 shadow-sm">
+        <CardHeader className="px-4 pt-4 pb-3 sm:px-6 sm:pt-6 sm:pb-4">
+          <CardTitle className="flex items-center gap-2 text-base text-slate-900 sm:text-lg">
+            <Code2 className="h-4 w-4 sm:h-5 sm:w-5" />
             Embed Code
           </CardTitle>
-          <CardDescription>
+          <CardDescription className="text-sm">
             Add this code to your website to display the feedback widget.
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="relative">
-            <pre className="overflow-x-auto rounded-lg bg-slate-100 p-4 text-sm">
-              <code className="text-slate-700">{embedCode}</code>
+        <CardContent className="space-y-3 px-4 pb-4 sm:space-y-4 sm:px-6 sm:pb-6">
+          <div className="relative min-w-0">
+            <pre className="max-w-full overflow-x-auto rounded-lg bg-slate-100 p-3 pr-16 text-xs sm:p-4 sm:pr-20 sm:text-sm">
+              <code className="block whitespace-pre text-slate-700">
+                {embedCode}
+              </code>
             </pre>
             <Button
               size="sm"
               variant="secondary"
-              className="absolute top-2 right-2"
+              className="absolute top-2 right-2 h-7 px-2 text-xs sm:h-8 sm:px-3 sm:text-sm"
               onClick={handleCopy}
             >
               {copied ? (
                 <>
-                  <Check className="mr-1 h-4 w-4" />
-                  Copied
+                  <Check className="mr-1 h-3 w-3 sm:h-4 sm:w-4" />
+                  <span className="xs:inline hidden">Copied</span>
                 </>
               ) : (
                 <>
-                  <Copy className="mr-1 h-4 w-4" />
-                  Copy
+                  <Copy className="mr-1 h-3 w-3 sm:h-4 sm:w-4" />
+                  <span className="xs:inline hidden">Copy</span>
                 </>
               )}
             </Button>
           </div>
-          <p className="text-sm text-slate-500">
+          <p className="text-xs text-slate-500 sm:text-sm">
             Paste this code before the closing <code>&lt;/body&gt;</code> tag on
             your website.
           </p>
@@ -481,17 +489,17 @@ export function WidgetSection({
 
       {/* Allowed Domains Card */}
       <Card className="rounded-xl border-slate-200 shadow-sm">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-slate-900">
-            <Globe className="h-5 w-5" />
+        <CardHeader className="px-4 pt-4 pb-3 sm:px-6 sm:pt-6 sm:pb-4">
+          <CardTitle className="flex items-center gap-2 text-base text-slate-900 sm:text-lg">
+            <Globe className="h-4 w-4 sm:h-5 sm:w-5" />
             Allowed Domains
           </CardTitle>
-          <CardDescription>
+          <CardDescription className="text-sm">
             Configure which websites can embed your feedback widget. Your
             app&apos;s domain is always allowed.
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-3 px-4 pb-4 sm:space-y-4 sm:px-6 sm:pb-6">
           {/* Add domain input */}
           <div className="flex gap-2">
             <Input
@@ -510,7 +518,7 @@ export function WidgetSection({
               disabled={
                 isOriginPending || allowedOrigins.length >= MAX_ALLOWED_ORIGINS
               }
-              className="flex-1 border-slate-200 focus:border-indigo-300 focus:ring-indigo-200"
+              className="min-w-0 flex-1 border-slate-200 text-sm focus:border-indigo-300 focus:ring-indigo-200"
             />
             <Button
               onClick={handleAddOrigin}
@@ -518,16 +526,19 @@ export function WidgetSection({
                 isOriginPending || allowedOrigins.length >= MAX_ALLOWED_ORIGINS
               }
               size="sm"
+              className="flex-shrink-0"
             >
               {isOriginPending ? (
-                <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+                <Loader2 className="h-4 w-4 animate-spin sm:mr-1" />
               ) : (
-                <Plus className="mr-1 h-4 w-4" />
+                <Plus className="h-4 w-4 sm:mr-1" />
               )}
-              Add
+              <span className="hidden sm:inline">Add</span>
             </Button>
           </div>
-          {originError && <p className="text-sm text-red-600">{originError}</p>}
+          {originError && (
+            <p className="text-xs text-red-600 sm:text-sm">{originError}</p>
+          )}
 
           {/* Domain list */}
           {allowedOrigins.length > 0 ? (
@@ -535,9 +546,9 @@ export function WidgetSection({
               {allowedOrigins.map((origin) => (
                 <li
                   key={origin}
-                  className="flex items-center justify-between rounded-md bg-slate-50 px-3 py-2"
+                  className="flex items-center justify-between gap-2 rounded-md bg-slate-50 px-2 py-1.5 sm:px-3 sm:py-2"
                 >
-                  <span className="truncate font-mono text-sm text-slate-700">
+                  <span className="min-w-0 truncate font-mono text-xs text-slate-700 sm:text-sm">
                     {origin}
                   </span>
                   <Button
@@ -545,7 +556,7 @@ export function WidgetSection({
                     size="sm"
                     onClick={() => handleRemoveOrigin(origin)}
                     disabled={isOriginPending}
-                    className="h-6 w-6 p-0 hover:bg-red-50 hover:text-red-600"
+                    className="h-6 w-6 flex-shrink-0 p-0 hover:bg-red-50 hover:text-red-600"
                   >
                     <X className="h-4 w-4" />
                     <span className="sr-only">Remove {origin}</span>
@@ -554,10 +565,10 @@ export function WidgetSection({
               ))}
             </ul>
           ) : (
-            <div className="rounded-md border border-amber-200 bg-amber-50 p-4">
-              <div className="flex gap-3">
-                <AlertTriangle className="h-5 w-5 flex-shrink-0 text-amber-500" />
-                <div className="text-sm">
+            <div className="rounded-md border border-amber-200 bg-amber-50 p-3 sm:p-4">
+              <div className="flex gap-2 sm:gap-3">
+                <AlertTriangle className="h-4 w-4 flex-shrink-0 text-amber-500 sm:h-5 sm:w-5" />
+                <div className="text-xs sm:text-sm">
                   <p className="font-medium text-amber-800">
                     No domains configured
                   </p>
@@ -578,21 +589,21 @@ export function WidgetSection({
 
       {/* Page Targeting Card */}
       <Card className="rounded-xl border-slate-200 shadow-sm">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-slate-900">
-            <Route className="h-5 w-5" />
+        <CardHeader className="px-4 pt-4 pb-3 sm:px-6 sm:pt-6 sm:pb-4">
+          <CardTitle className="flex items-center gap-2 text-base text-slate-900 sm:text-lg">
+            <Route className="h-4 w-4 sm:h-5 sm:w-5" />
             Page Targeting
           </CardTitle>
-          <CardDescription>
+          <CardDescription className="text-sm">
             Specify which pages should show the widget using path patterns.
-            Leave empty to show the widget on all pages.
+            Leave empty to show on all pages.
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-3 px-4 pb-4 sm:space-y-4 sm:px-6 sm:pb-6">
           {/* Add rule input */}
           <div className="flex gap-2">
             <Input
-              placeholder="/pricing, /docs/**, /blog/*"
+              placeholder="/pricing, /docs/**"
               value={newRule}
               onChange={(e) => {
                 setNewRule(e.target.value);
@@ -605,22 +616,25 @@ export function WidgetSection({
                 }
               }}
               disabled={isRulePending || pageRules.length >= MAX_PAGE_RULES}
-              className="flex-1 border-slate-200 focus:border-indigo-300 focus:ring-indigo-200"
+              className="min-w-0 flex-1 border-slate-200 text-sm focus:border-indigo-300 focus:ring-indigo-200"
             />
             <Button
               onClick={handleAddRule}
               disabled={isRulePending || pageRules.length >= MAX_PAGE_RULES}
               size="sm"
+              className="flex-shrink-0"
             >
               {isRulePending ? (
-                <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+                <Loader2 className="h-4 w-4 animate-spin sm:mr-1" />
               ) : (
-                <Plus className="mr-1 h-4 w-4" />
+                <Plus className="h-4 w-4 sm:mr-1" />
               )}
-              Add
+              <span className="hidden sm:inline">Add</span>
             </Button>
           </div>
-          {ruleError && <p className="text-sm text-red-600">{ruleError}</p>}
+          {ruleError && (
+            <p className="text-xs text-red-600 sm:text-sm">{ruleError}</p>
+          )}
 
           {/* Rules list */}
           {pageRules.length > 0 ? (
@@ -628,9 +642,9 @@ export function WidgetSection({
               {pageRules.map((rule) => (
                 <li
                   key={rule}
-                  className="flex items-center justify-between rounded-md bg-slate-50 px-3 py-2"
+                  className="flex items-center justify-between gap-2 rounded-md bg-slate-50 px-2 py-1.5 sm:px-3 sm:py-2"
                 >
-                  <span className="truncate font-mono text-sm text-slate-700">
+                  <span className="min-w-0 truncate font-mono text-xs text-slate-700 sm:text-sm">
                     {rule}
                   </span>
                   <Button
@@ -638,7 +652,7 @@ export function WidgetSection({
                     size="sm"
                     onClick={() => handleRemoveRule(rule)}
                     disabled={isRulePending}
-                    className="h-6 w-6 p-0 hover:bg-red-50 hover:text-red-600"
+                    className="h-6 w-6 flex-shrink-0 p-0 hover:bg-red-50 hover:text-red-600"
                   >
                     <X className="h-4 w-4" />
                     <span className="sr-only">Remove {rule}</span>
@@ -647,7 +661,7 @@ export function WidgetSection({
               ))}
             </ul>
           ) : (
-            <p className="rounded-md border border-dashed border-slate-200 p-4 text-center text-sm text-slate-500">
+            <p className="rounded-md border border-dashed border-slate-200 p-3 text-center text-xs text-slate-500 sm:p-4 sm:text-sm">
               No page rules configured. The widget will show on all pages.
             </p>
           )}

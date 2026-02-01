@@ -66,7 +66,7 @@ export interface FeaturesSectionConfig {
 export const homepageFeaturesConfig: FeaturesSectionConfig = {
   id: "features",
   header: {
-    title: "One place for every feature request",
+    title: "Your feature request board & feedback widget in one place",
     description:
       "Public boards for voting. An embeddable widget for in-app feedback. AI that merges duplicates automatically.",
   },
