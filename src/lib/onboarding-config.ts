@@ -32,26 +32,19 @@ export const onboardingFlows: Record<string, OnboardingFlow> = {
     autoStartDelay: 500,
     steps: [
       {
-        id: "chat",
-        title: "AI Chat",
-        content: "Chat with AI to get help with your projects and tasks.",
-        selector: "#tour-nav-chat",
-        position: "right",
-        desktopOnly: true,
-      },
-      {
-        id: "projects",
-        title: "Your Projects",
+        id: "public-board",
+        title: "Your Public Board",
         content:
-          "Track all your active projects here. This is your command center.",
-        selector: "#tour-stat-projects",
+          "Share this link with your users to collect feedback. Copy or open it to see your board in action.",
+        selector: "#tour-public-board",
         position: "bottom",
       },
       {
-        id: "plan",
-        title: "Your Plan",
-        content: "View your current subscription plan and usage limits.",
-        selector: "#tour-stat-plan",
+        id: "pending-review",
+        title: "Pending Reviews",
+        content:
+          "New ideas land here for your review. Click to approve or manage submissions from your users.",
+        selector: "#tour-stat-pending",
         position: "bottom",
       },
       {
@@ -93,6 +86,23 @@ export const onboardingFlows: Record<string, OnboardingFlow> = {
         content:
           "View your current plan, billing cycle, and manage your subscription. You're all set!",
         selector: "#tour-settings-billing",
+        position: "top",
+      },
+    ],
+  },
+  widgetPreview: {
+    id: "widgetPreview",
+    name: "Widget Preview Tour",
+    description: "See how your feedback widget works",
+    autoStart: true,
+    autoStartDelay: 1000,
+    steps: [
+      {
+        id: "widget-button",
+        title: "Your Feedback Widget",
+        content:
+          "This is your feedback widget! Click it to open the feedback panel where users can submit ideas and vote.",
+        selector: "#tour-widgetPreview-widget-button",
         position: "top",
       },
     ],

@@ -38,7 +38,10 @@ export function PublicBoardCard({ boardUrl }: PublicBoardCardProps) {
   };
 
   return (
-    <Card className="border-gray-200 bg-gray-50 transition-shadow hover:shadow-md dark:border-gray-800 dark:bg-gray-900">
+    <Card
+      id="tour-public-board"
+      className="border-gray-200 bg-gray-50 transition-shadow hover:shadow-md dark:border-gray-800 dark:bg-gray-900"
+    >
       <CardContent className="flex flex-col items-start gap-4 py-4 sm:flex-row sm:items-center">
         <div className="rounded-full bg-gray-200 p-3 dark:bg-gray-700">
           <Globe className="h-6 w-6 text-gray-600 dark:text-gray-300" />

@@ -69,15 +69,18 @@ export function HeroSection({ className }: HeroSectionProps) {
                 New
               </span>
               <span className="text-sm font-medium text-slate-600">
-                AI duplicate detection is here
+                AI duplicate detection
               </span>
               <ChevronRight className="h-3 w-3 text-slate-400" />
             </div>
 
             {/* Headline */}
-            <h1 className="mb-8 text-5xl font-bold tracking-tight text-slate-900 sm:text-6xl lg:text-7xl">
-              Your customers know <br />
-              <span className="text-slate-400">what to build next</span>
+            <h1 className="mb-8 text-4xl font-bold tracking-tight text-slate-900 sm:text-5xl lg:text-6xl">
+              Stop guessing.
+              <br />
+              <span className="text-slate-400">
+                Start building what users actually want.
+              </span>
             </h1>
 
             {/* Subheadline */}
@@ -90,9 +93,9 @@ export function HeroSection({ className }: HeroSectionProps) {
                   : "translate-y-8 opacity-0"
               )}
             >
-              Collect feedback with public boards and embeddable widgets. Let
-              users vote on ideas, and let AI surface duplicates — so you focus
-              on shipping what matters.
+              Collect feature requests in one place. Let users vote on
+              priorities. Ship the ideas that matter most — with AI handling the
+              duplicates.
             </p>
 
             {/* CTAs */}
@@ -111,7 +114,7 @@ export function HeroSection({ className }: HeroSectionProps) {
                 className="h-12 rounded-full bg-slate-900 px-8 text-base font-semibold text-white shadow-lg shadow-slate-900/20 transition-all hover:-translate-y-0.5 hover:bg-slate-800 hover:shadow-xl hover:shadow-slate-900/30"
               >
                 <Link href="/signup">
-                  Start Collecting Feedback
+                  Start free trial
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Link>
               </Button>
@@ -122,7 +125,7 @@ export function HeroSection({ className }: HeroSectionProps) {
                 asChild
                 className="h-12 rounded-full px-8 text-base font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-900"
               >
-                <Link href="/pricing">View Pricing</Link>
+                <Link href="/pricing">See Pricing</Link>
               </Button>
             </div>
 
@@ -138,15 +141,15 @@ export function HeroSection({ className }: HeroSectionProps) {
             >
               <div className="flex items-center gap-2">
                 <CheckCircle2 className="h-4 w-4 text-slate-400" />
-                <span>Free plan available</span>
+                <span>Start free trial</span>
               </div>
               <div className="flex items-center gap-2">
                 <CheckCircle2 className="h-4 w-4 text-slate-400" />
-                <span>5-minute setup</span>
+                <span>Setup in 5 minutes</span>
               </div>
               <div className="flex items-center gap-2">
                 <CheckCircle2 className="h-4 w-4 text-slate-400" />
-                <span>No code required</span>
+                <span>No code needed</span>
               </div>
             </div>
           </div>

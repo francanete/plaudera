@@ -111,8 +111,8 @@ export const appConfig: AppConfig = {
     tiers: {
       STARTER: {
         enabled: true,
-        prices: { ltd: 6700, monthly: 2400, annual: 24000 },
-        originalPrices: { ltd: 9900, monthly: 2400, annual: 28800 },
+        prices: { ltd: 6700, monthly: 1900, annual: 19000 },
+        originalPrices: { ltd: 9900, monthly: 1900, annual: 22800 },
         polarProductIds: {
           ltd: "64e937b4-4da7-4c09-9bd3-f38f440799e1",
           monthly: "64e937b4-4da7-4c09-9bd3-f38f440799e1",
@@ -120,13 +120,19 @@ export const appConfig: AppConfig = {
         },
         marketing: {
           name: "Starter",
-          description: "For professionals and small teams",
+          description:
+            "Everything you need to collect and manage customer feedback",
           features: [
-            "Advanced analytics",
-            "Custom integrations",
-            "Team collaboration",
+            "Public feedback board with custom URL",
+            "Embeddable widget for any website",
+            "AI-powered duplicate detection",
+            "Unlimited idea submissions",
+            "Contributor voting system",
+            "Dashboard analytics",
+            "Widget customization (position, colors, page rules)",
+            "AI insights chat",
           ],
-          cta: "START FREE",
+          cta: "GET STARTED",
           highlighted: false,
         },
       },
@@ -179,17 +185,21 @@ export const appConfig: AppConfig = {
       name: "Free",
       description: "For individuals getting started",
       features: [
-        "Up to 3 projects",
-        "Basic analytics",
+        "1 feedback board",
+        "Up to 50 ideas",
+        "Basic widget embed",
         "Community support",
-        "API access",
       ],
       cta: "Get Started",
       highlighted: false,
     } satisfies TierMarketing,
 
     /** Extra features for LTD plans (appended to tier features) */
-    ltdExtraFeatures: ["Lifetime updates", "No recurring fees"],
+    ltdExtraFeatures: [
+      "Lifetime access to all features",
+      "All future updates included",
+      "No recurring fees ever",
+    ],
   },
   plans: {
     hierarchy: {
