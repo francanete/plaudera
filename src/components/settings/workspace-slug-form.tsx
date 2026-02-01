@@ -177,12 +177,12 @@ export function WorkspaceSlugForm({
                 href={previewUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="group mt-3 flex items-center justify-between rounded-lg border border-slate-100 bg-slate-50 px-3 py-2 transition-colors hover:border-slate-200 hover:bg-slate-100"
+                className="group mt-3 flex items-center justify-between gap-2 rounded-lg border border-slate-100 bg-slate-50 px-2 py-2 transition-colors hover:border-slate-200 hover:bg-slate-100 sm:px-3"
               >
-                <span className="truncate text-sm text-slate-600">
+                <span className="min-w-0 flex-1 truncate text-xs text-slate-600 sm:text-sm">
                   {previewUrl}
                 </span>
-                <ArrowUpRight className="ml-2 h-4 w-4 flex-shrink-0 text-slate-400 transition-colors group-hover:text-slate-600" />
+                <ArrowUpRight className="h-4 w-4 flex-shrink-0 text-slate-400 transition-colors group-hover:text-slate-600" />
               </a>
 
               {availabilityError && availability !== "idle" && (
@@ -194,10 +194,10 @@ export function WorkspaceSlugForm({
         />
 
         {/* Blue-tinted Info Callout */}
-        <div className="rounded-lg border border-blue-100/50 bg-blue-50/50 px-4 py-3">
-          <div className="flex items-start gap-3">
-            <div className="mt-0.5 h-2 w-2 flex-shrink-0 rounded-full bg-blue-400" />
-            <p className="text-sm leading-relaxed text-slate-600">
+        <div className="rounded-lg border border-blue-100/50 bg-blue-50/50 px-3 py-2.5 sm:px-4 sm:py-3">
+          <div className="flex items-start gap-2 sm:gap-3">
+            <div className="mt-1 h-2 w-2 flex-shrink-0 rounded-full bg-blue-400 sm:mt-0.5" />
+            <p className="text-xs leading-relaxed text-slate-600 sm:text-sm">
               <span className="font-medium text-slate-700">
                 {remainingChanges} of {maxChanges}
               </span>{" "}
