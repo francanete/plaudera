@@ -13,9 +13,9 @@ const polarProductIdsByEnv: Record<
 > = {
   sandbox: {
     STARTER: {
-      ltd: "64e937b4-4da7-4c09-9bd3-f38f440799e1",
-      monthly: "64e937b4-4da7-4c09-9bd3-f38f440799e1",
-      annual: "64e937b4-4da7-4c09-9bd3-f38f440799e1",
+      ltd: "",
+      monthly: "09b7c379-03f4-45de-af9a-79af85d695ac",
+      annual: "94dae15a-fb93-449a-bd50-e4aa1cdbcae2",
     },
     GROWTH: { ltd: "", monthly: "", annual: "" },
     SCALE: { ltd: "", monthly: "", annual: "" },
