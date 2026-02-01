@@ -15,7 +15,13 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { CheckCircle2, XCircle, Loader2 } from "lucide-react";
+import {
+  CheckCircle2,
+  XCircle,
+  Loader2,
+  Globe,
+  ArrowUpRight,
+} from "lucide-react";
 import { updateWorkspaceSlug } from "@/app/dashboard/board/actions";
 import { slugSchema } from "@/lib/slug-validation";
 
@@ -131,69 +137,92 @@ export function WorkspaceSlugForm({
   const remainingChanges = maxChanges - changesUsed;
   const isUnchanged = watchedSlug === currentSlug;
 
+  const previewUrl = `${appUrl}/b/${watchedSlug || "your-slug"}`;
+
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
         <FormField
           control={form.control}
           name="slug"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Public Board URL</FormLabel>
-              <div className="flex items-center gap-2">
-                <FormControl>
-                  <div className="relative flex-1">
-                    <Input
-                      placeholder="my-brand"
-                      {...field}
-                      className="pr-10"
-                    />
-                    <div className="absolute top-1/2 right-3 -translate-y-1/2">
-                      {availability === "checking" && (
-                        <Loader2 className="text-muted-foreground h-4 w-4 animate-spin" />
-                      )}
-                      {availability === "available" && (
-                        <CheckCircle2 className="h-4 w-4 text-green-500" />
-                      )}
-                      {(availability === "taken" ||
-                        availability === "error") && (
-                        <XCircle className="h-4 w-4 text-red-500" />
-                      )}
-                    </div>
+              <FormLabel className="text-slate-700">Board Slug</FormLabel>
+              <FormControl>
+                <div className="relative">
+                  <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                    <Globe className="h-4 w-4 text-slate-400" />
                   </div>
-                </FormControl>
-              </div>
-              <FormDescription>
-                {appUrl}/b/{watchedSlug || "your-slug"}
-              </FormDescription>
+                  <Input
+                    placeholder="my-brand"
+                    {...field}
+                    className="border-slate-200 pr-10 pl-9 focus:border-indigo-300 focus:ring-indigo-200"
+                  />
+                  <div className="absolute inset-y-0 right-0 flex items-center pr-3">
+                    {availability === "checking" && (
+                      <Loader2 className="h-4 w-4 animate-spin text-slate-400" />
+                    )}
+                    {availability === "available" && (
+                      <CheckCircle2 className="h-4 w-4 text-green-500" />
+                    )}
+                    {(availability === "taken" || availability === "error") && (
+                      <XCircle className="h-4 w-4 text-red-500" />
+                    )}
+                  </div>
+                </div>
+              </FormControl>
+
+              {/* Styled URL Preview Box */}
+              <a
+                href={previewUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="group mt-3 flex items-center justify-between rounded-lg border border-slate-100 bg-slate-50 px-3 py-2 transition-colors hover:border-slate-200 hover:bg-slate-100"
+              >
+                <span className="truncate text-sm text-slate-600">
+                  {previewUrl}
+                </span>
+                <ArrowUpRight className="ml-2 h-4 w-4 flex-shrink-0 text-slate-400 transition-colors group-hover:text-slate-600" />
+              </a>
+
               {availabilityError && availability !== "idle" && (
-                <p className="text-destructive text-sm">{availabilityError}</p>
+                <p className="mt-2 text-sm text-red-500">{availabilityError}</p>
               )}
               <FormMessage />
             </FormItem>
           )}
         />
 
-        <p className="text-muted-foreground text-xs">
-          {remainingChanges} of {maxChanges} slug changes remaining. Changing
-          your slug will update your public board URL. Widget embeds are not
-          affected.
-        </p>
+        {/* Blue-tinted Info Callout */}
+        <div className="rounded-lg border border-blue-100/50 bg-blue-50/50 px-4 py-3">
+          <div className="flex items-start gap-3">
+            <div className="mt-0.5 h-2 w-2 flex-shrink-0 rounded-full bg-blue-400" />
+            <p className="text-sm leading-relaxed text-slate-600">
+              <span className="font-medium text-slate-700">
+                {remainingChanges} of {maxChanges}
+              </span>{" "}
+              slug changes remaining. Changing your slug will update your public
+              board URL. Widget embeds are not affected.
+            </p>
+          </div>
+        </div>
 
         {form.formState.errors.root && (
-          <p className="text-destructive text-sm">
+          <p className="text-sm text-red-500">
             {form.formState.errors.root.message}
           </p>
         )}
 
         <Button
           type="submit"
+          variant="secondary"
           disabled={
             isPending ||
             isUnchanged ||
             availability === "taken" ||
             availability === "checking"
           }
+          className="bg-slate-100 text-slate-700 hover:bg-slate-200"
         >
           {isPending ? "Updating..." : "Update slug"}
         </Button>

@@ -66,16 +66,16 @@ export interface FeaturesSectionConfig {
 export const homepageFeaturesConfig: FeaturesSectionConfig = {
   id: "features",
   header: {
-    title: "Everything you need to listen to your users",
+    title: "One place for every feature request",
     description:
-      "From public voting boards to embeddable widgets and AI-powered insights — Plaudera gives you the tools to collect, organize, and act on customer feedback.",
+      "Public boards for voting. An embeddable widget for in-app feedback. AI that merges duplicates automatically.",
   },
   features: [
     {
       id: "public-feedback-boards",
       title: "Public feedback boards",
       description:
-        "Give your users a voice. Let them submit ideas, vote on what matters most, and see what you're working on — all on a branded, public-facing board.",
+        "Let users submit ideas, vote on what matters, and see your roadmap — on a branded board you control.",
       icon: MessageSquare,
       mockup: FeedbackBoardMockup,
       alignment: "left",
