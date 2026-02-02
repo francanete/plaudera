@@ -5,10 +5,13 @@ import { toast } from "sonner";
 import { useContributorLogout } from "@/hooks/use-contributor-logout";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { IdeaCard, type IdeaCardData } from "./idea-card";
-import { BoardHeader } from "./board-header";
+import { BoardHeader, type BoardView } from "./board-header";
+import { RoadmapGroupedView } from "./roadmap-grouped-view";
 import { ContributorAuthDialog } from "./contributor-auth-dialog";
 import { IdeaSubmissionDialog } from "./idea-submission-dialog";
 import { Lightbulb } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { isOnRoadmap } from "@/lib/roadmap-status-config";
 
 interface PublicIdeaListProps {
   workspaceName: string;
@@ -43,6 +46,29 @@ export function PublicIdeaList({
   const pathname = usePathname();
 
   const isAuthenticated = contributor !== null;
+
+  // View state from URL
+  const viewParam = searchParams.get("view");
+  const activeView: BoardView = viewParam === "roadmap" ? "roadmap" : "ideas";
+
+  const handleViewChange = useCallback(
+    (view: BoardView) => {
+      const newParams = new URLSearchParams(searchParams);
+      if (view === "roadmap") {
+        newParams.set("view", "roadmap");
+      } else {
+        newParams.delete("view");
+      }
+      const newUrl = newParams.toString()
+        ? `${pathname}?${newParams.toString()}`
+        : pathname;
+      router.push(newUrl);
+    },
+    [searchParams, pathname, router]
+  );
+
+  // Filter ideas for roadmap view
+  const roadmapIdeas = ideas.filter((idea) => isOnRoadmap(idea.roadmapStatus));
 
   // Declare functions BEFORE the useEffect that uses them
   const refreshData = useCallback(async () => {
@@ -224,7 +250,12 @@ export function PublicIdeaList({
   // No need for client-side sorting
 
   return (
-    <div className="space-y-6">
+    <div
+      className={cn(
+        "mx-auto w-full space-y-6 transition-all duration-200",
+        activeView === "roadmap" ? "max-w-6xl" : "max-w-4xl"
+      )}
+    >
       <BoardHeader
         workspaceName={workspaceName}
         workspaceDescription={workspaceDescription}
@@ -232,9 +263,13 @@ export function PublicIdeaList({
         contributor={contributor}
         onLogout={handleLogout}
         onLogin={handleLogin}
+        activeView={activeView}
+        onViewChange={handleViewChange}
       />
 
-      {ideas.length === 0 ? (
+      {activeView === "roadmap" ? (
+        <RoadmapGroupedView ideas={roadmapIdeas} />
+      ) : ideas.length === 0 ? (
         <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-slate-300 bg-white py-16 dark:border-slate-600 dark:bg-slate-800">
           <Lightbulb className="mb-4 h-12 w-12 text-slate-400 dark:text-slate-500" />
           <h3 className="mb-2 text-lg font-semibold text-slate-900 dark:text-white">

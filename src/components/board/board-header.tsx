@@ -2,7 +2,10 @@
 
 import { Button } from "@/components/ui/button";
 import { AuthStatusPill } from "./auth-status-pill";
-import { Plus } from "lucide-react";
+import { Plus, Lightbulb, Map } from "lucide-react";
+import { cn } from "@/lib/utils";
+
+export type BoardView = "ideas" | "roadmap";
 
 interface BoardHeaderProps {
   workspaceName: string;
@@ -11,6 +14,8 @@ interface BoardHeaderProps {
   contributor?: { email: string; id: string } | null;
   onLogout?: () => Promise<void>;
   onLogin?: () => void;
+  activeView?: BoardView;
+  onViewChange?: (view: BoardView) => void;
 }
 
 export function BoardHeader({
@@ -20,6 +25,8 @@ export function BoardHeader({
   contributor,
   onLogout,
   onLogin,
+  activeView = "ideas",
+  onViewChange,
 }: BoardHeaderProps) {
   return (
     <header className="rounded-xl border border-slate-200 bg-white px-4 py-3 dark:border-slate-700 dark:bg-slate-800">
@@ -51,6 +58,36 @@ export function BoardHeader({
           <p className="text-muted-foreground max-w-3xl text-sm leading-relaxed">
             {workspaceDescription}
           </p>
+        )}
+
+        {/* View Tabs */}
+        {onViewChange && (
+          <div className="flex items-center gap-1 border-t border-slate-100 pt-3 dark:border-slate-700">
+            <button
+              onClick={() => onViewChange("ideas")}
+              className={cn(
+                "inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-all",
+                activeView === "ideas"
+                  ? "bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900"
+                  : "text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"
+              )}
+            >
+              <Lightbulb className="h-4 w-4" />
+              Ideas
+            </button>
+            <button
+              onClick={() => onViewChange("roadmap")}
+              className={cn(
+                "inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-all",
+                activeView === "roadmap"
+                  ? "bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900"
+                  : "text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"
+              )}
+            >
+              <Map className="h-4 w-4" />
+              Roadmap
+            </button>
+          </div>
         )}
       </div>
     </header>

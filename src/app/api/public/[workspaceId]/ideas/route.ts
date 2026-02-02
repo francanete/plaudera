@@ -98,11 +98,14 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     }
 
     // Transform ideas with hasVoted and isOwn fields
+    // Note: internalNote is NOT included (private to workspace owner)
     const ideasWithVoteStatus = workspaceIdeas.map((idea) => ({
       id: idea.id,
       title: idea.title,
       description: idea.description,
       status: idea.status,
+      roadmapStatus: idea.roadmapStatus,
+      publicUpdate: idea.publicUpdate,
       voteCount: idea.voteCount,
       hasVoted: votedIdeaIds.has(idea.id),
       createdAt: idea.createdAt,
@@ -201,6 +204,8 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
           title: newIdea.title,
           description: newIdea.description,
           status: newIdea.status,
+          roadmapStatus: newIdea.roadmapStatus,
+          publicUpdate: newIdea.publicUpdate,
           voteCount: newIdea.voteCount,
           hasVoted: false,
           createdAt: newIdea.createdAt,

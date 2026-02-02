@@ -28,6 +28,12 @@ export const billingTypeEnum = pgEnum("billing_type", [
   "none",
 ]);
 export const roleEnum = pgEnum("role", ["user", "admin"]);
+export const roadmapStatusEnum = pgEnum("roadmap_status", [
+  "NONE",
+  "PLANNED",
+  "IN_PROGRESS",
+  "RELEASED",
+]);
 
 // ============ Auth Tables (Better Auth) ============
 // Note: Better Auth expects specific table names. We use pluralized names
@@ -466,7 +472,12 @@ export const ideas = pgTable(
     title: text("title").notNull(),
     description: text("description"),
     status: ideaStatusEnum("status").default("UNDER_REVIEW").notNull(),
+    roadmapStatus: roadmapStatusEnum("roadmap_status")
+      .default("NONE")
+      .notNull(),
     voteCount: integer("vote_count").default(0).notNull(),
+    internalNote: text("internal_note"),
+    publicUpdate: text("public_update"),
     mergedIntoId: text("merged_into_id"),
     authorEmail: text("author_email"),
     authorName: text("author_name"),
@@ -479,6 +490,10 @@ export const ideas = pgTable(
   (table) => [
     index("ideas_workspace_id_idx").on(table.workspaceId),
     index("ideas_workspace_status_idx").on(table.workspaceId, table.status),
+    index("ideas_workspace_roadmap_status_idx").on(
+      table.workspaceId,
+      table.roadmapStatus
+    ),
     index("ideas_workspace_votes_idx").on(table.workspaceId, table.voteCount),
     index("ideas_contributor_id_idx").on(table.contributorId),
     foreignKey({
@@ -586,6 +601,26 @@ export const duplicateSuggestions = pgTable(
   ]
 );
 
+// ============ Roadmap Status Changes (Audit Log) ============
+export const roadmapStatusChanges = pgTable(
+  "roadmap_status_changes",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => createId()),
+    ideaId: text("idea_id")
+      .notNull()
+      .references(() => ideas.id, { onDelete: "cascade" }),
+    fromStatus: roadmapStatusEnum("from_status").notNull(),
+    toStatus: roadmapStatusEnum("to_status").notNull(),
+    changedBy: text("changed_by").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    changedAt: timestamp("changed_at").defaultNow().notNull(),
+  },
+  (table) => [index("roadmap_changes_idea_idx").on(table.ideaId)]
+);
+
 // ============ Workspaces Relations ============
 export const workspacesRelations = relations(workspaces, ({ one, many }) => ({
   owner: one(users, {
@@ -638,7 +673,23 @@ export const ideasRelations = relations(ideas, ({ one, many }) => ({
     fields: [ideas.id],
     references: [ideaEmbeddings.ideaId],
   }),
+  roadmapStatusChanges: many(roadmapStatusChanges),
 }));
+
+// ============ Roadmap Status Changes Relations ============
+export const roadmapStatusChangesRelations = relations(
+  roadmapStatusChanges,
+  ({ one }) => ({
+    idea: one(ideas, {
+      fields: [roadmapStatusChanges.ideaId],
+      references: [ideas.id],
+    }),
+    changedByUser: one(users, {
+      fields: [roadmapStatusChanges.changedBy],
+      references: [users.id],
+    }),
+  })
+);
 
 // ============ Votes Relations ============
 export const votesRelations = relations(votes, ({ one }) => ({
@@ -725,3 +776,6 @@ export type DuplicateSuggestionStatus =
   (typeof duplicateSuggestionStatusEnum.enumValues)[number];
 export type SlugChangeHistory = typeof slugChangeHistory.$inferSelect;
 export type NewSlugChangeHistory = typeof slugChangeHistory.$inferInsert;
+export type RoadmapStatus = (typeof roadmapStatusEnum.enumValues)[number];
+export type RoadmapStatusChange = typeof roadmapStatusChanges.$inferSelect;
+export type NewRoadmapStatusChange = typeof roadmapStatusChanges.$inferInsert;

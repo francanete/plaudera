@@ -81,6 +81,7 @@ async function EmbedContent({ workspaceId }: { workspaceId: string }) {
     id: idea.id,
     title: idea.title,
     status: idea.status,
+    roadmapStatus: idea.roadmapStatus,
     voteCount: idea.voteCount,
     hasVoted: votedIdeaIds.has(idea.id),
   }));

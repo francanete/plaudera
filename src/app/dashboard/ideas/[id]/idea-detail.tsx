@@ -1,16 +1,20 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Card } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import type { Idea, IdeaStatus } from "@/lib/db/schema";
+import type { Idea, IdeaStatus, RoadmapStatus } from "@/lib/db/schema";
 import {
   IdeaHeader,
   IdeaVoteBox,
   IdeaStatus as IdeaStatusSelector,
+  IdeaRoadmapStatus,
   IdeaDescription,
+  IdeaInternalNote,
+  IdeaPublicUpdate,
+  IdeaRoadmapHistory,
   IdeaMeta,
   IdeaMergeSection,
   IdeaDeleteDialog,
@@ -34,6 +38,13 @@ interface IdeaDetailProps {
   publishedIdeas?: PublishedIdea[];
 }
 
+interface StatusChange {
+  id: string;
+  fromStatus: RoadmapStatus;
+  toStatus: RoadmapStatus;
+  changedAt: string;
+}
+
 export function IdeaDetail({
   idea: initialIdea,
   mergedChildren = [],
@@ -48,14 +59,39 @@ export function IdeaDetail({
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
+  // Roadmap fields state
+  const [internalNote, setInternalNote] = useState(idea.internalNote || "");
+  const [publicUpdate, setPublicUpdate] = useState(idea.publicUpdate || "");
+  const [isSavingInternalNote, setIsSavingInternalNote] = useState(false);
+  const [isSavingPublicUpdate, setIsSavingPublicUpdate] = useState(false);
+  const [roadmapHistory, setRoadmapHistory] = useState<StatusChange[]>([]);
+
   // Merge state
   const [selectedParentId, setSelectedParentId] = useState<string>("");
   const [isMerging, setIsMerging] = useState(false);
   const [showMergeDialog, setShowMergeDialog] = useState(false);
   const [mergedChildrenOpen, setMergedChildrenOpen] = useState(false);
 
-  // Track if description has changed
+  // Track if fields have changed
   const descriptionChanged = description !== (idea.description || "");
+  const internalNoteChanged = internalNote !== (idea.internalNote || "");
+  const publicUpdateChanged = publicUpdate !== (idea.publicUpdate || "");
+
+  // Fetch roadmap history on mount
+  useEffect(() => {
+    async function fetchHistory() {
+      try {
+        const res = await fetch(`/api/ideas/${idea.id}/roadmap-history`);
+        if (res.ok) {
+          const data = await res.json();
+          setRoadmapHistory(data.changes);
+        }
+      } catch {
+        // Silently fail - history is not critical
+      }
+    }
+    fetchHistory();
+  }, [idea.id]);
 
   const handleTitleBlur = async () => {
     if (title === idea.title || !title.trim()) {
@@ -105,7 +141,14 @@ export function IdeaDetail({
 
   const handleStatusChange = async (newStatus: IdeaStatus) => {
     const previousStatus = idea.status;
-    setIdea({ ...idea, status: newStatus });
+    const previousRoadmapStatus = idea.roadmapStatus;
+
+    // Optimistically update - also reset roadmap status if declining
+    const updatedIdea = { ...idea, status: newStatus };
+    if (newStatus === "DECLINED" && idea.roadmapStatus !== "NONE") {
+      updatedIdea.roadmapStatus = "NONE";
+    }
+    setIdea(updatedIdea);
 
     try {
       const res = await fetch(`/api/ideas/${idea.id}`, {
@@ -116,10 +159,90 @@ export function IdeaDetail({
 
       if (!res.ok) throw new Error();
 
+      // Refresh history if roadmap status changed
+      if (newStatus === "DECLINED" && previousRoadmapStatus !== "NONE") {
+        const historyRes = await fetch(`/api/ideas/${idea.id}/roadmap-history`);
+        if (historyRes.ok) {
+          const data = await historyRes.json();
+          setRoadmapHistory(data.changes);
+        }
+      }
+
       toast.success("Status updated");
     } catch {
-      setIdea({ ...idea, status: previousStatus });
+      setIdea({
+        ...idea,
+        status: previousStatus,
+        roadmapStatus: previousRoadmapStatus,
+      });
       toast.error("Failed to update status");
+    }
+  };
+
+  const handleRoadmapStatusChange = async (newStatus: RoadmapStatus) => {
+    const previousStatus = idea.roadmapStatus;
+    setIdea({ ...idea, roadmapStatus: newStatus });
+
+    try {
+      const res = await fetch(`/api/ideas/${idea.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ roadmapStatus: newStatus }),
+      });
+
+      if (!res.ok) throw new Error();
+
+      // Refresh history
+      const historyRes = await fetch(`/api/ideas/${idea.id}/roadmap-history`);
+      if (historyRes.ok) {
+        const data = await historyRes.json();
+        setRoadmapHistory(data.changes);
+      }
+
+      toast.success("Roadmap status updated");
+    } catch {
+      setIdea({ ...idea, roadmapStatus: previousStatus });
+      toast.error("Failed to update roadmap status");
+    }
+  };
+
+  const handleSaveInternalNote = async () => {
+    setIsSavingInternalNote(true);
+    try {
+      const res = await fetch(`/api/ideas/${idea.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ internalNote: internalNote || null }),
+      });
+
+      if (!res.ok) throw new Error();
+
+      setIdea({ ...idea, internalNote: internalNote || null });
+      toast.success("Internal note saved");
+    } catch {
+      toast.error("Failed to save internal note");
+    } finally {
+      setIsSavingInternalNote(false);
+    }
+  };
+
+  const handleSavePublicUpdate = async () => {
+    setIsSavingPublicUpdate(true);
+    try {
+      const res = await fetch(`/api/ideas/${idea.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ publicUpdate: publicUpdate || null }),
+      });
+
+      if (!res.ok) throw new Error();
+
+      setIdea({ ...idea, publicUpdate: publicUpdate || null });
+      toast.success("Public update saved");
+    } catch {
+      toast.error("Failed to save public update");
+    } finally {
+      setIsSavingPublicUpdate(false);
     }
   };
 
@@ -211,6 +334,39 @@ export function IdeaDetail({
           <IdeaStatusSelector
             status={idea.status}
             onStatusChange={handleStatusChange}
+          />
+
+          <Separator className="bg-slate-100" />
+
+          {/* Roadmap Status */}
+          <div className="space-y-4">
+            <IdeaRoadmapStatus
+              status={idea.roadmapStatus}
+              onStatusChange={handleRoadmapStatusChange}
+            />
+            <IdeaRoadmapHistory changes={roadmapHistory} />
+          </div>
+
+          <Separator className="bg-slate-100" />
+
+          {/* Internal Note (Private) */}
+          <IdeaInternalNote
+            note={internalNote}
+            onNoteChange={setInternalNote}
+            onSave={handleSaveInternalNote}
+            isSaving={isSavingInternalNote}
+            hasChanges={internalNoteChanged}
+          />
+
+          <Separator className="bg-slate-100" />
+
+          {/* Public Update */}
+          <IdeaPublicUpdate
+            update={publicUpdate}
+            onUpdateChange={setPublicUpdate}
+            onSave={handleSavePublicUpdate}
+            isSaving={isSavingPublicUpdate}
+            hasChanges={publicUpdateChanged}
           />
 
           <Separator className="bg-slate-100" />
