@@ -8,19 +8,14 @@ import { Separator } from "@/components/ui/separator";
 import type { Idea, IdeaStatus, RoadmapStatus } from "@/lib/db/schema";
 import {
   IdeaHeader,
-  IdeaVoteBox,
-  IdeaStatus as IdeaStatusSelector,
-  IdeaRoadmapStatus,
-  IdeaDescription,
   IdeaInternalNote,
-  IdeaPublicUpdate,
-  IdeaFeatureDetails,
-  IdeaRoadmapHistory,
   IdeaMeta,
-  IdeaMergeSection,
   IdeaDeleteDialog,
   IdeaMergeDialog,
   IdeaMergedChildren,
+  IdeaStatusSection,
+  IdeaContentTabs,
+  IdeaDangerZone,
 } from "./components";
 
 interface MergedChild {
@@ -318,7 +313,7 @@ export function IdeaDetail({
   const selectedParent = publishedIdeas.find((i) => i.id === selectedParentId);
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       {/* Header: Back nav + Title + Merged indicator */}
       <IdeaHeader
         title={title}
@@ -329,53 +324,51 @@ export function IdeaDetail({
         mergedIntoId={idea.mergedIntoId}
       />
 
-      {/* Main Card */}
-      <Card className="border-slate-200/60 shadow-sm">
-        <div className="space-y-8 p-6">
-          {/* Title row with Vote Box */}
-          <div className="flex items-start gap-6">
-            <div className="flex-1 space-y-4">
-              {/* Merged children collapsible */}
-              <IdeaMergedChildren
-                items={mergedChildren}
-                isOpen={mergedChildrenOpen}
-                onOpenChange={setMergedChildrenOpen}
-              />
-            </div>
-            <IdeaVoteBox voteCount={idea.voteCount} />
-          </div>
+      {/* Status & Visibility Row */}
+      <IdeaStatusSection
+        status={idea.status}
+        roadmapStatus={idea.roadmapStatus}
+        voteCount={idea.voteCount}
+        onStatusChange={handleStatusChange}
+        onRoadmapStatusChange={handleRoadmapStatusChange}
+        roadmapHistory={roadmapHistory}
+      />
 
-          {/* Description */}
-          <IdeaDescription
+      {/* Merged Children (if any) */}
+      {mergedChildren.length > 0 && (
+        <IdeaMergedChildren
+          items={mergedChildren}
+          isOpen={mergedChildrenOpen}
+          onOpenChange={setMergedChildrenOpen}
+        />
+      )}
+
+      {/* Content Card: Tabs + Internal Note */}
+      <Card className="border-slate-200/60 shadow-sm">
+        <div className="space-y-6 p-6">
+          {/* Tabbed Content: Contributor's Idea, Public Update, Feature Details (conditional) */}
+          <IdeaContentTabs
             description={description}
             onDescriptionChange={setDescription}
-            onSave={handleSaveDescription}
-            isSaving={isSavingDescription}
-            hasChanges={descriptionChanged}
+            onSaveDescription={handleSaveDescription}
+            isSavingDescription={isSavingDescription}
+            hasDescriptionChanges={descriptionChanged}
+            publicUpdate={publicUpdate}
+            onPublicUpdateChange={setPublicUpdate}
+            onSavePublicUpdate={handleSavePublicUpdate}
+            isSavingPublicUpdate={isSavingPublicUpdate}
+            hasPublicUpdateChanges={publicUpdateChanged}
+            featureDetails={featureDetails}
+            onFeatureDetailsChange={setFeatureDetails}
+            onSaveFeatureDetails={handleSaveFeatureDetails}
+            isSavingFeatureDetails={isSavingFeatureDetails}
+            hasFeatureDetailsChanges={featureDetailsChanged}
+            roadmapStatus={idea.roadmapStatus}
           />
 
           <Separator className="bg-slate-100" />
 
-          {/* Status */}
-          <IdeaStatusSelector
-            status={idea.status}
-            onStatusChange={handleStatusChange}
-          />
-
-          <Separator className="bg-slate-100" />
-
-          {/* Roadmap Status */}
-          <div className="space-y-4">
-            <IdeaRoadmapStatus
-              status={idea.roadmapStatus}
-              onStatusChange={handleRoadmapStatusChange}
-            />
-            <IdeaRoadmapHistory changes={roadmapHistory} />
-          </div>
-
-          <Separator className="bg-slate-100" />
-
-          {/* Internal Note (Private) */}
+          {/* Internal Note (Private zone - visually distinct) */}
           <IdeaInternalNote
             note={internalNote}
             onNoteChange={setInternalNote}
@@ -383,52 +376,25 @@ export function IdeaDetail({
             isSaving={isSavingInternalNote}
             hasChanges={internalNoteChanged}
           />
-
-          <Separator className="bg-slate-100" />
-
-          {/* Public Update */}
-          <IdeaPublicUpdate
-            update={publicUpdate}
-            onUpdateChange={setPublicUpdate}
-            onSave={handleSavePublicUpdate}
-            isSaving={isSavingPublicUpdate}
-            hasChanges={publicUpdateChanged}
-          />
-
-          <Separator className="bg-slate-100" />
-
-          {/* Feature Details (Roadmap specs) */}
-          <IdeaFeatureDetails
-            details={featureDetails}
-            onDetailsChange={setFeatureDetails}
-            onSave={handleSaveFeatureDetails}
-            isSaving={isSavingFeatureDetails}
-            hasChanges={featureDetailsChanged}
-          />
-
-          <Separator className="bg-slate-100" />
-
-          {/* Meta + Delete */}
-          <IdeaMeta
-            createdAt={idea.createdAt}
-            authorEmail={idea.authorEmail}
-            onDeleteClick={() => setShowDeleteDialog(true)}
-          />
-
-          {/* Merge section - only show if idea is not already merged */}
-          {idea.status !== "MERGED" && publishedIdeas.length > 0 && (
-            <>
-              <Separator className="bg-slate-100" />
-              <IdeaMergeSection
-                publishedIdeas={publishedIdeas}
-                selectedParentId={selectedParentId}
-                onParentSelect={setSelectedParentId}
-                onMergeClick={() => setShowMergeDialog(true)}
-              />
-            </>
-          )}
         </div>
       </Card>
+
+      {/* Meta Card: Created date & Author (no delete button) */}
+      <Card className="border-slate-200/60 shadow-sm">
+        <div className="p-6">
+          <IdeaMeta createdAt={idea.createdAt} authorEmail={idea.authorEmail} />
+        </div>
+      </Card>
+
+      {/* Danger Zone: Collapsible section for destructive actions */}
+      <IdeaDangerZone
+        isMerged={idea.status === "MERGED"}
+        publishedIdeas={publishedIdeas}
+        selectedParentId={selectedParentId}
+        onParentSelect={setSelectedParentId}
+        onMergeClick={() => setShowMergeDialog(true)}
+        onDeleteClick={() => setShowDeleteDialog(true)}
+      />
 
       {/* Dialogs */}
       <IdeaDeleteDialog
