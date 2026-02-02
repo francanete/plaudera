@@ -1,6 +1,7 @@
 "use client";
 
 import { ThumbsUp } from "lucide-react";
+import { ExpandableText } from "@/components/ui/expandable-text";
 import type { RoadmapStatus } from "@/lib/db/schema";
 
 export interface RoadmapIdeaCardData {
@@ -34,9 +35,11 @@ export function RoadmapIdeaCard({ idea }: RoadmapIdeaCardProps) {
             {idea.title}
           </h3>
           {idea.publicUpdate && (
-            <p className="mt-1 line-clamp-3 text-sm leading-relaxed text-slate-500 dark:text-slate-400">
-              {idea.publicUpdate}
-            </p>
+            <ExpandableText maxLines={2} className="mt-1">
+              <p className="text-sm leading-relaxed whitespace-pre-line text-slate-500 dark:text-slate-400">
+                {idea.publicUpdate}
+              </p>
+            </ExpandableText>
           )}
         </div>
       </div>

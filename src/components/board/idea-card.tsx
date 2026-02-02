@@ -1,6 +1,7 @@
 "use client";
 
 import { VoteButton } from "./vote-button";
+import { ExpandableText } from "@/components/ui/expandable-text";
 import type { IdeaStatus, RoadmapStatus } from "@/lib/db/schema";
 import { IDEA_STATUS_CONFIG } from "@/lib/idea-status-config";
 import {
@@ -44,7 +45,7 @@ export function IdeaCard({
       className={cn(
         "flex gap-4 rounded-xl border bg-white p-5 transition-all duration-200 hover:shadow-md dark:bg-slate-800",
         isOwnPending
-          ? "border-amber-200 bg-gradient-to-r from-amber-50/50 to-white dark:border-amber-700 dark:from-amber-950/30 dark:to-slate-800"
+          ? "border-amber-200 bg-linear-to-r from-amber-50/50 to-white dark:border-amber-700 dark:from-amber-950/30 dark:to-slate-800"
           : "border-slate-200 dark:border-slate-700"
       )}
     >
@@ -70,9 +71,11 @@ export function IdeaCard({
         </div>
 
         {idea.description && (
-          <p className="mb-3 line-clamp-2 text-sm text-slate-600 dark:text-slate-400">
-            {idea.description}
-          </p>
+          <ExpandableText maxLines={2} className="mb-3">
+            <p className="text-sm whitespace-pre-line text-slate-600 dark:text-slate-400">
+              {idea.description}
+            </p>
+          </ExpandableText>
         )}
 
         {/* Public Update */}
@@ -81,7 +84,9 @@ export function IdeaCard({
             <p className="mb-1 text-xs font-medium tracking-wide text-blue-600 uppercase dark:text-blue-400">
               Update
             </p>
-            <p className="line-clamp-2">{idea.publicUpdate}</p>
+            <ExpandableText maxLines={2}>
+              <p className="whitespace-pre-line">{idea.publicUpdate}</p>
+            </ExpandableText>
           </div>
         )}
 
@@ -110,9 +115,6 @@ export function IdeaCard({
               {ROADMAP_STATUS_CONFIG[idea.roadmapStatus].shortLabel}
             </span>
           )}
-          <span className="text-sm text-slate-500 dark:text-slate-400">
-            {new Date(idea.createdAt).toLocaleDateString("en-US")}
-          </span>
         </div>
       </div>
     </article>
