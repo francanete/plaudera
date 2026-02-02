@@ -14,7 +14,8 @@ interface ColumnConfig {
   title: string;
   icon: typeof Clock;
   emptyMessage: string;
-  headerClassName: string;
+  iconColor: string;
+  textColor: string;
 }
 
 const COLUMNS: ColumnConfig[] = [
@@ -23,21 +24,24 @@ const COLUMNS: ColumnConfig[] = [
     title: "Planned",
     icon: Clock,
     emptyMessage: "No planned items yet",
-    headerClassName: "text-blue-700 dark:text-blue-400",
+    iconColor: "text-blue-600 dark:text-blue-400",
+    textColor: "text-blue-600 dark:text-blue-400",
   },
   {
     status: "IN_PROGRESS",
     title: "In Progress",
     icon: Rocket,
     emptyMessage: "No items in progress",
-    headerClassName: "text-amber-700 dark:text-amber-400",
+    iconColor: "text-orange-600 dark:text-orange-400",
+    textColor: "text-orange-600 dark:text-orange-400",
   },
   {
     status: "RELEASED",
     title: "Released",
     icon: CheckCircle2,
     emptyMessage: "No released items yet",
-    headerClassName: "text-green-700 dark:text-green-400",
+    iconColor: "text-green-600 dark:text-green-400",
+    textColor: "text-green-600 dark:text-green-400",
   },
 ];
 
@@ -74,35 +78,34 @@ export function RoadmapGroupedView({ ideas }: RoadmapGroupedViewProps) {
   }
 
   return (
-    <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+    <div className="grid grid-cols-1 gap-6 md:grid-cols-3 lg:gap-8">
       {COLUMNS.map((column) => {
         const columnIdeas = groupedIdeas[column.status];
         const Icon = column.icon;
 
         return (
-          <div
-            key={column.status}
-            className="flex flex-col rounded-xl border border-slate-200 bg-slate-50/50 dark:border-slate-700 dark:bg-slate-900/50"
-          >
+          <div key={column.status} className="flex flex-col gap-4">
             {/* Column Header */}
-            <div className="flex items-center gap-2 border-b border-slate-200 px-4 py-3 dark:border-slate-700">
-              <Icon className={cn("h-4 w-4", column.headerClassName)} />
-              <h2
-                className={cn("text-sm font-semibold", column.headerClassName)}
-              >
-                {column.title}
-              </h2>
-              <span className="ml-auto rounded-full bg-slate-200 px-2 py-0.5 text-xs font-medium text-slate-600 dark:bg-slate-700 dark:text-slate-400">
+            <div className="flex items-center justify-between rounded-lg border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-800">
+              <div className="flex items-center gap-2">
+                <Icon className={cn("h-5 w-5", column.iconColor)} />
+                <span className={cn("font-semibold", column.textColor)}>
+                  {column.title}
+                </span>
+              </div>
+              <span className="flex h-6 w-6 items-center justify-center rounded-full bg-slate-100 text-xs font-medium text-slate-600 dark:bg-slate-700 dark:text-slate-400">
                 {columnIdeas.length}
               </span>
             </div>
 
             {/* Column Content */}
-            <div className="flex-1 space-y-3 p-3">
+            <div className="flex flex-col gap-4">
               {columnIdeas.length === 0 ? (
-                <p className="py-8 text-center text-sm text-slate-400 dark:text-slate-500">
-                  {column.emptyMessage}
-                </p>
+                <div className="flex h-48 flex-col items-center justify-center rounded-xl border border-dashed border-slate-200 bg-slate-50/50 text-center dark:border-slate-700 dark:bg-slate-900/50">
+                  <p className="text-sm text-slate-400 dark:text-slate-500">
+                    {column.emptyMessage}
+                  </p>
+                </div>
               ) : (
                 columnIdeas.map((idea) => (
                   <RoadmapIdeaCard key={idea.id} idea={idea} />

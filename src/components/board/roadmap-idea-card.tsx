@@ -2,8 +2,6 @@
 
 import { ThumbsUp } from "lucide-react";
 import type { RoadmapStatus } from "@/lib/db/schema";
-import { ROADMAP_STATUS_CONFIG } from "@/lib/roadmap-status-config";
-import { cn } from "@/lib/utils";
 
 export interface RoadmapIdeaCardData {
   id: string;
@@ -18,41 +16,30 @@ interface RoadmapIdeaCardProps {
 }
 
 export function RoadmapIdeaCard({ idea }: RoadmapIdeaCardProps) {
-  const config = ROADMAP_STATUS_CONFIG[idea.roadmapStatus];
-  const StatusIcon = config.icon;
-
   return (
-    <article className="rounded-lg border border-slate-200 bg-white p-4 transition-all duration-200 hover:shadow-md dark:border-slate-700 dark:bg-slate-800">
-      {/* Vote count + Title */}
-      <div className="mb-2 flex items-start gap-3">
-        <div className="flex h-10 w-10 shrink-0 flex-col items-center justify-center gap-0.5 rounded-lg border border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-800">
-          <ThumbsUp className="h-3 w-3 text-slate-500 dark:text-slate-400" />
-          <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+    <article className="group relative rounded-xl border border-slate-200 bg-white p-5 shadow-sm transition-all hover:border-slate-300 hover:shadow-md dark:border-slate-700 dark:bg-slate-800 dark:hover:border-slate-600">
+      {/* Vote Button + Content Row */}
+      <div className="flex items-start gap-4">
+        {/* Vote Button */}
+        <div className="flex h-14 w-14 shrink-0 flex-col items-center justify-center gap-0.5 rounded-lg border border-slate-200 bg-slate-50 transition-colors dark:border-slate-700 dark:bg-slate-900">
+          <ThumbsUp className="h-4 w-4 text-slate-500 dark:text-slate-400" />
+          <span className="text-sm font-bold text-slate-700 dark:text-slate-300">
             {idea.voteCount}
           </span>
         </div>
-        <h3 className="line-clamp-2 text-sm leading-tight font-medium text-slate-900 dark:text-white">
-          {idea.title}
-        </h3>
+
+        {/* Content */}
+        <div className="min-w-0 flex-1">
+          <h3 className="font-semibold text-slate-900 dark:text-white">
+            {idea.title}
+          </h3>
+          {idea.publicUpdate && (
+            <p className="mt-1 line-clamp-3 text-sm leading-relaxed text-slate-500 dark:text-slate-400">
+              {idea.publicUpdate}
+            </p>
+          )}
+        </div>
       </div>
-
-      {/* Public Update Preview */}
-      {idea.publicUpdate && (
-        <p className="mb-2 line-clamp-2 text-xs text-slate-500 dark:text-slate-400">
-          {idea.publicUpdate}
-        </p>
-      )}
-
-      {/* Status Badge */}
-      <span
-        className={cn(
-          "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium",
-          config.badgeClassName
-        )}
-      >
-        <StatusIcon className="h-3 w-3" />
-        {config.shortLabel}
-      </span>
     </article>
   );
 }
