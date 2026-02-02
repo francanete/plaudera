@@ -1,7 +1,7 @@
 "use client";
 
 import { useOptimistic, useTransition } from "react";
-import { ChevronUp } from "lucide-react";
+import { ThumbsUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface VoteButtonProps {
@@ -57,44 +57,33 @@ export function VoteButton({
       onClick={handleClick}
       disabled={isPending}
       className={cn(
-        "flex w-16 flex-col items-center justify-center rounded-lg border py-3 transition-all duration-200",
+        "flex h-14 w-14 shrink-0 flex-col items-center justify-center gap-0.5 rounded-lg border transition-all duration-200",
         optimisticState.hasVoted
-          ? "border-blue-500 bg-blue-50 text-blue-600 dark:border-blue-400 dark:bg-blue-950 dark:text-blue-400"
-          : "border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-400 dark:hover:border-slate-500 dark:hover:bg-slate-700",
+          ? "border-blue-500 bg-blue-50 dark:border-blue-400 dark:bg-blue-950"
+          : "border-slate-200 bg-slate-50 hover:border-slate-300 hover:bg-white dark:border-slate-600 dark:bg-slate-800 dark:hover:border-slate-500 dark:hover:bg-slate-700",
         isPending && "opacity-50"
       )}
       aria-label={
         optimisticState.hasVoted ? "Remove vote" : "Vote for this idea"
       }
     >
-      <ChevronUp
+      <ThumbsUp
         className={cn(
-          "h-5 w-5",
+          "h-4 w-4",
           optimisticState.hasVoted
             ? "text-blue-600 dark:text-blue-400"
-            : "text-slate-400 dark:text-slate-500"
+            : "text-slate-500 dark:text-slate-400"
         )}
-        strokeWidth={2.5}
       />
       <span
         className={cn(
-          "text-lg font-semibold",
+          "text-sm font-semibold",
           optimisticState.hasVoted
             ? "text-blue-600 dark:text-blue-400"
-            : "text-slate-900 dark:text-slate-100"
+            : "text-slate-700 dark:text-slate-200"
         )}
       >
         {optimisticState.voteCount}
-      </span>
-      <span
-        className={cn(
-          "text-xs",
-          optimisticState.hasVoted
-            ? "text-blue-500 dark:text-blue-400"
-            : "text-slate-500 dark:text-slate-400"
-        )}
-      >
-        votes
       </span>
     </button>
   );
