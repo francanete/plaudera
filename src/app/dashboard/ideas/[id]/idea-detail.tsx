@@ -3,8 +3,6 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Card } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
 import type { Idea, IdeaStatus, RoadmapStatus } from "@/lib/db/schema";
 import {
   IdeaHeader,
@@ -313,7 +311,7 @@ export function IdeaDetail({
   const selectedParent = publishedIdeas.find((i) => i.id === selectedParentId);
 
   return (
-    <div className="space-y-6">
+    <div className="max-w-5xl space-y-10 py-8">
       {/* Header: Back nav + Title + Merged indicator */}
       <IdeaHeader
         title={title}
@@ -343,50 +341,39 @@ export function IdeaDetail({
         />
       )}
 
-      {/* Content Card: Tabs + Internal Note */}
-      <Card className="border-slate-200/60 shadow-sm">
-        <div className="space-y-6 p-6">
-          {/* Tabbed Content: Contributor's Idea, Public Update, Feature Details (conditional) */}
-          <IdeaContentTabs
-            description={description}
-            onDescriptionChange={setDescription}
-            onSaveDescription={handleSaveDescription}
-            isSavingDescription={isSavingDescription}
-            hasDescriptionChanges={descriptionChanged}
-            publicUpdate={publicUpdate}
-            onPublicUpdateChange={setPublicUpdate}
-            onSavePublicUpdate={handleSavePublicUpdate}
-            isSavingPublicUpdate={isSavingPublicUpdate}
-            hasPublicUpdateChanges={publicUpdateChanged}
-            featureDetails={featureDetails}
-            onFeatureDetailsChange={setFeatureDetails}
-            onSaveFeatureDetails={handleSaveFeatureDetails}
-            isSavingFeatureDetails={isSavingFeatureDetails}
-            hasFeatureDetailsChanges={featureDetailsChanged}
-            roadmapStatus={idea.roadmapStatus}
-          />
+      {/* Content Area: Tabs */}
+      <IdeaContentTabs
+        description={description}
+        onDescriptionChange={setDescription}
+        onSaveDescription={handleSaveDescription}
+        isSavingDescription={isSavingDescription}
+        hasDescriptionChanges={descriptionChanged}
+        publicUpdate={publicUpdate}
+        onPublicUpdateChange={setPublicUpdate}
+        onSavePublicUpdate={handleSavePublicUpdate}
+        isSavingPublicUpdate={isSavingPublicUpdate}
+        hasPublicUpdateChanges={publicUpdateChanged}
+        featureDetails={featureDetails}
+        onFeatureDetailsChange={setFeatureDetails}
+        onSaveFeatureDetails={handleSaveFeatureDetails}
+        isSavingFeatureDetails={isSavingFeatureDetails}
+        hasFeatureDetailsChanges={featureDetailsChanged}
+        roadmapStatus={idea.roadmapStatus}
+      />
 
-          <Separator className="bg-slate-100" />
+      {/* Internal Note (Private zone - visually distinct with dashed border) */}
+      <IdeaInternalNote
+        note={internalNote}
+        onNoteChange={setInternalNote}
+        onSave={handleSaveInternalNote}
+        isSaving={isSavingInternalNote}
+        hasChanges={internalNoteChanged}
+      />
 
-          {/* Internal Note (Private zone - visually distinct) */}
-          <IdeaInternalNote
-            note={internalNote}
-            onNoteChange={setInternalNote}
-            onSave={handleSaveInternalNote}
-            isSaving={isSavingInternalNote}
-            hasChanges={internalNoteChanged}
-          />
-        </div>
-      </Card>
+      {/* Meta: Created date & Author - horizontal strip */}
+      <IdeaMeta createdAt={idea.createdAt} authorEmail={idea.authorEmail} />
 
-      {/* Meta Card: Created date & Author (no delete button) */}
-      <Card className="border-slate-200/60 shadow-sm">
-        <div className="p-6">
-          <IdeaMeta createdAt={idea.createdAt} authorEmail={idea.authorEmail} />
-        </div>
-      </Card>
-
-      {/* Danger Zone: Collapsible section for destructive actions */}
+      {/* Advanced Actions: Collapsible section for merge/delete */}
       <IdeaDangerZone
         isMerged={idea.status === "MERGED"}
         publishedIdeas={publishedIdeas}

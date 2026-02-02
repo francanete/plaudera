@@ -6,9 +6,15 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import { AlertTriangle, ChevronDown, Trash2 } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { ChevronDown, Trash2, GitMerge, Settings2 } from "lucide-react";
 import { useState } from "react";
-import { IdeaMergeSection } from "./idea-merge-section";
 
 interface PublishedIdea {
   id: string;
@@ -38,44 +44,76 @@ export function IdeaDangerZone({
 
   return (
     <Collapsible open={isOpen} onOpenChange={setIsOpen}>
-      <CollapsibleTrigger className="flex w-full items-center justify-between rounded-lg border border-red-200 bg-red-50/50 px-4 py-3 text-left transition-colors hover:bg-red-50">
+      <CollapsibleTrigger className="border-border bg-muted/30 hover:bg-muted/50 flex w-full items-center justify-between rounded-lg border px-4 py-3 text-left transition-colors">
         <div className="flex items-center gap-2">
-          <AlertTriangle className="h-4 w-4 text-red-600" />
-          <span className="text-sm font-medium text-red-600">Danger Zone</span>
+          <Settings2 className="text-muted-foreground h-4 w-4" />
+          <span className="text-muted-foreground text-sm font-medium">
+            Advanced actions
+          </span>
         </div>
         <ChevronDown
-          className={`h-4 w-4 text-red-400 transition-transform duration-200 ${
+          className={`text-muted-foreground h-4 w-4 transition-transform duration-200 ${
             isOpen ? "rotate-180" : ""
           }`}
         />
       </CollapsibleTrigger>
 
       <CollapsibleContent>
-        <div className="mt-3 space-y-6 rounded-lg border border-red-200 bg-white p-4">
-          <p className="text-xs text-slate-500">
-            Actions in this section are destructive and may be irreversible.
-            Please proceed with caution.
-          </p>
-
+        <div className="border-border bg-background mt-3 space-y-0 rounded-lg border">
           {/* Merge Section - only if not already merged and has other ideas */}
           {showMergeSection && (
-            <IdeaMergeSection
-              publishedIdeas={publishedIdeas}
-              selectedParentId={selectedParentId}
-              onParentSelect={onParentSelect}
-              onMergeClick={onMergeClick}
-            />
+            <div className="space-y-3 p-4">
+              <div className="space-y-1">
+                <span className="text-muted-foreground text-xs font-medium tracking-[0.1em] uppercase">
+                  Merge Idea
+                </span>
+                <p className="text-muted-foreground/70 text-xs">
+                  Transfer votes to another idea. This cannot be undone.
+                </p>
+              </div>
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                <Select value={selectedParentId} onValueChange={onParentSelect}>
+                  <SelectTrigger className="border-border bg-background hover:bg-muted/50 flex-1">
+                    <SelectValue placeholder="Select parent idea..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {publishedIdeas.map((publishedIdea) => (
+                      <SelectItem
+                        key={publishedIdea.id}
+                        value={publishedIdea.id}
+                      >
+                        {publishedIdea.title}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={!selectedParentId}
+                  onClick={onMergeClick}
+                  className="shrink-0"
+                >
+                  <GitMerge className="mr-2 h-4 w-4" />
+                  Merge
+                </Button>
+              </div>
+            </div>
           )}
 
+          {/* Separator between merge and delete */}
+          {showMergeSection && <div className="border-border border-t" />}
+
           {/* Delete Section */}
-          <div className="space-y-3">
-            <label className="text-sm font-medium text-slate-500">
-              Delete Idea
-            </label>
-            <p className="text-xs text-slate-500">
-              Permanently delete this idea and all associated data. This action
-              cannot be undone.
-            </p>
+          <div className="space-y-3 p-4">
+            <div className="space-y-1">
+              <span className="text-muted-foreground text-xs font-medium tracking-[0.1em] uppercase">
+                Delete Idea
+              </span>
+              <p className="text-muted-foreground/70 text-xs">
+                Permanently remove this idea and all associated data.
+              </p>
+            </div>
             <Button
               variant="destructive"
               size="sm"
@@ -83,7 +121,7 @@ export function IdeaDangerZone({
               className="shrink-0"
             >
               <Trash2 className="mr-2 h-4 w-4" />
-              Delete Idea
+              Delete idea
             </Button>
           </div>
         </div>

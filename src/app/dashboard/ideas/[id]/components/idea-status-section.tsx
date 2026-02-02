@@ -13,13 +13,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import {
-  GitMerge,
-  ChevronDown,
-  Clock,
-  TrendingUp,
-  ChevronRight,
-} from "lucide-react";
+import { GitMerge, ChevronDown, Clock, ChevronRight } from "lucide-react";
 import type { IdeaStatus, RoadmapStatus } from "@/lib/db/schema";
 import {
   SELECTABLE_IDEA_STATUSES,
@@ -55,7 +49,7 @@ const STATUS_ICON_COLORS: Record<IdeaStatus, { bg: string; text: string }> = {
 };
 
 const ROADMAP_ICON_COLORS: Record<RoadmapStatus, string> = {
-  NONE: "text-gray-400",
+  NONE: "text-muted-foreground",
   PLANNED: "text-blue-500",
   IN_PROGRESS: "text-indigo-500",
   RELEASED: "text-emerald-500",
@@ -66,20 +60,19 @@ function formatDate(dateString: string): string {
   return date.toLocaleDateString("en-US", {
     month: "short",
     day: "numeric",
-    year: "numeric",
   });
 }
 
 function getStatusColor(status: RoadmapStatus): string {
   switch (status) {
     case "PLANNED":
-      return "#2563eb";
+      return "text-blue-600";
     case "IN_PROGRESS":
-      return "#6366f1";
+      return "text-indigo-600";
     case "RELEASED":
-      return "#10b981";
+      return "text-emerald-600";
     default:
-      return "#6b7280";
+      return "text-muted-foreground";
   }
 }
 
@@ -99,25 +92,30 @@ export function IdeaStatusSection({
   const roadmapIconColor = ROADMAP_ICON_COLORS[roadmapStatus];
 
   return (
-    <div className="space-y-3">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-8">
-        {/* Vote Count Badge */}
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2 rounded-full border border-indigo-100 bg-indigo-50 px-3 py-1.5">
-            <TrendingUp className="h-4 w-4 text-indigo-600" />
-            <span className="text-sm font-semibold text-indigo-700">
-              {voteCount} {voteCount === 1 ? "vote" : "votes"}
+    <div className="space-y-4">
+      <div className="flex flex-col gap-6 sm:flex-row sm:items-center">
+        {/* Vote Count as Visual Anchor */}
+        <div className="flex items-center gap-4">
+          <div className="flex flex-col">
+            <span className="text-foreground font-mono text-4xl font-semibold tabular-nums">
+              {voteCount}
+            </span>
+            <span className="text-muted-foreground text-xs tracking-[0.15em] uppercase">
+              {voteCount === 1 ? "Vote" : "Votes"}
             </span>
           </div>
+
+          {/* Vertical Separator */}
+          <div className="bg-border hidden h-12 w-px sm:block" />
         </div>
 
-        {/* Controls Row */}
-        <div className="flex flex-wrap items-center gap-3">
+        {/* Status Controls */}
+        <div className="flex flex-wrap items-center gap-2">
           {/* Status Dropdown */}
           {status === "MERGED" ? (
             <Badge
               variant="secondary"
-              className="gap-1.5 border-gray-200 bg-gray-100 px-3 py-1.5 text-gray-700"
+              className="bg-muted text-muted-foreground gap-1.5 rounded-full border-0 px-3 py-1.5"
             >
               <GitMerge className="h-3.5 w-3.5" />
               Merged
@@ -125,19 +123,19 @@ export function IdeaStatusSection({
           ) : (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <button className="group inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-left transition-all hover:border-gray-300 hover:shadow-sm">
+                <button className="group border-border bg-background hover:border-muted-foreground/30 inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-left transition-all hover:shadow-sm">
                   <span
                     className={`flex h-5 w-5 items-center justify-center rounded-full ${statusColors.bg}`}
                   >
                     <StatusIcon className={`h-3 w-3 ${statusColors.text}`} />
                   </span>
-                  <span className="text-sm font-medium text-gray-700">
+                  <span className="text-foreground text-sm font-medium">
                     {IDEA_STATUS_CONFIG[status].label}
                   </span>
-                  <ChevronDown className="h-4 w-4 text-gray-400 group-hover:text-gray-600" />
+                  <ChevronDown className="text-muted-foreground h-3.5 w-3.5 transition-transform group-data-[state=open]:rotate-180" />
                 </button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="start">
+              <DropdownMenuContent align="start" className="min-w-[160px]">
                 {SELECTABLE_IDEA_STATUSES.map((opt) => {
                   const cfg = IDEA_STATUS_CONFIG[opt];
                   const Icon = cfg.icon;
@@ -164,15 +162,15 @@ export function IdeaStatusSection({
           {/* Roadmap Status Dropdown */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button className="group inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-left transition-all hover:border-gray-300 hover:shadow-sm">
+              <button className="group border-border bg-background hover:border-muted-foreground/30 inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-left transition-all hover:shadow-sm">
                 <RoadmapIcon className={`h-4 w-4 ${roadmapIconColor}`} />
-                <span className="text-sm font-medium text-gray-700">
+                <span className="text-foreground text-sm font-medium">
                   {ROADMAP_STATUS_CONFIG[roadmapStatus].label}
                 </span>
-                <ChevronDown className="h-4 w-4 text-gray-400 group-hover:text-gray-600" />
+                <ChevronDown className="text-muted-foreground h-3.5 w-3.5 transition-transform group-data-[state=open]:rotate-180" />
               </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="start">
+            <DropdownMenuContent align="start" className="min-w-[160px]">
               {ALL_ROADMAP_STATUSES.map((opt) => {
                 const cfg = ROADMAP_STATUS_CONFIG[opt];
                 const Icon = cfg.icon;
@@ -191,18 +189,20 @@ export function IdeaStatusSection({
             </DropdownMenuContent>
           </DropdownMenu>
 
-          {/* History Link */}
+          {/* History Toggle */}
           {roadmapHistory.length > 0 && (
             <Collapsible open={historyOpen} onOpenChange={setHistoryOpen}>
               <CollapsibleTrigger asChild>
-                <button className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm text-gray-500 transition-all hover:bg-gray-100 hover:text-gray-900">
+                <button className="text-muted-foreground hover:bg-muted hover:text-foreground inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm transition-colors">
                   <ChevronRight
-                    className={`h-4 w-4 transition-transform duration-200 ${
+                    className={`h-3.5 w-3.5 transition-transform duration-200 ${
                       historyOpen ? "rotate-90" : ""
                     }`}
                   />
-                  <Clock className="h-4 w-4" />
-                  <span>History ({roadmapHistory.length})</span>
+                  <Clock className="h-3.5 w-3.5" />
+                  <span className="font-mono text-xs tabular-nums">
+                    {roadmapHistory.length}
+                  </span>
                 </button>
               </CollapsibleTrigger>
             </Collapsible>
@@ -210,27 +210,29 @@ export function IdeaStatusSection({
         </div>
       </div>
 
-      {/* Collapsible History Content */}
+      {/* Timeline History */}
       {roadmapHistory.length > 0 && (
         <Collapsible open={historyOpen} onOpenChange={setHistoryOpen}>
           <CollapsibleContent>
-            <div className="space-y-2 border-l-2 border-gray-200 pl-4">
-              {roadmapHistory.map((change) => {
+            <div className="border-border ml-1 space-y-0 border-l pl-4">
+              {roadmapHistory.map((change, index) => {
                 const toConfig = ROADMAP_STATUS_CONFIG[change.toStatus];
+                const isLast = index === roadmapHistory.length - 1;
                 return (
                   <div
                     key={change.id}
-                    className="flex items-center gap-2 text-sm text-gray-600"
+                    className={`relative flex items-center gap-3 py-2 ${
+                      !isLast ? "" : ""
+                    }`}
                   >
-                    <span>Moved to</span>
+                    {/* Timeline dot */}
+                    <div className="bg-border absolute -left-[17px] h-2 w-2 rounded-full" />
                     <span
-                      className="font-medium"
-                      style={{ color: getStatusColor(change.toStatus) }}
+                      className={`text-sm font-medium ${getStatusColor(change.toStatus)}`}
                     >
                       {toConfig.label}
                     </span>
-                    <span className="text-gray-400">·</span>
-                    <span className="text-gray-400">
+                    <span className="text-muted-foreground font-mono text-xs tabular-nums">
                       {formatDate(change.changedAt)}
                     </span>
                   </div>

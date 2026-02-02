@@ -1,10 +1,8 @@
 "use client";
 
-import { useState } from "react";
-import { Badge } from "@/components/ui/badge";
+import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Globe, FileText, User, LayoutGrid, Map } from "lucide-react";
 import type { RoadmapStatus } from "@/lib/db/schema";
 
 interface IdeaContentTabsProps {
@@ -35,35 +33,25 @@ const TAB_CONFIG: Record<
   TabValue,
   {
     label: string;
-    icon: typeof User;
-    dotColor?: string;
-    visibility: { label: string; color: string; icon: typeof Globe }[];
+    visibilityText: string;
     helpText: string;
   }
 > = {
   description: {
     label: "Contributor's Idea",
-    icon: User,
-    visibility: [
-      { label: "Board", color: "blue", icon: LayoutGrid },
-      { label: "Roadmap (fallback)", color: "purple", icon: Map },
-    ],
+    visibilityText: "Board · Roadmap (fallback)",
     helpText:
       "The original idea submitted by the contributor. Shown on the public board.",
   },
   "public-update": {
     label: "Public Update",
-    icon: Globe,
-    dotColor: "bg-blue-500",
-    visibility: [{ label: "Board", color: "blue", icon: LayoutGrid }],
+    visibilityText: "Board",
     helpText:
       "Share progress updates with your users. This appears on the public feedback board below the description.",
   },
   "feature-details": {
     label: "Feature Details",
-    icon: FileText,
-    dotColor: "bg-purple-500",
-    visibility: [{ label: "Roadmap", color: "purple", icon: Map }],
+    visibilityText: "Roadmap",
     helpText:
       "Technical specifications and detailed feature scope. Shown only on your public roadmap page.",
   },
@@ -88,6 +76,9 @@ export function IdeaContentTabs({
   roadmapStatus,
 }: IdeaContentTabsProps) {
   const [activeTab, setActiveTab] = useState<TabValue>("description");
+  const [indicatorStyle, setIndicatorStyle] = useState({ left: 0, width: 0 });
+  const tabsRef = useRef<HTMLDivElement>(null);
+  const tabRefs = useRef<Map<TabValue, HTMLButtonElement>>(new Map());
 
   // Only show Feature Details tab when idea is on the roadmap
   const showFeatureDetails = roadmapStatus !== "NONE";
@@ -95,45 +86,59 @@ export function IdeaContentTabs({
     ? ["description", "public-update", "feature-details"]
     : ["description", "public-update"];
 
+  // Update indicator position
+  useEffect(() => {
+    const activeButton = tabRefs.current.get(activeTab);
+    if (activeButton && tabsRef.current) {
+      const containerRect = tabsRef.current.getBoundingClientRect();
+      const buttonRect = activeButton.getBoundingClientRect();
+      setIndicatorStyle({
+        left: buttonRect.left - containerRect.left,
+        width: buttonRect.width,
+      });
+    }
+  }, [activeTab, visibleTabs.length]);
+
   return (
     <div className="w-full">
-      {/* Tab Container */}
-      <div className="border-b border-gray-200 bg-gray-50/50">
-        <div className="flex flex-wrap gap-1 rounded-lg bg-gray-100/50 p-1">
+      {/* Underline-style Tab Bar */}
+      <div className="border-border relative border-b" ref={tabsRef}>
+        <div className="flex gap-1">
           {visibleTabs.map((tab) => {
             const config = TAB_CONFIG[tab];
-            const Icon = config.icon;
             const isActive = activeTab === tab;
 
             return (
               <button
                 key={tab}
+                ref={(el) => {
+                  if (el) tabRefs.current.set(tab, el);
+                }}
                 onClick={() => setActiveTab(tab)}
-                className={`flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-all duration-150 ${
+                className={`relative px-3 py-2.5 text-xs font-medium transition-colors sm:px-4 sm:py-3 sm:text-sm ${
                   isActive
-                    ? "bg-white text-gray-900 shadow-sm ring-1 ring-gray-200"
-                    : "text-gray-500 hover:bg-gray-200/50 hover:text-gray-700"
-                } `}
+                    ? "text-foreground"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
               >
-                {/* Icon with optional dot overlay */}
-                <div className="relative">
-                  <Icon className="h-4 w-4" />
-                  {config.dotColor && (
-                    <span
-                      className={`absolute -top-0.5 -right-0.5 h-1.5 w-1.5 ${config.dotColor} rounded-full border border-white`}
-                      aria-hidden="true"
-                    />
-                  )}
-                </div>
-                <span>{config.label}</span>
+                {config.label}
               </button>
             );
           })}
         </div>
+
+        {/* Animated Underline Indicator */}
+        <div
+          className="bg-primary absolute bottom-0 h-0.5 transition-all duration-200 ease-out"
+          style={{
+            left: indicatorStyle.left,
+            width: indicatorStyle.width,
+          }}
+        />
       </div>
 
-      {/* Tab Content */}
-      <div className="mt-4">
+      {/* Tab Content Area */}
+      <div className="bg-muted/30 mt-6 rounded-lg p-4">
         {activeTab === "description" && (
           <ContentField
             value={description}
@@ -198,60 +203,53 @@ function ContentField({
   config,
 }: ContentFieldProps) {
   return (
-    <div className="space-y-3">
-      {/* Visibility Badges */}
-      <div className="flex flex-wrap items-center gap-2">
-        <span className="text-xs text-gray-500">Appears on:</span>
-        {config.visibility.map((vis) => {
-          const VisIcon = vis.icon;
-          const colorClasses =
-            vis.color === "blue"
-              ? "border-blue-200 bg-blue-50 text-blue-600"
-              : "border-purple-200 bg-purple-50 text-purple-600";
-          return (
-            <Badge
-              key={vis.label}
-              variant="outline"
-              className={`gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium ${colorClasses}`}
-            >
-              <VisIcon className="h-3 w-3" />
-              {vis.label}
-            </Badge>
-          );
-        })}
+    <div className="space-y-4">
+      {/* Visibility as subtle inline text */}
+      <div className="text-muted-foreground flex items-center gap-2 text-xs">
+        <span>Visible on:</span>
+        <span className="font-medium">{config.visibilityText}</span>
       </div>
 
-      {/* Help Text */}
-      <p className="text-xs text-gray-400">{config.helpText}</p>
+      {/* Borderless Textarea with focus underline */}
+      <div className="relative">
+        <Textarea
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder={placeholder}
+          className="placeholder:text-muted-foreground/50 min-h-[140px] resize-none border-0 bg-transparent px-0 shadow-none focus:ring-0 focus-visible:ring-0"
+          maxLength={maxLength}
+        />
+        {/* Subtle focus indicator line */}
+        <div className="bg-border focus-within:bg-primary absolute bottom-0 left-0 h-px w-full transition-colors" />
+      </div>
 
-      {/* Textarea */}
-      <Textarea
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder}
-        className="min-h-[140px] resize-none border-gray-100 bg-gray-50/30 focus:border-gray-300 focus:ring-0"
-        maxLength={maxLength}
-      />
-
-      {/* Footer with Character Count and Save Button */}
+      {/* Footer with Character Count and Animated Save Button */}
       <div className="flex items-center justify-between">
         {maxLength ? (
-          <span className="text-xs text-gray-400">
+          <span className="text-muted-foreground font-mono text-xs tabular-nums">
             {value.length}/{maxLength}
           </span>
         ) : (
           <span />
         )}
-        {hasChanges && (
+
+        {/* Animated Save Button */}
+        <div
+          className={`transition-all duration-200 ${
+            hasChanges
+              ? "translate-y-0 opacity-100"
+              : "pointer-events-none translate-y-2 opacity-0"
+          }`}
+        >
           <Button
             size="sm"
             onClick={onSave}
             disabled={isSaving}
-            className="bg-gray-900 hover:bg-gray-800"
+            className="bg-foreground text-background hover:bg-foreground/90"
           >
-            {isSaving ? "Saving..." : "Save"}
+            {isSaving ? "Saving..." : "Save changes"}
           </Button>
-        )}
+        </div>
       </div>
     </div>
   );

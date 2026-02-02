@@ -1,9 +1,8 @@
 "use client";
 
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Lock, Tag } from "lucide-react";
+import { Lock } from "lucide-react";
 
 interface IdeaInternalNoteProps {
   note: string;
@@ -21,61 +20,54 @@ export function IdeaInternalNote({
   hasChanges,
 }: IdeaInternalNoteProps) {
   return (
-    <div className="flex overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
-      {/* Indigo Accent Bar - visible on md+ screens */}
-      <div className="hidden w-1.5 self-stretch bg-indigo-500 md:block" />
+    <div className="border-muted-foreground/25 bg-muted/20 relative rounded-lg border border-dashed p-4">
+      {/* Corner Lock Icon */}
+      <div className="bg-background ring-border absolute -top-2.5 -right-2.5 flex h-5 w-5 items-center justify-center rounded-full shadow-sm ring-1">
+        <Lock className="text-muted-foreground h-3 w-3" />
+      </div>
 
-      <div className="flex-1 space-y-3 p-4">
+      <div className="space-y-3">
         {/* Header */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Tag className="h-4 w-4 text-indigo-500" />
-            <label className="text-base font-semibold text-gray-900">
-              Internal Note
-            </label>
-            <Badge
-              variant="outline"
-              className="gap-1 border-gray-200 bg-gray-50 text-xs text-gray-500"
-            >
-              <Lock className="h-3 w-3" />
-              Private
-            </Badge>
-          </div>
+        <div className="flex items-center gap-2">
+          <span className="text-muted-foreground text-xs font-medium tracking-[0.15em] uppercase">
+            Internal Note
+          </span>
+          <span className="text-muted-foreground/60 text-xs">· Private</span>
         </div>
 
-        {/* Description */}
-        <p className="text-xs text-gray-500">
-          Only visible to you — never shown publicly on your board or roadmap.
-        </p>
+        {/* Minimal Textarea */}
+        <Textarea
+          value={note}
+          onChange={(e) => onNoteChange(e.target.value)}
+          placeholder="Add private notes, reminders, or internal context..."
+          className="placeholder:text-muted-foreground/40 min-h-[80px] resize-none border-0 bg-transparent px-0 shadow-none focus:ring-0 focus-visible:ring-0"
+          maxLength={2000}
+        />
 
-        {/* Textarea with inline character counter */}
-        <div className="relative">
-          <Textarea
-            value={note}
-            onChange={(e) => onNoteChange(e.target.value)}
-            placeholder="Add private notes, reminders, or internal context..."
-            className="min-h-[100px] resize-none border-gray-200 bg-white pb-6 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
-            maxLength={2000}
-          />
-          {/* Character counter inside textarea */}
-          <span className="pointer-events-none absolute right-3 bottom-2 text-xs text-gray-400">
+        {/* Footer with Character Count and Save */}
+        <div className="flex items-center justify-between">
+          <span className="text-muted-foreground/60 font-mono text-xs tabular-nums">
             {note.length}/2000
           </span>
-        </div>
 
-        {/* Save Button */}
-        {hasChanges && (
-          <div className="flex justify-end">
+          {/* Animated Save Button */}
+          <div
+            className={`transition-all duration-200 ${
+              hasChanges
+                ? "translate-y-0 opacity-100"
+                : "pointer-events-none translate-y-2 opacity-0"
+            }`}
+          >
             <Button
               size="sm"
+              variant="secondary"
               onClick={onSave}
               disabled={isSaving}
-              className="bg-indigo-600 hover:bg-indigo-700"
             >
-              {isSaving ? "Saving..." : "Save"}
+              {isSaving ? "Saving..." : "Save note"}
             </Button>
           </div>
-        )}
+        </div>
       </div>
     </div>
   );
