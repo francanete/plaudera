@@ -1,14 +1,15 @@
 "use client";
 
-import { Megaphone, ThumbsUp } from "lucide-react";
+import { ThumbsUp } from "lucide-react";
 import { ExpandableText } from "@/components/ui/expandable-text";
 import type { RoadmapStatus } from "@/lib/db/schema";
 
 export interface RoadmapIdeaCardData {
   id: string;
   title: string;
+  description: string | null;
   roadmapStatus: RoadmapStatus;
-  publicUpdate: string | null;
+  featureDetails: string | null;
   voteCount: number;
 }
 
@@ -34,18 +35,12 @@ export function RoadmapIdeaCard({ idea }: RoadmapIdeaCardProps) {
           <h3 className="font-semibold text-slate-900 dark:text-white">
             {idea.title}
           </h3>
-          {idea.publicUpdate && (
-            <div className="mt-2">
-              <p className="mb-1 flex items-center gap-1 text-xs font-medium text-blue-600 dark:text-blue-400">
-                <Megaphone className="h-3 w-3" />
-                Team Update
+          {(idea.featureDetails || idea.description) && (
+            <ExpandableText maxLines={2} className="mt-1">
+              <p className="text-sm leading-relaxed whitespace-pre-line text-slate-500 dark:text-slate-400">
+                {idea.featureDetails ?? idea.description}
               </p>
-              <ExpandableText maxLines={2}>
-                <p className="text-sm leading-relaxed whitespace-pre-line text-slate-500 dark:text-slate-400">
-                  {idea.publicUpdate}
-                </p>
-              </ExpandableText>
-            </div>
+            </ExpandableText>
           )}
         </div>
       </div>

@@ -5,6 +5,7 @@ export { IdeaRoadmapStatus } from "./idea-roadmap-status";
 export { IdeaDescription } from "./idea-description";
 export { IdeaInternalNote } from "./idea-internal-note";
 export { IdeaPublicUpdate } from "./idea-public-update";
+export { IdeaFeatureDetails } from "./idea-feature-details";
 export { IdeaRoadmapHistory } from "./idea-roadmap-history";
 export { IdeaMeta } from "./idea-meta";
 export { IdeaMergeSection } from "./idea-merge-section";

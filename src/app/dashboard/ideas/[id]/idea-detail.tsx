@@ -14,6 +14,7 @@ import {
   IdeaDescription,
   IdeaInternalNote,
   IdeaPublicUpdate,
+  IdeaFeatureDetails,
   IdeaRoadmapHistory,
   IdeaMeta,
   IdeaMergeSection,
@@ -62,8 +63,12 @@ export function IdeaDetail({
   // Roadmap fields state
   const [internalNote, setInternalNote] = useState(idea.internalNote || "");
   const [publicUpdate, setPublicUpdate] = useState(idea.publicUpdate || "");
+  const [featureDetails, setFeatureDetails] = useState(
+    idea.featureDetails || ""
+  );
   const [isSavingInternalNote, setIsSavingInternalNote] = useState(false);
   const [isSavingPublicUpdate, setIsSavingPublicUpdate] = useState(false);
+  const [isSavingFeatureDetails, setIsSavingFeatureDetails] = useState(false);
   const [roadmapHistory, setRoadmapHistory] = useState<StatusChange[]>([]);
 
   // Merge state
@@ -76,6 +81,7 @@ export function IdeaDetail({
   const descriptionChanged = description !== (idea.description || "");
   const internalNoteChanged = internalNote !== (idea.internalNote || "");
   const publicUpdateChanged = publicUpdate !== (idea.publicUpdate || "");
+  const featureDetailsChanged = featureDetails !== (idea.featureDetails || "");
 
   // Fetch roadmap history on mount
   useEffect(() => {
@@ -246,6 +252,26 @@ export function IdeaDetail({
     }
   };
 
+  const handleSaveFeatureDetails = async () => {
+    setIsSavingFeatureDetails(true);
+    try {
+      const res = await fetch(`/api/ideas/${idea.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ featureDetails: featureDetails || null }),
+      });
+
+      if (!res.ok) throw new Error();
+
+      setIdea({ ...idea, featureDetails: featureDetails || null });
+      toast.success("Feature details saved");
+    } catch {
+      toast.error("Failed to save feature details");
+    } finally {
+      setIsSavingFeatureDetails(false);
+    }
+  };
+
   const handleDeleteConfirm = async () => {
     setIsDeleting(true);
     try {
@@ -367,6 +393,17 @@ export function IdeaDetail({
             onSave={handleSavePublicUpdate}
             isSaving={isSavingPublicUpdate}
             hasChanges={publicUpdateChanged}
+          />
+
+          <Separator className="bg-slate-100" />
+
+          {/* Feature Details (Roadmap specs) */}
+          <IdeaFeatureDetails
+            details={featureDetails}
+            onDetailsChange={setFeatureDetails}
+            onSave={handleSaveFeatureDetails}
+            isSaving={isSavingFeatureDetails}
+            hasChanges={featureDetailsChanged}
           />
 
           <Separator className="bg-slate-100" />

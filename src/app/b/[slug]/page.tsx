@@ -97,6 +97,7 @@ async function BoardContent({ slug }: { slug: string }) {
     status: idea.status,
     roadmapStatus: idea.roadmapStatus,
     publicUpdate: idea.publicUpdate,
+    featureDetails: idea.featureDetails,
     voteCount: idea.voteCount,
     hasVoted: votedIdeaIds.has(idea.id),
     createdAt: idea.createdAt,

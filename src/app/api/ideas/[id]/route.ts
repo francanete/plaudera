@@ -23,6 +23,7 @@ const updateIdeaSchema = z.object({
     .optional(),
   internalNote: z.string().max(2000).optional().nullable(),
   publicUpdate: z.string().max(1000).optional().nullable(),
+  featureDetails: z.string().max(2000).optional().nullable(),
 });
 
 type RouteParams = { id: string };
@@ -78,6 +79,7 @@ export const PATCH = protectedApiRouteWrapper<RouteParams>(
       roadmapStatus: RoadmapStatus;
       internalNote: string | null;
       publicUpdate: string | null;
+      featureDetails: string | null;
       mergedIntoId: string | null;
       updatedAt: Date;
     }> = {
@@ -91,6 +93,8 @@ export const PATCH = protectedApiRouteWrapper<RouteParams>(
       updateData.internalNote = data.internalNote;
     if (data.publicUpdate !== undefined)
       updateData.publicUpdate = data.publicUpdate;
+    if (data.featureDetails !== undefined)
+      updateData.featureDetails = data.featureDetails;
 
     // Track roadmap status changes for audit log
     let roadmapStatusChanged = false;

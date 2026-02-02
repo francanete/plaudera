@@ -478,6 +478,7 @@ export const ideas = pgTable(
     voteCount: integer("vote_count").default(0).notNull(),
     internalNote: text("internal_note"),
     publicUpdate: text("public_update"),
+    featureDetails: text("feature_details"),
     mergedIntoId: text("merged_into_id"),
     authorEmail: text("author_email"),
     authorName: text("author_name"),

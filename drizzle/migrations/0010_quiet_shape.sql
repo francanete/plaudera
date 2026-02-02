@@ -1,0 +1,1 @@
+ALTER TABLE "ideas" ADD COLUMN "feature_details" text;
