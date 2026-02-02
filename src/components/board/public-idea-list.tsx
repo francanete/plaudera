@@ -250,50 +250,56 @@ export function PublicIdeaList({
   // No need for client-side sorting
 
   return (
-    <div
-      className={cn(
-        "mx-auto w-full space-y-6 transition-all duration-200",
-        activeView === "roadmap" ? "max-w-6xl" : "max-w-4xl"
-      )}
-    >
-      <BoardHeader
-        workspaceName={workspaceName}
-        workspaceDescription={workspaceDescription}
-        onSubmitIdea={handleSubmitIdea}
-        contributor={contributor}
-        onLogout={handleLogout}
-        onLogin={handleLogin}
-        activeView={activeView}
-        onViewChange={handleViewChange}
-      />
+    <div className="w-full">
+      {/* Full-width sticky header */}
+      <div className="-mx-4 sm:-mx-6">
+        <BoardHeader
+          workspaceName={workspaceName}
+          workspaceDescription={workspaceDescription}
+          onSubmitIdea={handleSubmitIdea}
+          contributor={contributor}
+          onLogout={handleLogout}
+          onLogin={handleLogin}
+          activeView={activeView}
+          onViewChange={handleViewChange}
+        />
+      </div>
 
-      {activeView === "roadmap" ? (
-        <RoadmapGroupedView ideas={roadmapIdeas} />
-      ) : ideas.length === 0 ? (
-        <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-slate-300 bg-white py-16 dark:border-slate-600 dark:bg-slate-800">
-          <Lightbulb className="mb-4 h-12 w-12 text-slate-400 dark:text-slate-500" />
-          <h3 className="mb-2 text-lg font-semibold text-slate-900 dark:text-white">
-            No ideas yet
-          </h3>
-          <p className="mb-4 max-w-md text-center text-slate-600 dark:text-slate-400">
-            Be the first to share a feature request or suggestion!
-          </p>
-        </div>
-      ) : (
-        <div className="space-y-3">
-          {ideas.map((idea) => (
-            <IdeaCard
-              key={idea.id}
-              idea={idea}
-              isAuthenticated={isAuthenticated}
-              onVote={handleVote}
-              onRequireAuth={() =>
-                handleRequireAuth({ type: "vote", ideaId: idea.id })
-              }
-            />
-          ))}
-        </div>
-      )}
+      {/* Constrained content area */}
+      <div
+        className={cn(
+          "mx-auto w-full pt-6 transition-all duration-200",
+          activeView === "roadmap" ? "max-w-6xl" : "max-w-4xl"
+        )}
+      >
+        {activeView === "roadmap" ? (
+          <RoadmapGroupedView ideas={roadmapIdeas} />
+        ) : ideas.length === 0 ? (
+          <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-slate-300 bg-white py-16 dark:border-slate-600 dark:bg-slate-800">
+            <Lightbulb className="mb-4 h-12 w-12 text-slate-400 dark:text-slate-500" />
+            <h3 className="mb-2 text-lg font-semibold text-slate-900 dark:text-white">
+              No ideas yet
+            </h3>
+            <p className="mb-4 max-w-md text-center text-slate-600 dark:text-slate-400">
+              Be the first to share a feature request or suggestion!
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {ideas.map((idea) => (
+              <IdeaCard
+                key={idea.id}
+                idea={idea}
+                isAuthenticated={isAuthenticated}
+                onVote={handleVote}
+                onRequireAuth={() =>
+                  handleRequireAuth({ type: "vote", ideaId: idea.id })
+                }
+              />
+            ))}
+          </div>
+        )}
+      </div>
 
       <ContributorAuthDialog
         open={authDialogOpen}

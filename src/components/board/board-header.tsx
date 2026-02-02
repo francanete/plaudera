@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { AuthStatusPill } from "./auth-status-pill";
-import { Plus, Lightbulb, Map } from "lucide-react";
+import { Plus, Lightbulb, Map, Mail } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export type BoardView = "ideas" | "roadmap";
@@ -29,47 +29,131 @@ export function BoardHeader({
   onViewChange,
 }: BoardHeaderProps) {
   return (
-    <header className="rounded-xl border border-slate-200 bg-white px-4 py-3 dark:border-slate-700 dark:bg-slate-800">
-      <div className="flex flex-col gap-3">
-        {/* Title row - stacked on mobile, inline on desktop */}
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
-          <h1 className="text-center text-2xl font-bold text-slate-900 sm:truncate sm:text-left dark:text-white">
-            {workspaceName}
-          </h1>
-          <div className="flex items-center justify-center gap-2 sm:shrink-0 sm:justify-end">
-            <AuthStatusPill
-              contributor={contributor}
-              onLogin={onLogin}
-              onLogout={onLogout}
-            />
+    <header className="sticky top-0 z-50 w-full bg-white/80 backdrop-blur-md dark:bg-slate-900/80">
+      {/* Main Header Row */}
+      <div className="border-b border-slate-200 dark:border-slate-700">
+        <div className="flex h-16 items-center justify-between px-4 sm:h-[72px] sm:px-6">
+          {/* Left: Brand */}
+          <div className="flex min-w-0 flex-1 items-center gap-3">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900">
+              <span className="text-sm font-bold">
+                {workspaceName.charAt(0).toUpperCase()}
+              </span>
+            </div>
+            <div className="min-w-0">
+              <h1 className="truncate text-lg font-semibold tracking-tight text-slate-900 dark:text-white">
+                {workspaceName}
+              </h1>
+              {workspaceDescription && (
+                <p className="hidden truncate text-xs text-slate-500 sm:block dark:text-slate-400">
+                  {workspaceDescription}
+                </p>
+              )}
+            </div>
+          </div>
+
+          {/* Center: Navigation Tabs (Desktop only) */}
+          {onViewChange && (
+            <nav className="hidden items-center gap-1 md:flex">
+              <button
+                onClick={() => onViewChange("ideas")}
+                className={cn(
+                  "group flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors",
+                  activeView === "ideas"
+                    ? "bg-slate-100 text-slate-900 dark:bg-slate-800 dark:text-white"
+                    : "text-slate-500 hover:bg-slate-50 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-white"
+                )}
+              >
+                <Lightbulb
+                  className={cn(
+                    "h-4 w-4",
+                    activeView === "ideas"
+                      ? "text-slate-900 dark:text-white"
+                      : "text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-300"
+                  )}
+                />
+                Ideas
+              </button>
+              <button
+                onClick={() => onViewChange("roadmap")}
+                className={cn(
+                  "group flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors",
+                  activeView === "roadmap"
+                    ? "bg-slate-100 text-slate-900 dark:bg-slate-800 dark:text-white"
+                    : "text-slate-500 hover:bg-slate-50 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-white"
+                )}
+              >
+                <Map
+                  className={cn(
+                    "h-4 w-4",
+                    activeView === "roadmap"
+                      ? "text-slate-900 dark:text-white"
+                      : "text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-300"
+                  )}
+                />
+                Roadmap
+              </button>
+            </nav>
+          )}
+
+          {/* Right: Actions */}
+          <div className="flex flex-1 items-center justify-end gap-2 sm:gap-3">
+            {/* Mobile: Icon-only sign in (when not authenticated) */}
+            {!contributor && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={onLogin}
+                className="h-8 w-8 p-0 sm:hidden"
+                aria-label="Sign in to vote"
+              >
+                <Mail className="h-4 w-4" />
+              </Button>
+            )}
+
+            {/* Desktop: Full auth status pill */}
+            <div className="hidden sm:block">
+              <AuthStatusPill
+                contributor={contributor}
+                onLogin={onLogin}
+                onLogout={onLogout}
+              />
+            </div>
+
+            {/* Mobile: Show auth pill only when authenticated */}
+            {contributor && (
+              <div className="sm:hidden">
+                <AuthStatusPill
+                  contributor={contributor}
+                  onLogin={onLogin}
+                  onLogout={onLogout}
+                />
+              </div>
+            )}
+
             <Button
               onClick={onSubmitIdea}
               size="sm"
-              className="bg-slate-900 text-sm font-medium shadow-sm hover:bg-slate-800 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-white"
+              className="bg-slate-900 text-sm font-medium shadow-md shadow-slate-900/5 hover:bg-slate-800 dark:bg-slate-100 dark:text-slate-900 dark:shadow-none dark:hover:bg-white"
             >
-              <Plus className="mr-1.5 h-3.5 w-3.5" />
-              Submit
+              <Plus className="h-4 w-4 sm:mr-1.5" />
+              <span className="hidden sm:inline">Submit</span>
             </Button>
           </div>
         </div>
+      </div>
 
-        {/* Description row */}
-        {workspaceDescription && (
-          <p className="text-muted-foreground max-w-3xl text-sm leading-relaxed">
-            {workspaceDescription}
-          </p>
-        )}
-
-        {/* View Tabs */}
-        {onViewChange && (
-          <div className="flex items-center gap-1 border-t border-slate-100 pt-3 dark:border-slate-700">
+      {/* Mobile Navigation Tabs */}
+      {onViewChange && (
+        <div className="border-b border-slate-200 md:hidden dark:border-slate-700">
+          <nav className="flex items-center gap-1 p-2">
             <button
               onClick={() => onViewChange("ideas")}
               className={cn(
-                "inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-all",
+                "flex flex-1 items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium transition-colors",
                 activeView === "ideas"
                   ? "bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900"
-                  : "text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"
+                  : "bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:hover:bg-slate-700"
               )}
             >
               <Lightbulb className="h-4 w-4" />
@@ -78,18 +162,18 @@ export function BoardHeader({
             <button
               onClick={() => onViewChange("roadmap")}
               className={cn(
-                "inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-all",
+                "flex flex-1 items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium transition-colors",
                 activeView === "roadmap"
                   ? "bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900"
-                  : "text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"
+                  : "bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:hover:bg-slate-700"
               )}
             >
               <Map className="h-4 w-4" />
               Roadmap
             </button>
-          </div>
-        )}
-      </div>
+          </nav>
+        </div>
+      )}
     </header>
   );
 }
