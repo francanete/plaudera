@@ -36,8 +36,8 @@ const TAB_CONFIG: Record<
       "The original idea submitted by the contributor. Shown on the public board.",
   },
   "public-update": {
-    label: "Public Update",
-    visibilityText: "Board",
+    label: "Team Update",
+    visibilityText: "",
     helpText:
       "Share progress updates with your users. This appears on the public feedback board below the description.",
   },
@@ -177,12 +177,12 @@ function ContentField({
             <span className="font-medium">{warningText}</span>
           </div>
         )
-      ) : (
+      ) : config.visibilityText ? (
         <div className="text-muted-foreground flex items-center gap-2 text-xs">
           <span>Visible on:</span>
           <span className="font-medium">{config.visibilityText}</span>
         </div>
-      )}
+      ) : null}
 
       {/* Borderless Textarea with focus underline */}
       <div className="relative">
