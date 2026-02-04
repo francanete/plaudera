@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { toast } from "sonner";
-import { ArrowLeft, Clock, ChevronRight } from "lucide-react";
+import { ArrowLeft, Clock, ChevronRight, TriangleAlert } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -391,16 +391,27 @@ export function RoadmapIdeaDetail({
 
           <div className="bg-muted/30 mt-6 rounded-lg p-4">
             {activeTab === "feature-details" && (
-              <ContentField
-                value={featureDetails}
-                onChange={setFeatureDetails}
-                onSave={handleSaveFeatureDetails}
-                isSaving={isSavingFeatureDetails}
-                hasChanges={featureDetailsChanged}
-                placeholder="Describe the feature specs, scope, and what you're building..."
-                maxLength={2000}
-                config={TAB_CONFIG["feature-details"]}
-              />
+              <div className="space-y-4">
+                {!featureDetails && idea.description && (
+                  <div className="flex items-start gap-2.5 rounded-lg border border-amber-200 bg-amber-50/60 px-3.5 py-2.5 dark:border-amber-800 dark:bg-amber-950/30">
+                    <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0 text-amber-500 dark:text-amber-400" />
+                    <p className="text-xs leading-relaxed text-amber-800 dark:text-amber-300">
+                      No feature details provided. The contributor&apos;s
+                      original idea is shown on your public roadmap instead.
+                    </p>
+                  </div>
+                )}
+                <ContentField
+                  value={featureDetails}
+                  onChange={setFeatureDetails}
+                  onSave={handleSaveFeatureDetails}
+                  isSaving={isSavingFeatureDetails}
+                  hasChanges={featureDetailsChanged}
+                  placeholder="Describe the feature specs, scope, and what you're building..."
+                  maxLength={2000}
+                  config={TAB_CONFIG["feature-details"]}
+                />
+              </div>
             )}
 
             {activeTab === "public-update" && (
