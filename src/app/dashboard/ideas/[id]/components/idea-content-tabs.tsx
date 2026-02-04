@@ -167,7 +167,6 @@ function ContentField({
 }: ContentFieldProps) {
   return (
     <div className="space-y-4">
-
       <Textarea
         value={value}
         onChange={(e) => onChange(e.target.value)}

@@ -95,15 +95,17 @@ export function IdeaCard({
         )}
 
         <div className="flex flex-wrap items-center gap-3">
-          <span
-            className={cn(
-              "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium",
-              statusConfig.badgeClassName
-            )}
-          >
-            <StatusIcon className="h-3.5 w-3.5" />
-            {statusConfig.label}
-          </span>
+          {idea.status !== "PUBLISHED" && (
+            <span
+              className={cn(
+                "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium",
+                statusConfig.badgeClassName
+              )}
+            >
+              <StatusIcon className="h-3.5 w-3.5" />
+              {statusConfig.label}
+            </span>
+          )}
           {isOnRoadmap(idea.roadmapStatus) && (
             <span
               className={cn(
