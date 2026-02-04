@@ -4,7 +4,7 @@ import { db } from "@/lib/db";
 import { votes, workspaces } from "@/lib/db/schema";
 import { eq, and, inArray } from "drizzle-orm";
 import { getContributor } from "@/lib/contributor-auth";
-import { queryPublicIdeas } from "@/lib/idea-queries";
+import { queryPublicIdeas, queryPublicRoadmapIdeas } from "@/lib/idea-queries";
 import { PublicIdeaList } from "@/components/board/public-idea-list";
 import type { Metadata } from "next";
 
@@ -45,14 +45,17 @@ async function BoardContent({ slug }: { slug: string }) {
   // Check if contributor is authenticated
   const contributor = await getContributor();
 
-  const workspaceIdeas = await queryPublicIdeas(workspace.id, {
-    contributorId: contributor?.id,
-  });
+  const [workspaceIdeas, roadmapIdeas] = await Promise.all([
+    queryPublicIdeas(workspace.id, { contributorId: contributor?.id }),
+    queryPublicRoadmapIdeas(workspace.id),
+  ]);
+
+  const allIdeas = [...workspaceIdeas, ...roadmapIdeas];
 
   // If authenticated, get their votes
   let votedIdeaIds: Set<string> = new Set();
-  if (contributor && workspaceIdeas.length > 0) {
-    const ideaIds = workspaceIdeas.map((idea) => idea.id);
+  if (contributor && allIdeas.length > 0) {
+    const ideaIds = allIdeas.map((idea) => idea.id);
     const contributorVotes = await db
       .select({ ideaId: votes.ideaId })
       .from(votes)
@@ -66,13 +69,14 @@ async function BoardContent({ slug }: { slug: string }) {
   }
 
   // Transform ideas for the client component
-  const ideasWithVoteStatus = workspaceIdeas.map((idea) => ({
+  const ideasWithVoteStatus = allIdeas.map((idea) => ({
     id: idea.id,
     title: idea.title,
     description: idea.description,
     status: idea.status,
     roadmapStatus: idea.roadmapStatus,
     publicUpdate: idea.publicUpdate,
+    showPublicUpdateOnRoadmap: idea.showPublicUpdateOnRoadmap,
     featureDetails: idea.featureDetails,
     voteCount: idea.voteCount,
     hasVoted: votedIdeaIds.has(idea.id),

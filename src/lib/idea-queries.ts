@@ -1,4 +1,4 @@
-import { eq, desc, and, or, inArray } from "drizzle-orm";
+import { eq, ne, desc, and, or, inArray } from "drizzle-orm";
 import { db, ideas, PUBLIC_VISIBLE_STATUSES } from "@/lib/db";
 
 /**
@@ -35,6 +35,21 @@ export async function queryPublicIdeas(
     where: whereClause,
     orderBy: [desc(ideas.voteCount), desc(ideas.createdAt)],
     ...(options?.limit ? { limit: options.limit } : {}),
+  });
+}
+
+/**
+ * Query PUBLISHED ideas that are on the roadmap (roadmapStatus != "NONE").
+ * Used for the public board's roadmap tab.
+ */
+export async function queryPublicRoadmapIdeas(workspaceId: string) {
+  return db.query.ideas.findMany({
+    where: and(
+      eq(ideas.workspaceId, workspaceId),
+      ne(ideas.roadmapStatus, "NONE"),
+      inArray(ideas.status, PUBLIC_VISIBLE_STATUSES)
+    ),
+    orderBy: [desc(ideas.voteCount), desc(ideas.createdAt)],
   });
 }
 

@@ -67,7 +67,8 @@ export function PublicIdeaList({
     [searchParams, pathname, router]
   );
 
-  // Filter ideas for roadmap view
+  // Split ideas: board shows non-roadmap, roadmap tab shows roadmap-only
+  const boardIdeas = ideas.filter((idea) => !isOnRoadmap(idea.roadmapStatus));
   const roadmapIdeas = ideas.filter((idea) => isOnRoadmap(idea.roadmapStatus));
 
   // Declare functions BEFORE the useEffect that uses them
@@ -274,7 +275,7 @@ export function PublicIdeaList({
       >
         {activeView === "roadmap" ? (
           <RoadmapGroupedView ideas={roadmapIdeas} />
-        ) : ideas.length === 0 ? (
+        ) : boardIdeas.length === 0 ? (
           <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-slate-300 bg-white py-16 dark:border-slate-600 dark:bg-slate-800">
             <Lightbulb className="mb-4 h-12 w-12 text-slate-400 dark:text-slate-500" />
             <h3 className="mb-2 text-lg font-semibold text-slate-900 dark:text-white">
@@ -286,7 +287,7 @@ export function PublicIdeaList({
           </div>
         ) : (
           <div className="space-y-3">
-            {ideas.map((idea) => (
+            {boardIdeas.map((idea) => (
               <IdeaCard
                 key={idea.id}
                 idea={idea}

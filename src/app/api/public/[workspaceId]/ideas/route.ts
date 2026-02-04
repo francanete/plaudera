@@ -3,7 +3,7 @@ import { z } from "zod";
 import { db } from "@/lib/db";
 import { ideas, votes, workspaces } from "@/lib/db/schema";
 import { eq, and, inArray } from "drizzle-orm";
-import { queryPublicIdeas } from "@/lib/idea-queries";
+import { queryPublicIdeas, queryPublicRoadmapIdeas } from "@/lib/idea-queries";
 import { getContributor } from "@/lib/contributor-auth";
 import { handleApiError } from "@/lib/api-utils";
 import { NotFoundError, UnauthorizedError, RateLimitError, ForbiddenError } from "@/lib/errors";
@@ -58,14 +58,17 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     // Check if contributor is authenticated
     const contributor = await getContributor();
 
-    const workspaceIdeas = await queryPublicIdeas(workspace.id, {
-      contributorId: contributor?.id,
-    });
+    const [workspaceIdeas, roadmapIdeas] = await Promise.all([
+      queryPublicIdeas(workspace.id, { contributorId: contributor?.id }),
+      queryPublicRoadmapIdeas(workspace.id),
+    ]);
+
+    const allIdeas = [...workspaceIdeas, ...roadmapIdeas];
 
     // If authenticated, get their votes to determine hasVoted
     let votedIdeaIds: Set<string> = new Set();
-    if (contributor && workspaceIdeas.length > 0) {
-      const ideaIds = workspaceIdeas.map((idea) => idea.id);
+    if (contributor && allIdeas.length > 0) {
+      const ideaIds = allIdeas.map((idea) => idea.id);
       const contributorVotes = await db
         .select({ ideaId: votes.ideaId })
         .from(votes)
@@ -80,13 +83,14 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 
     // Transform ideas with hasVoted and isOwn fields
     // Note: internalNote is NOT included (private to workspace owner)
-    const ideasWithVoteStatus = workspaceIdeas.map((idea) => ({
+    const ideasWithVoteStatus = allIdeas.map((idea) => ({
       id: idea.id,
       title: idea.title,
       description: idea.description,
       status: idea.status,
       roadmapStatus: idea.roadmapStatus,
       publicUpdate: idea.publicUpdate,
+      showPublicUpdateOnRoadmap: idea.showPublicUpdateOnRoadmap,
       featureDetails: idea.featureDetails,
       voteCount: idea.voteCount,
       hasVoted: votedIdeaIds.has(idea.id),
@@ -188,6 +192,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
           status: newIdea.status,
           roadmapStatus: newIdea.roadmapStatus,
           publicUpdate: newIdea.publicUpdate,
+          showPublicUpdateOnRoadmap: newIdea.showPublicUpdateOnRoadmap,
           featureDetails: newIdea.featureDetails,
           voteCount: newIdea.voteCount,
           hasVoted: false,

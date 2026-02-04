@@ -1,0 +1,1 @@
+ALTER TABLE "ideas" ADD COLUMN "show_public_update_on_roadmap" boolean DEFAULT false NOT NULL;

@@ -18,6 +18,7 @@ export interface IdeaCardData {
   status: IdeaStatus;
   roadmapStatus: RoadmapStatus;
   publicUpdate: string | null;
+  showPublicUpdateOnRoadmap: boolean;
   featureDetails: string | null;
   voteCount: number;
   hasVoted: boolean;

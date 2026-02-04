@@ -7,6 +7,8 @@ import { ArrowLeft, Clock, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -99,6 +101,10 @@ export function RoadmapIdeaDetail({
 
   const [publicUpdate, setPublicUpdate] = useState(idea.publicUpdate || "");
   const [isSavingPublicUpdate, setIsSavingPublicUpdate] = useState(false);
+
+  const [showPublicUpdateOnRoadmap, setShowPublicUpdateOnRoadmap] = useState(
+    idea.showPublicUpdateOnRoadmap
+  );
 
   const [internalNote, setInternalNote] = useState(idea.internalNote || "");
   const [isSavingInternalNote, setIsSavingInternalNote] = useState(false);
@@ -237,6 +243,32 @@ export function RoadmapIdeaDetail({
     }
   };
 
+  const handleToggleShowOnRoadmap = async (checked: boolean) => {
+    const previous = showPublicUpdateOnRoadmap;
+    setShowPublicUpdateOnRoadmap(checked);
+    setIdea({ ...idea, showPublicUpdateOnRoadmap: checked });
+
+    try {
+      const res = await fetch(`/api/ideas/${idea.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ showPublicUpdateOnRoadmap: checked }),
+      });
+
+      if (!res.ok) throw new Error();
+
+      toast.success(
+        checked
+          ? "Public update visible on roadmap"
+          : "Public update hidden from roadmap"
+      );
+    } catch {
+      setShowPublicUpdateOnRoadmap(previous);
+      setIdea({ ...idea, showPublicUpdateOnRoadmap: previous });
+      toast.error("Failed to update setting");
+    }
+  };
+
   const handleSaveInternalNote = async () => {
     setIsSavingInternalNote(true);
     try {
@@ -293,8 +325,7 @@ export function RoadmapIdeaDetail({
         <SelectTrigger className="w-[200px]">
           <SelectValue>
             {(() => {
-              const currentConfig =
-                ROADMAP_STATUS_CONFIG[idea.roadmapStatus];
+              const currentConfig = ROADMAP_STATUS_CONFIG[idea.roadmapStatus];
               const CurrentIcon = currentConfig.icon;
               return (
                 <>
@@ -397,6 +428,27 @@ export function RoadmapIdeaDetail({
         </div>
       </div>
 
+      {/* Show Public Update on Roadmap Card Toggle */}
+      <div className="flex items-center justify-between rounded-lg border border-dashed border-slate-200 px-4 py-3 dark:border-slate-700">
+        <div className="space-y-0.5">
+          <Label
+            htmlFor="show-update-on-roadmap"
+            className="text-sm font-medium"
+          >
+            Show public update on roadmap card
+          </Label>
+          <p className="text-muted-foreground text-xs">
+            When enabled, the public update text appears on the roadmap board
+            card.
+          </p>
+        </div>
+        <Switch
+          id="show-update-on-roadmap"
+          checked={showPublicUpdateOnRoadmap}
+          onCheckedChange={handleToggleShowOnRoadmap}
+        />
+      </div>
+
       {/* Internal Note */}
       <IdeaInternalNote
         note={internalNote}
@@ -429,7 +481,7 @@ export function RoadmapIdeaDetail({
             </button>
           </CollapsibleTrigger>
           <CollapsibleContent>
-            <div className="border-border ml-1 mt-3 space-y-0 border-l pl-4">
+            <div className="border-border mt-3 ml-1 space-y-0 border-l pl-4">
               {roadmapHistory.map((change, index) => {
                 const toConfig = ROADMAP_STATUS_CONFIG[change.toStatus];
                 const isLast = index === roadmapHistory.length - 1;

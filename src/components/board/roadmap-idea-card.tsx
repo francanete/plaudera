@@ -1,6 +1,6 @@
 "use client";
 
-import { ThumbsUp } from "lucide-react";
+import { ThumbsUp, Megaphone } from "lucide-react";
 import { ExpandableText } from "@/components/ui/expandable-text";
 import type { RoadmapStatus } from "@/lib/db/schema";
 
@@ -10,6 +10,8 @@ export interface RoadmapIdeaCardData {
   description: string | null;
   roadmapStatus: RoadmapStatus;
   featureDetails: string | null;
+  publicUpdate: string | null;
+  showPublicUpdateOnRoadmap: boolean;
   voteCount: number;
 }
 
@@ -41,6 +43,19 @@ export function RoadmapIdeaCard({ idea }: RoadmapIdeaCardProps) {
                 {idea.featureDetails ?? idea.description}
               </p>
             </ExpandableText>
+          )}
+
+          {/* Public Update (shown when workspace owner enables the toggle) */}
+          {idea.showPublicUpdateOnRoadmap && idea.publicUpdate && (
+            <div className="mt-3 rounded-lg border border-blue-100 bg-blue-50/50 p-3 text-sm text-blue-800 dark:border-blue-900 dark:bg-blue-950/30 dark:text-blue-300">
+              <p className="mb-1 flex items-center gap-1.5 text-xs font-medium tracking-wide text-blue-600 uppercase dark:text-blue-400">
+                <Megaphone className="h-3.5 w-3.5" />
+                Team Update
+              </p>
+              <ExpandableText maxLines={2}>
+                <p className="whitespace-pre-line">{idea.publicUpdate}</p>
+              </ExpandableText>
+            </div>
           )}
         </div>
       </div>
