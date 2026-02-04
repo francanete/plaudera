@@ -59,7 +59,7 @@ const TAB_CONFIG: Record<
       "Share progress updates with your users. This appears on the public feedback board below the description.",
   },
   description: {
-    label: "Original Description",
+    label: "Contributor's Idea",
     visibilityText: "Board · Roadmap (fallback)",
     helpText:
       "The original idea submitted by the contributor. Read-only reference.",
@@ -537,29 +537,16 @@ function ContentField({
 }: ContentFieldProps) {
   return (
     <div className="space-y-4">
-      <div className="text-muted-foreground flex items-center gap-2 text-xs">
-        <span>Visible on:</span>
-        <span className="font-medium">{config.visibilityText}</span>
-        {readOnly && (
-          <span className="text-muted-foreground/70 ml-2 italic">
-            Original idea — read only
-          </span>
-        )}
-      </div>
-
-      <div className="relative">
-        <Textarea
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          placeholder={placeholder}
-          className={`placeholder:text-muted-foreground/50 min-h-[140px] resize-none border-0 bg-transparent px-0 shadow-none focus:ring-0 focus-visible:ring-0 ${
-            readOnly ? "opacity-60" : ""
-          }`}
-          maxLength={maxLength}
-          readOnly={readOnly}
-        />
-        <div className="bg-border focus-within:bg-primary absolute bottom-0 left-0 h-px w-full transition-colors" />
-      </div>
+      <Textarea
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        className={`placeholder:text-muted-foreground/50 min-h-[140px] resize-none border-0 bg-transparent px-0 shadow-none focus:ring-0 focus-visible:ring-0 ${
+          readOnly ? "opacity-60" : ""
+        }`}
+        maxLength={maxLength}
+        readOnly={readOnly}
+      />
 
       <div className="flex items-center justify-between">
         {maxLength && !readOnly ? (
@@ -580,9 +567,9 @@ function ContentField({
           >
             <Button
               size="sm"
+              variant="secondary"
               onClick={onSave}
               disabled={isSaving}
-              className="bg-foreground text-background hover:bg-foreground/90"
             >
               {isSaving ? "Saving..." : "Save changes"}
             </Button>
