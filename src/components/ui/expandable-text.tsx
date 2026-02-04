@@ -20,11 +20,11 @@ export function ExpandableText({
 
   useEffect(() => {
     const el = contentRef.current;
-    if (el) {
-      // Check if content is clamped (overflowing)
-      setIsClamped(el.scrollHeight > el.clientHeight);
-    }
-  }, [children]);
+    if (!el || isExpanded) return;
+    // Only measure when collapsed — line-clamp must be active for
+    // scrollHeight vs clientHeight to reflect real overflow.
+    setIsClamped(el.scrollHeight > el.clientHeight);
+  }, [children, isExpanded]);
 
   return (
     <div className={className}>

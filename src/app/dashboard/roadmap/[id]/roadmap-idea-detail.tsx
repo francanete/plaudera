@@ -26,6 +26,7 @@ import {
   VISIBLE_ROADMAP_STATUSES,
   ROADMAP_STATUS_CONFIG,
 } from "@/lib/roadmap-status-config";
+import { RoadmapIdeaCard } from "@/components/board/roadmap-idea-card";
 import { IdeaInternalNote } from "@/app/dashboard/ideas/[id]/components/idea-internal-note";
 import { IdeaMeta } from "@/app/dashboard/ideas/[id]/components/idea-meta";
 
@@ -296,218 +297,249 @@ export function RoadmapIdeaDetail({
   ];
 
   return (
-    <div className="max-w-5xl space-y-10 py-8">
-      {/* Back Navigation */}
-      <Link href="/dashboard/roadmap" className="group inline-flex">
-        <button className="text-muted-foreground hover:text-foreground inline-flex items-center gap-2 px-2 text-sm transition-colors">
-          <ArrowLeft className="h-4 w-4 transition-transform duration-200 group-hover:-translate-x-1" />
-          Back to Roadmap
-        </button>
-      </Link>
+    <div className="xl:grid xl:grid-cols-[1fr_360px] xl:gap-8">
+      {/* Left: Editor */}
+      <div className="max-w-5xl space-y-10 py-8">
+        {/* Back Navigation */}
+        <Link href="/dashboard/roadmap" className="group inline-flex">
+          <button className="text-muted-foreground hover:text-foreground inline-flex items-center gap-2 px-2 text-sm transition-colors">
+            <ArrowLeft className="h-4 w-4 transition-transform duration-200 group-hover:-translate-x-1" />
+            Back to Roadmap
+          </button>
+        </Link>
 
-      {/* Editable Title */}
-      <Input
-        value={title}
-        onChange={(e) => setTitle(e.target.value)}
-        onBlur={handleTitleBlur}
-        disabled={isSavingTitle}
-        className="text-foreground placeholder:text-muted-foreground/50 h-auto border-transparent bg-transparent px-0 py-0 text-3xl font-semibold tracking-tight hover:border-transparent focus:border-transparent focus:ring-0 sm:text-4xl md:text-5xl"
-        placeholder="Feature title"
-      />
+        {/* Editable Title */}
+        <Input
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          onBlur={handleTitleBlur}
+          disabled={isSavingTitle}
+          className="text-foreground placeholder:text-muted-foreground/50 h-auto border-transparent bg-transparent px-0 py-0 text-3xl font-semibold tracking-tight hover:border-transparent focus:border-transparent focus:ring-0 sm:text-4xl md:text-5xl"
+          placeholder="Feature title"
+        />
 
-      {/* Roadmap Status Selector */}
-      <Select
-        value={idea.roadmapStatus}
-        onValueChange={(value) =>
-          handleRoadmapStatusChange(value as RoadmapStatus)
-        }
-      >
-        <SelectTrigger className="w-[200px]">
-          <SelectValue>
-            {(() => {
-              const currentConfig = ROADMAP_STATUS_CONFIG[idea.roadmapStatus];
-              const CurrentIcon = currentConfig.icon;
+        {/* Roadmap Status Selector */}
+        <Select
+          value={idea.roadmapStatus}
+          onValueChange={(value) =>
+            handleRoadmapStatusChange(value as RoadmapStatus)
+          }
+        >
+          <SelectTrigger className="w-[200px]">
+            <SelectValue>
+              {(() => {
+                const currentConfig = ROADMAP_STATUS_CONFIG[idea.roadmapStatus];
+                const CurrentIcon = currentConfig.icon;
+                return (
+                  <>
+                    <CurrentIcon className="h-4 w-4" />
+                    {currentConfig.label}
+                  </>
+                );
+              })()}
+            </SelectValue>
+          </SelectTrigger>
+          <SelectContent>
+            {VISIBLE_ROADMAP_STATUSES.map((status) => {
+              const config = ROADMAP_STATUS_CONFIG[status];
+              const Icon = config.icon;
               return (
-                <>
-                  <CurrentIcon className="h-4 w-4" />
-                  {currentConfig.label}
-                </>
-              );
-            })()}
-          </SelectValue>
-        </SelectTrigger>
-        <SelectContent>
-          {VISIBLE_ROADMAP_STATUSES.map((status) => {
-            const config = ROADMAP_STATUS_CONFIG[status];
-            const Icon = config.icon;
-            return (
-              <SelectItem key={status} value={status}>
-                <Icon className="h-4 w-4" />
-                {config.label}
-              </SelectItem>
-            );
-          })}
-        </SelectContent>
-      </Select>
-
-      {/* Content Tabs */}
-      <div className="w-full">
-        <div className="border-border relative border-b" ref={tabsRef}>
-          <div className="flex gap-1">
-            {visibleTabs.map((tab) => {
-              const config = TAB_CONFIG[tab];
-              const isActiveTab = activeTab === tab;
-
-              return (
-                <button
-                  key={tab}
-                  ref={(el) => {
-                    if (el) tabRefs.current.set(tab, el);
-                  }}
-                  onClick={() => setActiveTab(tab)}
-                  className={`relative px-3 py-2.5 text-xs font-medium transition-colors sm:px-4 sm:py-3 sm:text-sm ${
-                    isActiveTab
-                      ? "text-foreground"
-                      : "text-muted-foreground hover:text-foreground"
-                  }`}
-                >
+                <SelectItem key={status} value={status}>
+                  <Icon className="h-4 w-4" />
                   {config.label}
-                </button>
+                </SelectItem>
               );
             })}
-          </div>
+          </SelectContent>
+        </Select>
 
-          <div
-            className="bg-primary absolute bottom-0 h-0.5 transition-all duration-200 ease-out"
-            style={{
-              left: indicatorStyle.left,
-              width: indicatorStyle.width,
-            }}
-          />
-        </div>
+        {/* Content Tabs */}
+        <div className="w-full">
+          <div className="border-border relative border-b" ref={tabsRef}>
+            <div className="flex gap-1">
+              {visibleTabs.map((tab) => {
+                const config = TAB_CONFIG[tab];
+                const isActiveTab = activeTab === tab;
 
-        <div className="bg-muted/30 mt-6 rounded-lg p-4">
-          {activeTab === "feature-details" && (
-            <ContentField
-              value={featureDetails}
-              onChange={setFeatureDetails}
-              onSave={handleSaveFeatureDetails}
-              isSaving={isSavingFeatureDetails}
-              hasChanges={featureDetailsChanged}
-              placeholder="Describe the feature specs, scope, and what you're building..."
-              maxLength={2000}
-              config={TAB_CONFIG["feature-details"]}
-            />
-          )}
-
-          {activeTab === "public-update" && (
-            <ContentField
-              value={publicUpdate}
-              onChange={setPublicUpdate}
-              onSave={handleSavePublicUpdate}
-              isSaving={isSavingPublicUpdate}
-              hasChanges={publicUpdateChanged}
-              placeholder="Share progress or updates with your users..."
-              maxLength={1000}
-              config={TAB_CONFIG["public-update"]}
-            />
-          )}
-
-          {activeTab === "description" && (
-            <ContentField
-              value={idea.description || ""}
-              onChange={() => {}}
-              onSave={() => {}}
-              isSaving={false}
-              hasChanges={false}
-              placeholder="No description provided by the contributor."
-              config={TAB_CONFIG.description}
-              readOnly
-            />
-          )}
-        </div>
-      </div>
-
-      {/* Show Public Update on Roadmap Card Toggle */}
-      <div className="flex items-center justify-between rounded-lg border border-dashed border-slate-200 px-4 py-3 dark:border-slate-700">
-        <div className="space-y-0.5">
-          <Label
-            htmlFor="show-update-on-roadmap"
-            className="text-sm font-medium"
-          >
-            Show public update on roadmap card
-          </Label>
-          <p className="text-muted-foreground text-xs">
-            When enabled, the public update text appears on the roadmap board
-            card.
-          </p>
-        </div>
-        <Switch
-          id="show-update-on-roadmap"
-          checked={showPublicUpdateOnRoadmap}
-          onCheckedChange={handleToggleShowOnRoadmap}
-        />
-      </div>
-
-      {/* Internal Note */}
-      <IdeaInternalNote
-        note={internalNote}
-        onNoteChange={setInternalNote}
-        onSave={handleSaveInternalNote}
-        isSaving={isSavingInternalNote}
-        hasChanges={internalNoteChanged}
-      />
-
-      {/* Meta */}
-      <IdeaMeta createdAt={idea.createdAt} authorEmail={idea.authorEmail} />
-
-      {/* Status History */}
-      {roadmapHistory.length > 0 && (
-        <Collapsible open={historyOpen} onOpenChange={setHistoryOpen}>
-          <CollapsibleTrigger asChild>
-            <button className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5 text-sm transition-colors">
-              <ChevronRight
-                className={`h-3.5 w-3.5 transition-transform duration-200 ${
-                  historyOpen ? "rotate-90" : ""
-                }`}
-              />
-              <Clock className="h-3.5 w-3.5" />
-              <span>
-                Status history{" "}
-                <span className="font-mono text-xs tabular-nums">
-                  ({roadmapHistory.length})
-                </span>
-              </span>
-            </button>
-          </CollapsibleTrigger>
-          <CollapsibleContent>
-            <div className="border-border mt-3 ml-1 space-y-0 border-l pl-4">
-              {roadmapHistory.map((change, index) => {
-                const toConfig = ROADMAP_STATUS_CONFIG[change.toStatus];
-                const isLast = index === roadmapHistory.length - 1;
                 return (
-                  <div
-                    key={change.id}
-                    className={`relative flex items-center gap-3 py-2 ${
-                      !isLast ? "" : ""
+                  <button
+                    key={tab}
+                    ref={(el) => {
+                      if (el) tabRefs.current.set(tab, el);
+                    }}
+                    onClick={() => setActiveTab(tab)}
+                    className={`relative px-3 py-2.5 text-xs font-medium transition-colors sm:px-4 sm:py-3 sm:text-sm ${
+                      isActiveTab
+                        ? "text-foreground"
+                        : "text-muted-foreground hover:text-foreground"
                     }`}
                   >
-                    <div className="bg-border absolute -left-[17px] h-2 w-2 rounded-full" />
-                    <span
-                      className={`text-sm font-medium ${getStatusColor(change.toStatus)}`}
-                    >
-                      {toConfig.label}
-                    </span>
-                    <span className="text-muted-foreground font-mono text-xs tabular-nums">
-                      {formatDate(change.changedAt)}
-                    </span>
-                  </div>
+                    {config.label}
+                  </button>
                 );
               })}
             </div>
-          </CollapsibleContent>
-        </Collapsible>
-      )}
+
+            <div
+              className="bg-primary absolute bottom-0 h-0.5 transition-all duration-200 ease-out"
+              style={{
+                left: indicatorStyle.left,
+                width: indicatorStyle.width,
+              }}
+            />
+          </div>
+
+          <div className="bg-muted/30 mt-6 rounded-lg p-4">
+            {activeTab === "feature-details" && (
+              <ContentField
+                value={featureDetails}
+                onChange={setFeatureDetails}
+                onSave={handleSaveFeatureDetails}
+                isSaving={isSavingFeatureDetails}
+                hasChanges={featureDetailsChanged}
+                placeholder="Describe the feature specs, scope, and what you're building..."
+                maxLength={2000}
+                config={TAB_CONFIG["feature-details"]}
+              />
+            )}
+
+            {activeTab === "public-update" && (
+              <ContentField
+                value={publicUpdate}
+                onChange={setPublicUpdate}
+                onSave={handleSavePublicUpdate}
+                isSaving={isSavingPublicUpdate}
+                hasChanges={publicUpdateChanged}
+                placeholder="Share progress or updates with your users..."
+                maxLength={1000}
+                config={TAB_CONFIG["public-update"]}
+              />
+            )}
+
+            {activeTab === "description" && (
+              <ContentField
+                value={idea.description || ""}
+                onChange={() => {}}
+                onSave={() => {}}
+                isSaving={false}
+                hasChanges={false}
+                placeholder="No description provided by the contributor."
+                config={TAB_CONFIG.description}
+                readOnly
+              />
+            )}
+          </div>
+        </div>
+
+        {/* Show Public Update on Roadmap Card Toggle */}
+        <div className="flex items-center justify-between rounded-lg border border-dashed border-slate-200 px-4 py-3 dark:border-slate-700">
+          <div className="space-y-0.5">
+            <Label
+              htmlFor="show-update-on-roadmap"
+              className="text-sm font-medium"
+            >
+              Show public update on roadmap card
+            </Label>
+            <p className="text-muted-foreground text-xs">
+              When enabled, the public update text appears on the roadmap board
+              card.
+            </p>
+          </div>
+          <Switch
+            id="show-update-on-roadmap"
+            checked={showPublicUpdateOnRoadmap}
+            onCheckedChange={handleToggleShowOnRoadmap}
+          />
+        </div>
+
+        {/* Internal Note */}
+        <IdeaInternalNote
+          note={internalNote}
+          onNoteChange={setInternalNote}
+          onSave={handleSaveInternalNote}
+          isSaving={isSavingInternalNote}
+          hasChanges={internalNoteChanged}
+        />
+
+        {/* Meta */}
+        <IdeaMeta createdAt={idea.createdAt} authorEmail={idea.authorEmail} />
+
+        {/* Status History */}
+        {roadmapHistory.length > 0 && (
+          <Collapsible open={historyOpen} onOpenChange={setHistoryOpen}>
+            <CollapsibleTrigger asChild>
+              <button className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5 text-sm transition-colors">
+                <ChevronRight
+                  className={`h-3.5 w-3.5 transition-transform duration-200 ${
+                    historyOpen ? "rotate-90" : ""
+                  }`}
+                />
+                <Clock className="h-3.5 w-3.5" />
+                <span>
+                  Status history{" "}
+                  <span className="font-mono text-xs tabular-nums">
+                    ({roadmapHistory.length})
+                  </span>
+                </span>
+              </button>
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <div className="border-border mt-3 ml-1 space-y-0 border-l pl-4">
+                {roadmapHistory.map((change, index) => {
+                  const toConfig = ROADMAP_STATUS_CONFIG[change.toStatus];
+                  const isLast = index === roadmapHistory.length - 1;
+                  return (
+                    <div
+                      key={change.id}
+                      className={`relative flex items-center gap-3 py-2 ${
+                        !isLast ? "" : ""
+                      }`}
+                    >
+                      <div className="bg-border absolute -left-[17px] h-2 w-2 rounded-full" />
+                      <span
+                        className={`text-sm font-medium ${getStatusColor(change.toStatus)}`}
+                      >
+                        {toConfig.label}
+                      </span>
+                      <span className="text-muted-foreground font-mono text-xs tabular-nums">
+                        {formatDate(change.changedAt)}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
+        )}
+      </div>
+
+      {/* Right: Live Preview (hidden below xl) */}
+      <aside className="hidden xl:block">
+        <div className="sticky top-20 space-y-3 py-8">
+          <div className="space-y-1.5">
+            <p className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
+              Public Board Preview
+            </p>
+            <p className="text-muted-foreground text-xs">
+              This is how the card appears on your public roadmap.
+            </p>
+          </div>
+          <div>
+            <RoadmapIdeaCard
+              idea={{
+                id: idea.id,
+                title,
+                description: idea.description,
+                roadmapStatus: idea.roadmapStatus,
+                featureDetails: featureDetails || null,
+                publicUpdate: publicUpdate || null,
+                showPublicUpdateOnRoadmap,
+                voteCount: idea.voteCount,
+              }}
+            />
+          </div>
+        </div>
+      </aside>
     </div>
   );
 }
