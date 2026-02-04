@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { TriangleAlert } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 
@@ -31,7 +30,7 @@ const TAB_CONFIG: Record<
 > = {
   description: {
     label: "Contributor's Idea",
-    visibilityText: "Board · Roadmap (fallback)",
+    visibilityText: "",
     helpText:
       "The original idea submitted by the contributor. Shown on the public board.",
   },
@@ -123,8 +122,8 @@ export function IdeaContentTabs({
             isSaving={isSavingDescription}
             hasChanges={hasDescriptionChanges}
             placeholder="Add a description of this idea..."
+            maxLength={1000}
             config={TAB_CONFIG.description}
-            warningText="You are updating the contributor's original description"
           />
         )}
 
@@ -154,7 +153,6 @@ interface ContentFieldProps {
   placeholder: string;
   maxLength?: number;
   config: (typeof TAB_CONFIG)[TabValue];
-  warningText?: string;
 }
 
 function ContentField({
@@ -166,36 +164,17 @@ function ContentField({
   placeholder,
   maxLength,
   config,
-  warningText,
 }: ContentFieldProps) {
   return (
     <div className="space-y-4">
-      {warningText ? (
-        hasChanges && (
-          <div className="flex items-center gap-2 text-xs text-amber-600 dark:text-amber-400">
-            <TriangleAlert className="size-3.5 shrink-0" />
-            <span className="font-medium">{warningText}</span>
-          </div>
-        )
-      ) : config.visibilityText ? (
-        <div className="text-muted-foreground flex items-center gap-2 text-xs">
-          <span>Visible on:</span>
-          <span className="font-medium">{config.visibilityText}</span>
-        </div>
-      ) : null}
 
-      {/* Borderless Textarea with focus underline */}
-      <div className="relative">
-        <Textarea
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          placeholder={placeholder}
-          className="placeholder:text-muted-foreground/50 min-h-[140px] resize-none border-0 bg-transparent px-0 shadow-none focus:ring-0 focus-visible:ring-0"
-          maxLength={maxLength}
-        />
-        {/* Subtle focus indicator line */}
-        <div className="bg-border focus-within:bg-primary absolute bottom-0 left-0 h-px w-full transition-colors" />
-      </div>
+      <Textarea
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        className="placeholder:text-muted-foreground/50 min-h-[140px] resize-none border-0 bg-transparent px-0 shadow-none focus:ring-0 focus-visible:ring-0"
+        maxLength={maxLength}
+      />
 
       {/* Footer with Character Count and Animated Save Button */}
       <div className="flex items-center justify-between">
@@ -217,9 +196,9 @@ function ContentField({
         >
           <Button
             size="sm"
+            variant="secondary"
             onClick={onSave}
             disabled={isSaving}
-            className="bg-foreground text-background hover:bg-foreground/90"
           >
             {isSaving ? "Saving..." : "Save changes"}
           </Button>
