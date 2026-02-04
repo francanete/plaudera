@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { TriangleAlert } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 
@@ -123,6 +124,7 @@ export function IdeaContentTabs({
             hasChanges={hasDescriptionChanges}
             placeholder="Add a description of this idea..."
             config={TAB_CONFIG.description}
+            warningText="You are updating the contributor's original description"
           />
         )}
 
@@ -152,6 +154,7 @@ interface ContentFieldProps {
   placeholder: string;
   maxLength?: number;
   config: (typeof TAB_CONFIG)[TabValue];
+  warningText?: string;
 }
 
 function ContentField({
@@ -163,14 +166,23 @@ function ContentField({
   placeholder,
   maxLength,
   config,
+  warningText,
 }: ContentFieldProps) {
   return (
     <div className="space-y-4">
-      {/* Visibility as subtle inline text */}
-      <div className="text-muted-foreground flex items-center gap-2 text-xs">
-        <span>Visible on:</span>
-        <span className="font-medium">{config.visibilityText}</span>
-      </div>
+      {warningText ? (
+        hasChanges && (
+          <div className="flex items-center gap-2 text-xs text-amber-600 dark:text-amber-400">
+            <TriangleAlert className="size-3.5 shrink-0" />
+            <span className="font-medium">{warningText}</span>
+          </div>
+        )
+      ) : (
+        <div className="text-muted-foreground flex items-center gap-2 text-xs">
+          <span>Visible on:</span>
+          <span className="font-medium">{config.visibilityText}</span>
+        </div>
+      )}
 
       {/* Borderless Textarea with focus underline */}
       <div className="relative">
