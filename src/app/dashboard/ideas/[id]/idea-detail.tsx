@@ -269,12 +269,12 @@ export function IdeaDetail({
         isSavingTitle={isSavingTitle}
         isMerged={idea.status === "MERGED"}
         mergedIntoId={idea.mergedIntoId}
+        voteCount={idea.voteCount}
       />
 
       {/* Status & Visibility Row */}
       <IdeaStatusSection
         status={idea.status}
-        voteCount={idea.voteCount}
         onStatusChange={handleStatusChange}
         onMoveToRoadmap={() => setShowMoveToRoadmapForm(true)}
       />
