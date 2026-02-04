@@ -1,14 +1,10 @@
 import { notFound } from "next/navigation";
 import { Suspense, cache } from "react";
 import { db } from "@/lib/db";
-import {
-  ideas,
-  votes,
-  workspaces,
-  PUBLIC_VISIBLE_STATUSES,
-} from "@/lib/db/schema";
-import { eq, desc, and, or, inArray } from "drizzle-orm";
+import { votes, workspaces } from "@/lib/db/schema";
+import { eq, and, inArray } from "drizzle-orm";
 import { getContributor } from "@/lib/contributor-auth";
+import { queryPublicIdeas } from "@/lib/idea-queries";
 import { PublicIdeaList } from "@/components/board/public-idea-list";
 import type { Metadata } from "next";
 
@@ -49,28 +45,8 @@ async function BoardContent({ slug }: { slug: string }) {
   // Check if contributor is authenticated
   const contributor = await getContributor();
 
-  // Build query: public-visible statuses + contributor's own PENDING ideas
-  const whereClause = contributor
-    ? and(
-        eq(ideas.workspaceId, workspace.id),
-        or(
-          // Public visible statuses (for everyone)
-          inArray(ideas.status, PUBLIC_VISIBLE_STATUSES),
-          // Contributor's own UNDER_REVIEW ideas (only visible to them)
-          and(
-            eq(ideas.status, "UNDER_REVIEW"),
-            eq(ideas.contributorId, contributor.id)
-          )
-        )
-      )
-    : and(
-        eq(ideas.workspaceId, workspace.id),
-        inArray(ideas.status, PUBLIC_VISIBLE_STATUSES)
-      );
-
-  const workspaceIdeas = await db.query.ideas.findMany({
-    where: whereClause,
-    orderBy: [desc(ideas.voteCount), desc(ideas.createdAt)],
+  const workspaceIdeas = await queryPublicIdeas(workspace.id, {
+    contributorId: contributor?.id,
   });
 
   // If authenticated, get their votes

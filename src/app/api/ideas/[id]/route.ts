@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { eq } from "drizzle-orm";
+import { eq, and, or } from "drizzle-orm";
 import {
   db,
   ideas,
   roadmapStatusChanges,
+  duplicateSuggestions,
   type IdeaStatus,
   type RoadmapStatus,
 } from "@/lib/db";
@@ -101,8 +102,23 @@ export const PATCH = protectedApiRouteWrapper<RouteParams>(
     const previousRoadmapStatus = idea.roadmapStatus;
 
     if (data.roadmapStatus !== undefined) {
+      // Irreversibility guard: ideas cannot be removed from the roadmap
+      if (idea.roadmapStatus !== "NONE" && data.roadmapStatus === "NONE") {
+        throw new BadRequestError("Ideas cannot be removed from the roadmap");
+      }
+
       updateData.roadmapStatus = data.roadmapStatus;
       roadmapStatusChanged = data.roadmapStatus !== idea.roadmapStatus;
+
+      // Auto-publish: when moving to roadmap, publish if still under review
+      if (
+        roadmapStatusChanged &&
+        idea.roadmapStatus === "NONE" &&
+        data.roadmapStatus !== "NONE" &&
+        idea.status === "UNDER_REVIEW"
+      ) {
+        updateData.status = "PUBLISHED";
+      }
     }
 
     if (data.status !== undefined) {
@@ -136,6 +152,25 @@ export const PATCH = protectedApiRouteWrapper<RouteParams>(
         toStatus: updatedIdea.roadmapStatus,
         changedBy: session.user.id,
       });
+    }
+
+    // Auto-dismiss pending duplicate suggestions when moving to roadmap
+    if (
+      previousRoadmapStatus === "NONE" &&
+      updatedIdea.roadmapStatus !== "NONE"
+    ) {
+      await db
+        .update(duplicateSuggestions)
+        .set({ status: "DISMISSED" })
+        .where(
+          and(
+            eq(duplicateSuggestions.status, "PENDING"),
+            or(
+              eq(duplicateSuggestions.sourceIdeaId, idea.id),
+              eq(duplicateSuggestions.duplicateIdeaId, idea.id)
+            )
+          )
+        );
     }
 
     // Regenerate embedding if title or description changed (fire-and-forget)

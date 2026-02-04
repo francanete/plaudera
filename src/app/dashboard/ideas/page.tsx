@@ -1,8 +1,9 @@
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { db, ideas, duplicateSuggestions } from "@/lib/db";
-import { eq, desc, and } from "drizzle-orm";
+import { db, duplicateSuggestions } from "@/lib/db";
+import { eq, and } from "drizzle-orm";
+import { queryDashboardIdeas } from "@/lib/idea-queries";
 import { getUserWorkspace, createUserWorkspace } from "@/lib/workspace";
 import { IdeasList } from "./ideas-list";
 import { Lightbulb } from "lucide-react";
@@ -30,10 +31,7 @@ export default async function IdeasPage() {
 
   // Fetch ideas and pending duplicate suggestions in parallel
   const [workspaceIdeas, pendingDuplicates] = await Promise.all([
-    db.query.ideas.findMany({
-      where: eq(ideas.workspaceId, workspace.id),
-      orderBy: [desc(ideas.createdAt)],
-    }),
+    queryDashboardIdeas(workspace.id),
     db
       .select({
         sourceIdeaId: duplicateSuggestions.sourceIdeaId,

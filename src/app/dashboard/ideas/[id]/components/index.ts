@@ -14,3 +14,4 @@ export { IdeaMergedChildren } from "./idea-merged-children";
 export { IdeaStatusSection } from "./idea-status-section";
 export { IdeaContentTabs } from "./idea-content-tabs";
 export { IdeaDangerZone } from "./idea-danger-zone";
+export { MoveToRoadmapForm } from "./move-to-roadmap-form";

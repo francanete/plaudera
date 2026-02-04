@@ -3,7 +3,6 @@
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import type { RoadmapStatus } from "@/lib/db/schema";
 
 interface IdeaContentTabsProps {
   description: string;
@@ -17,17 +16,9 @@ interface IdeaContentTabsProps {
   onSavePublicUpdate: () => void;
   isSavingPublicUpdate: boolean;
   hasPublicUpdateChanges: boolean;
-
-  featureDetails: string;
-  onFeatureDetailsChange: (value: string) => void;
-  onSaveFeatureDetails: () => void;
-  isSavingFeatureDetails: boolean;
-  hasFeatureDetailsChanges: boolean;
-
-  roadmapStatus: RoadmapStatus;
 }
 
-type TabValue = "description" | "public-update" | "feature-details";
+type TabValue = "description" | "public-update";
 
 const TAB_CONFIG: Record<
   TabValue,
@@ -49,12 +40,6 @@ const TAB_CONFIG: Record<
     helpText:
       "Share progress updates with your users. This appears on the public feedback board below the description.",
   },
-  "feature-details": {
-    label: "Feature Details",
-    visibilityText: "Roadmap",
-    helpText:
-      "Technical specifications and detailed feature scope. Shown only on your public roadmap page.",
-  },
 };
 
 export function IdeaContentTabs({
@@ -68,23 +53,13 @@ export function IdeaContentTabs({
   onSavePublicUpdate,
   isSavingPublicUpdate,
   hasPublicUpdateChanges,
-  featureDetails,
-  onFeatureDetailsChange,
-  onSaveFeatureDetails,
-  isSavingFeatureDetails,
-  hasFeatureDetailsChanges,
-  roadmapStatus,
 }: IdeaContentTabsProps) {
   const [activeTab, setActiveTab] = useState<TabValue>("description");
   const [indicatorStyle, setIndicatorStyle] = useState({ left: 0, width: 0 });
   const tabsRef = useRef<HTMLDivElement>(null);
   const tabRefs = useRef<Map<TabValue, HTMLButtonElement>>(new Map());
 
-  // Only show Feature Details tab when idea is on the roadmap
-  const showFeatureDetails = roadmapStatus !== "NONE";
-  const visibleTabs: TabValue[] = showFeatureDetails
-    ? ["description", "public-update", "feature-details"]
-    : ["description", "public-update"];
+  const visibleTabs: TabValue[] = ["description", "public-update"];
 
   // Update indicator position
   useEffect(() => {
@@ -97,7 +72,7 @@ export function IdeaContentTabs({
         width: buttonRect.width,
       });
     }
-  }, [activeTab, visibleTabs.length]);
+  }, [activeTab]);
 
   return (
     <div className="w-full">
@@ -161,19 +136,6 @@ export function IdeaContentTabs({
             placeholder="Share progress or updates with your users..."
             maxLength={1000}
             config={TAB_CONFIG["public-update"]}
-          />
-        )}
-
-        {activeTab === "feature-details" && showFeatureDetails && (
-          <ContentField
-            value={featureDetails}
-            onChange={onFeatureDetailsChange}
-            onSave={onSaveFeatureDetails}
-            isSaving={isSavingFeatureDetails}
-            hasChanges={hasFeatureDetailsChanges}
-            placeholder="Describe the feature specs, scope, and what you're building..."
-            maxLength={2000}
-            config={TAB_CONFIG["feature-details"]}
           />
         )}
       </div>

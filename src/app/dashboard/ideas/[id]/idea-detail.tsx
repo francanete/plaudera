@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import type { Idea, IdeaStatus, RoadmapStatus } from "@/lib/db/schema";
@@ -14,6 +14,7 @@ import {
   IdeaStatusSection,
   IdeaContentTabs,
   IdeaDangerZone,
+  MoveToRoadmapForm,
 } from "./components";
 
 interface MergedChild {
@@ -30,13 +31,6 @@ interface IdeaDetailProps {
   idea: Idea;
   mergedChildren?: MergedChild[];
   publishedIdeas?: PublishedIdea[];
-}
-
-interface StatusChange {
-  id: string;
-  fromStatus: RoadmapStatus;
-  toStatus: RoadmapStatus;
-  changedAt: string;
 }
 
 export function IdeaDetail({
@@ -56,13 +50,12 @@ export function IdeaDetail({
   // Roadmap fields state
   const [internalNote, setInternalNote] = useState(idea.internalNote || "");
   const [publicUpdate, setPublicUpdate] = useState(idea.publicUpdate || "");
-  const [featureDetails, setFeatureDetails] = useState(
-    idea.featureDetails || ""
-  );
   const [isSavingInternalNote, setIsSavingInternalNote] = useState(false);
   const [isSavingPublicUpdate, setIsSavingPublicUpdate] = useState(false);
-  const [isSavingFeatureDetails, setIsSavingFeatureDetails] = useState(false);
-  const [roadmapHistory, setRoadmapHistory] = useState<StatusChange[]>([]);
+
+  // Move to roadmap state
+  const [showMoveToRoadmapForm, setShowMoveToRoadmapForm] = useState(false);
+  const [isMovingToRoadmap, setIsMovingToRoadmap] = useState(false);
 
   // Merge state
   const [selectedParentId, setSelectedParentId] = useState<string>("");
@@ -74,23 +67,6 @@ export function IdeaDetail({
   const descriptionChanged = description !== (idea.description || "");
   const internalNoteChanged = internalNote !== (idea.internalNote || "");
   const publicUpdateChanged = publicUpdate !== (idea.publicUpdate || "");
-  const featureDetailsChanged = featureDetails !== (idea.featureDetails || "");
-
-  // Fetch roadmap history on mount
-  useEffect(() => {
-    async function fetchHistory() {
-      try {
-        const res = await fetch(`/api/ideas/${idea.id}/roadmap-history`);
-        if (res.ok) {
-          const data = await res.json();
-          setRoadmapHistory(data.changes);
-        }
-      } catch {
-        // Silently fail - history is not critical
-      }
-    }
-    fetchHistory();
-  }, [idea.id]);
 
   const handleTitleBlur = async () => {
     if (title === idea.title || !title.trim()) {
@@ -140,14 +116,8 @@ export function IdeaDetail({
 
   const handleStatusChange = async (newStatus: IdeaStatus) => {
     const previousStatus = idea.status;
-    const previousRoadmapStatus = idea.roadmapStatus;
 
-    // Optimistically update - also reset roadmap status if declining
-    const updatedIdea = { ...idea, status: newStatus };
-    if (newStatus === "DECLINED" && idea.roadmapStatus !== "NONE") {
-      updatedIdea.roadmapStatus = "NONE";
-    }
-    setIdea(updatedIdea);
+    setIdea({ ...idea, status: newStatus });
 
     try {
       const res = await fetch(`/api/ideas/${idea.id}`, {
@@ -158,50 +128,37 @@ export function IdeaDetail({
 
       if (!res.ok) throw new Error();
 
-      // Refresh history if roadmap status changed
-      if (newStatus === "DECLINED" && previousRoadmapStatus !== "NONE") {
-        const historyRes = await fetch(`/api/ideas/${idea.id}/roadmap-history`);
-        if (historyRes.ok) {
-          const data = await historyRes.json();
-          setRoadmapHistory(data.changes);
-        }
-      }
-
       toast.success("Status updated");
     } catch {
-      setIdea({
-        ...idea,
-        status: previousStatus,
-        roadmapStatus: previousRoadmapStatus,
-      });
+      setIdea({ ...idea, status: previousStatus });
       toast.error("Failed to update status");
     }
   };
 
-  const handleRoadmapStatusChange = async (newStatus: RoadmapStatus) => {
-    const previousStatus = idea.roadmapStatus;
-    setIdea({ ...idea, roadmapStatus: newStatus });
-
+  const handleMoveToRoadmap = async (
+    roadmapStatus: RoadmapStatus,
+    featureDetails: string
+  ) => {
+    setIsMovingToRoadmap(true);
     try {
+      const body: Record<string, string> = { roadmapStatus };
+      if (featureDetails) {
+        body.featureDetails = featureDetails;
+      }
+
       const res = await fetch(`/api/ideas/${idea.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ roadmapStatus: newStatus }),
+        body: JSON.stringify(body),
       });
 
       if (!res.ok) throw new Error();
 
-      // Refresh history
-      const historyRes = await fetch(`/api/ideas/${idea.id}/roadmap-history`);
-      if (historyRes.ok) {
-        const data = await historyRes.json();
-        setRoadmapHistory(data.changes);
-      }
-
-      toast.success("Roadmap status updated");
+      toast.success("Idea moved to roadmap");
+      router.push(`/dashboard/roadmap/${idea.id}`);
     } catch {
-      setIdea({ ...idea, roadmapStatus: previousStatus });
-      toast.error("Failed to update roadmap status");
+      toast.error("Failed to move idea to roadmap");
+      setIsMovingToRoadmap(false);
     }
   };
 
@@ -242,26 +199,6 @@ export function IdeaDetail({
       toast.error("Failed to save public update");
     } finally {
       setIsSavingPublicUpdate(false);
-    }
-  };
-
-  const handleSaveFeatureDetails = async () => {
-    setIsSavingFeatureDetails(true);
-    try {
-      const res = await fetch(`/api/ideas/${idea.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ featureDetails: featureDetails || null }),
-      });
-
-      if (!res.ok) throw new Error();
-
-      setIdea({ ...idea, featureDetails: featureDetails || null });
-      toast.success("Feature details saved");
-    } catch {
-      toast.error("Failed to save feature details");
-    } finally {
-      setIsSavingFeatureDetails(false);
     }
   };
 
@@ -310,6 +247,18 @@ export function IdeaDetail({
 
   const selectedParent = publishedIdeas.find((i) => i.id === selectedParentId);
 
+  if (showMoveToRoadmapForm) {
+    return (
+      <MoveToRoadmapForm
+        ideaTitle={idea.title}
+        ideaDescription={idea.description}
+        onConfirm={handleMoveToRoadmap}
+        onCancel={() => setShowMoveToRoadmapForm(false)}
+        isMoving={isMovingToRoadmap}
+      />
+    );
+  }
+
   return (
     <div className="max-w-5xl space-y-10 py-8">
       {/* Header: Back nav + Title + Merged indicator */}
@@ -325,11 +274,9 @@ export function IdeaDetail({
       {/* Status & Visibility Row */}
       <IdeaStatusSection
         status={idea.status}
-        roadmapStatus={idea.roadmapStatus}
         voteCount={idea.voteCount}
         onStatusChange={handleStatusChange}
-        onRoadmapStatusChange={handleRoadmapStatusChange}
-        roadmapHistory={roadmapHistory}
+        onMoveToRoadmap={() => setShowMoveToRoadmapForm(true)}
       />
 
       {/* Merged Children (if any) */}
@@ -353,12 +300,6 @@ export function IdeaDetail({
         onSavePublicUpdate={handleSavePublicUpdate}
         isSavingPublicUpdate={isSavingPublicUpdate}
         hasPublicUpdateChanges={publicUpdateChanged}
-        featureDetails={featureDetails}
-        onFeatureDetailsChange={setFeatureDetails}
-        onSaveFeatureDetails={handleSaveFeatureDetails}
-        isSavingFeatureDetails={isSavingFeatureDetails}
-        hasFeatureDetailsChanges={featureDetailsChanged}
-        roadmapStatus={idea.roadmapStatus}
       />
 
       {/* Internal Note (Private zone - visually distinct with dashed border) */}
