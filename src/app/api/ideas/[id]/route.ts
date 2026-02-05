@@ -11,6 +11,7 @@ import {
 } from "@/lib/db";
 import { protectedApiRouteWrapper } from "@/lib/dal";
 import { NotFoundError, ForbiddenError, BadRequestError } from "@/lib/errors";
+import { toDashboardIdea } from "@/lib/api-utils";
 import { ALL_IDEA_STATUSES } from "@/lib/idea-status-config";
 import { ALL_ROADMAP_STATUSES } from "@/lib/roadmap-status-config";
 import { updateIdeaEmbedding } from "@/lib/ai/embeddings";
@@ -35,7 +36,7 @@ async function getIdeaWithOwnerCheck(ideaId: string, userId: string) {
   const idea = await db.query.ideas.findFirst({
     where: eq(ideas.id, ideaId),
     with: {
-      workspace: true,
+      workspace: { columns: { ownerId: true } },
     },
   });
 
@@ -55,7 +56,7 @@ export const GET = protectedApiRouteWrapper<RouteParams>(
   async (_request, { session, params }) => {
     const idea = await getIdeaWithOwnerCheck(params.id, session.user.id);
 
-    return NextResponse.json({ idea });
+    return NextResponse.json({ idea: toDashboardIdea(idea) });
   },
   { requirePaid: false }
 );
@@ -190,7 +191,7 @@ export const PATCH = protectedApiRouteWrapper<RouteParams>(
       );
     }
 
-    return NextResponse.json({ idea: updatedIdea });
+    return NextResponse.json({ idea: toDashboardIdea(updatedIdea) });
   },
   { requirePaid: false }
 );

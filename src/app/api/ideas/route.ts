@@ -5,6 +5,7 @@ import { db, ideas, type IdeaStatus } from "@/lib/db";
 import { protectedApiRouteWrapper } from "@/lib/dal";
 import { getUserWorkspace } from "@/lib/workspace";
 import { NotFoundError } from "@/lib/errors";
+import { toDashboardIdea } from "@/lib/api-utils";
 import { ALL_IDEA_STATUSES } from "@/lib/idea-status-config";
 import { updateIdeaEmbedding } from "@/lib/ai/embeddings";
 
@@ -59,7 +60,7 @@ export const GET = protectedApiRouteWrapper(
     });
 
     return NextResponse.json({
-      ideas: userIdeas,
+      ideas: userIdeas.map(toDashboardIdea),
       workspaceSlug: workspace.slug,
     });
   },
@@ -93,7 +94,10 @@ export const POST = protectedApiRouteWrapper(
       (err) => console.error("Failed to generate embedding for idea:", err)
     );
 
-    return NextResponse.json({ idea: newIdea }, { status: 201 });
+    return NextResponse.json(
+      { idea: toDashboardIdea(newIdea) },
+      { status: 201 }
+    );
   },
   { requirePaid: false }
 );
