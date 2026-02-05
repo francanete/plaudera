@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { TriangleAlert } from "lucide-react";
 
 interface IdeaContentTabsProps {
   description: string;
@@ -115,16 +116,28 @@ export function IdeaContentTabs({
       {/* Tab Content Area */}
       <div className="bg-muted/30 mt-6 rounded-lg p-4">
         {activeTab === "description" && (
-          <ContentField
-            value={description}
-            onChange={onDescriptionChange}
-            onSave={onSaveDescription}
-            isSaving={isSavingDescription}
-            hasChanges={hasDescriptionChanges}
-            placeholder="Add a description of this idea..."
-            maxLength={1000}
-            config={TAB_CONFIG.description}
-          />
+          <div className="space-y-4">
+            {description && (
+              <div className="flex items-start gap-2.5 rounded-lg border border-amber-200 bg-amber-50/60 px-3.5 py-2.5 dark:border-amber-800 dark:bg-amber-950/30">
+                <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0 text-amber-500 dark:text-amber-400" />
+                <p className="text-xs leading-relaxed text-amber-800 dark:text-amber-300">
+                  This is the original idea submitted by the contributor.
+                  Editing will modify their original message shown on the
+                  public board.
+                </p>
+              </div>
+            )}
+            <ContentField
+              value={description}
+              onChange={onDescriptionChange}
+              onSave={onSaveDescription}
+              isSaving={isSavingDescription}
+              hasChanges={hasDescriptionChanges}
+              placeholder="Add a description of this idea..."
+              maxLength={1000}
+              config={TAB_CONFIG.description}
+            />
+          </div>
         )}
 
         {activeTab === "public-update" && (
