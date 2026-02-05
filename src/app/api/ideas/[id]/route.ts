@@ -102,6 +102,15 @@ export const PATCH = protectedApiRouteWrapper<RouteParams>(
     if (data.showPublicUpdateOnRoadmap !== undefined)
       updateData.showPublicUpdateOnRoadmap = data.showPublicUpdateOnRoadmap;
 
+    // Block moving merged ideas to the roadmap
+    if (
+      idea.status === "MERGED" &&
+      data.roadmapStatus !== undefined &&
+      data.roadmapStatus !== "NONE"
+    ) {
+      throw new BadRequestError("Cannot move a merged idea to the roadmap");
+    }
+
     // Track roadmap status changes for audit log
     let roadmapStatusChanged = false;
     const previousRoadmapStatus = idea.roadmapStatus;
@@ -127,8 +136,9 @@ export const PATCH = protectedApiRouteWrapper<RouteParams>(
     }
 
     if (data.status !== undefined) {
-      // Block declining ideas that are on the roadmap
-      if (data.status === "DECLINED" && idea.roadmapStatus !== "NONE") {
+      // Block declining ideas that are on the roadmap (use effective value in case this request also changes roadmapStatus)
+      const effectiveRoadmapStatus = data.roadmapStatus ?? idea.roadmapStatus;
+      if (data.status === "DECLINED" && effectiveRoadmapStatus !== "NONE") {
         throw new BadRequestError(
           "Cannot decline an idea that is on the roadmap"
         );
