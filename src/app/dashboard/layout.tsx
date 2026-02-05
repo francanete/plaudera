@@ -21,6 +21,7 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
+import { IdentifyUser } from "@/components/analytics/identify-user";
 
 const REQUIRE_PAID_ACCESS = !appConfig.pricing.allowFreePlan;
 
@@ -91,6 +92,7 @@ export default async function DashboardLayout({
       flowId="dashboard"
       flowCompleted={dashboardFlowCompleted}
     >
+      <IdentifyUser />
       <SidebarProvider>
         <Suspense fallback={null}>
           <CheckoutSuccessToast />
