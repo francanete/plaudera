@@ -1,7 +1,6 @@
 export { IdeaHeader } from "./idea-header";
 export { IdeaVoteBox } from "./idea-vote-box";
 export { IdeaStatus } from "./idea-status";
-export { IdeaRoadmapStatus } from "./idea-roadmap-status";
 export { IdeaDescription } from "./idea-description";
 export { IdeaInternalNote } from "./idea-internal-note";
 export { IdeaPublicUpdate } from "./idea-public-update";
