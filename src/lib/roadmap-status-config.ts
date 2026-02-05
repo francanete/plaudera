@@ -35,6 +35,7 @@ export const ROADMAP_STATUS_CONFIG: Record<
     variant: "default" | "secondary" | "outline" | "destructive";
     icon: typeof Circle;
     badgeClassName: string;
+    textColor: string;
   }
 > = {
   NONE: {
@@ -44,6 +45,7 @@ export const ROADMAP_STATUS_CONFIG: Record<
     icon: Circle,
     badgeClassName:
       "border-slate-200 bg-slate-50 text-slate-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400",
+    textColor: "text-slate-600 dark:text-slate-400",
   },
   PLANNED: {
     label: "Planned",
@@ -52,6 +54,7 @@ export const ROADMAP_STATUS_CONFIG: Record<
     icon: Clock,
     badgeClassName:
       "border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-700 dark:bg-blue-950 dark:text-blue-400",
+    textColor: "text-blue-700 dark:text-blue-400",
   },
   IN_PROGRESS: {
     label: "In Progress",
@@ -60,6 +63,7 @@ export const ROADMAP_STATUS_CONFIG: Record<
     icon: Rocket,
     badgeClassName:
       "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-400",
+    textColor: "text-amber-700 dark:text-amber-400",
   },
   RELEASED: {
     label: "Released",
@@ -68,6 +72,7 @@ export const ROADMAP_STATUS_CONFIG: Record<
     icon: CheckCircle2,
     badgeClassName:
       "border-green-200 bg-green-50 text-green-700 dark:border-green-700 dark:bg-green-950 dark:text-green-400",
+    textColor: "text-green-700 dark:text-green-400",
   },
 };
 

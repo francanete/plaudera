@@ -75,19 +75,6 @@ function formatDate(dateString: string): string {
   });
 }
 
-function getStatusColor(status: RoadmapStatus): string {
-  switch (status) {
-    case "PLANNED":
-      return "text-blue-600";
-    case "IN_PROGRESS":
-      return "text-indigo-600";
-    case "RELEASED":
-      return "text-emerald-600";
-    default:
-      return "text-muted-foreground";
-  }
-}
-
 export function RoadmapIdeaDetail({
   idea: initialIdea,
 }: RoadmapIdeaDetailProps) {
@@ -505,7 +492,7 @@ export function RoadmapIdeaDetail({
                     >
                       <div className="bg-border absolute -left-[17px] h-2 w-2 rounded-full" />
                       <span
-                        className={`text-sm font-medium ${getStatusColor(change.toStatus)}`}
+                        className={`text-sm font-medium ${ROADMAP_STATUS_CONFIG[change.toStatus].textColor}`}
                       >
                         {toConfig.label}
                       </span>
