@@ -275,6 +275,7 @@ export function IdeaDetail({
       {/* Status & Visibility Row */}
       <IdeaStatusSection
         status={idea.status}
+        roadmapStatus={idea.roadmapStatus}
         onStatusChange={handleStatusChange}
         onMoveToRoadmap={() => setShowMoveToRoadmapForm(true)}
       />
@@ -317,6 +318,7 @@ export function IdeaDetail({
       {/* Advanced Actions: Collapsible section for merge/delete */}
       <IdeaDangerZone
         isMerged={idea.status === "MERGED"}
+        isOnRoadmap={idea.roadmapStatus !== "NONE"}
         publishedIdeas={publishedIdeas}
         selectedParentId={selectedParentId}
         onParentSelect={setSelectedParentId}

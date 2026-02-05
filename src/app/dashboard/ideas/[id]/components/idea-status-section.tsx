@@ -8,7 +8,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { GitMerge, ChevronDown, Map } from "lucide-react";
-import type { IdeaStatus } from "@/lib/db/schema";
+import type { IdeaStatus, RoadmapStatus } from "@/lib/db/schema";
 import {
   SELECTABLE_IDEA_STATUSES,
   IDEA_STATUS_CONFIG,
@@ -16,6 +16,7 @@ import {
 
 interface IdeaStatusSectionProps {
   status: IdeaStatus;
+  roadmapStatus: RoadmapStatus;
   onStatusChange: (status: IdeaStatus) => void;
   onMoveToRoadmap: () => void;
 }
@@ -30,11 +31,21 @@ const STATUS_ICON_COLORS: Record<IdeaStatus, { bg: string; text: string }> = {
 
 export function IdeaStatusSection({
   status,
+  roadmapStatus,
   onStatusChange,
   onMoveToRoadmap,
 }: IdeaStatusSectionProps) {
+  const isOnRoadmap = roadmapStatus !== "NONE";
   const StatusIcon = IDEA_STATUS_CONFIG[status].icon;
   const statusColors = STATUS_ICON_COLORS[status];
+
+  // Filter out DECLINED when the idea is on the roadmap
+  const selectableStatuses = isOnRoadmap
+    ? SELECTABLE_IDEA_STATUSES.filter((s) => s !== "DECLINED")
+    : SELECTABLE_IDEA_STATUSES;
+
+  const showMoveToRoadmap =
+    !isOnRoadmap && status !== "MERGED" && status !== "DECLINED";
 
   return (
     <div className="space-y-4">
@@ -64,7 +75,7 @@ export function IdeaStatusSection({
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start" className="min-w-[160px]">
-              {SELECTABLE_IDEA_STATUSES.map((opt) => {
+              {selectableStatuses.map((opt) => {
                 const cfg = IDEA_STATUS_CONFIG[opt];
                 const Icon = cfg.icon;
                 const colors = STATUS_ICON_COLORS[opt];
@@ -87,14 +98,16 @@ export function IdeaStatusSection({
           </DropdownMenu>
         )}
 
-        {/* Move to Roadmap button — only shows for non-roadmap ideas */}
-        <button
-          onClick={onMoveToRoadmap}
-          className="border-border bg-background hover:border-muted-foreground/30 inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm font-medium transition-all hover:shadow-sm"
-        >
-          <Map className="text-muted-foreground h-4 w-4" />
-          <span className="text-foreground">Move to Roadmap</span>
-        </button>
+        {/* Move to Roadmap button — only shows for non-roadmap, non-merged, non-declined ideas */}
+        {showMoveToRoadmap && (
+          <button
+            onClick={onMoveToRoadmap}
+            className="border-border bg-background hover:border-muted-foreground/30 inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm font-medium transition-all hover:shadow-sm"
+          >
+            <Map className="text-muted-foreground h-4 w-4" />
+            <span className="text-foreground">Move to Roadmap</span>
+          </button>
+        )}
       </div>
     </div>
   );

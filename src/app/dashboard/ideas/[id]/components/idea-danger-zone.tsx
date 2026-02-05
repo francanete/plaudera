@@ -23,6 +23,7 @@ interface PublishedIdea {
 
 interface IdeaDangerZoneProps {
   isMerged: boolean;
+  isOnRoadmap: boolean;
   publishedIdeas: PublishedIdea[];
   selectedParentId: string;
   onParentSelect: (id: string) => void;
@@ -32,6 +33,7 @@ interface IdeaDangerZoneProps {
 
 export function IdeaDangerZone({
   isMerged,
+  isOnRoadmap,
   publishedIdeas,
   selectedParentId,
   onParentSelect,
@@ -41,6 +43,7 @@ export function IdeaDangerZone({
   const [isOpen, setIsOpen] = useState(false);
 
   const showMergeSection = !isMerged && publishedIdeas.length > 0;
+  const showDeleteSection = !isOnRoadmap;
 
   return (
     <Collapsible open={isOpen} onOpenChange={setIsOpen}>
@@ -102,28 +105,32 @@ export function IdeaDangerZone({
           )}
 
           {/* Separator between merge and delete */}
-          {showMergeSection && <div className="border-border border-t" />}
+          {showMergeSection && showDeleteSection && (
+            <div className="border-border border-t" />
+          )}
 
-          {/* Delete Section */}
-          <div className="space-y-3 p-4">
-            <div className="space-y-1">
-              <span className="text-muted-foreground text-xs font-medium tracking-[0.1em] uppercase">
-                Delete Idea
-              </span>
-              <p className="text-muted-foreground/70 text-xs">
-                Permanently remove this idea and all associated data.
-              </p>
+          {/* Delete Section - hidden for roadmap ideas */}
+          {showDeleteSection && (
+            <div className="space-y-3 p-4">
+              <div className="space-y-1">
+                <span className="text-muted-foreground text-xs font-medium tracking-[0.1em] uppercase">
+                  Delete Idea
+                </span>
+                <p className="text-muted-foreground/70 text-xs">
+                  Permanently remove this idea and all associated data.
+                </p>
+              </div>
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={onDeleteClick}
+                className="shrink-0"
+              >
+                <Trash2 className="mr-2 h-4 w-4" />
+                Delete idea
+              </Button>
             </div>
-            <Button
-              variant="destructive"
-              size="sm"
-              onClick={onDeleteClick}
-              className="shrink-0"
-            >
-              <Trash2 className="mr-2 h-4 w-4" />
-              Delete idea
-            </Button>
-          </div>
+          )}
         </div>
       </CollapsibleContent>
     </Collapsible>

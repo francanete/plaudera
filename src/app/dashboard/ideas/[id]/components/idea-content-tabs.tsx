@@ -122,8 +122,8 @@ export function IdeaContentTabs({
                 <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0 text-amber-500 dark:text-amber-400" />
                 <p className="text-xs leading-relaxed text-amber-800 dark:text-amber-300">
                   This is the original idea submitted by the contributor.
-                  Editing will modify their original message shown on the
-                  public board.
+                  Editing will modify their original message shown on the public
+                  board.
                 </p>
               </div>
             )}

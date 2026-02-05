@@ -126,56 +126,58 @@ export const PATCH = protectedApiRouteWrapper<RouteParams>(
     }
 
     if (data.status !== undefined) {
+      // Block declining ideas that are on the roadmap
+      if (data.status === "DECLINED" && idea.roadmapStatus !== "NONE") {
+        throw new BadRequestError(
+          "Cannot decline an idea that is on the roadmap"
+        );
+      }
+
       updateData.status = data.status;
       // Clear mergedIntoId when changing away from MERGED (CHECK constraint requires it)
       if (idea.status === "MERGED") {
         updateData.mergedIntoId = null;
       }
+    }
 
-      // Auto-reset roadmap status when DECLINED
-      if (data.status === "DECLINED" && idea.roadmapStatus !== "NONE") {
-        updateData.roadmapStatus = "NONE";
-        roadmapStatusChanged = true;
+    const updatedIdea = await db.transaction(async (tx) => {
+      const [result] = await tx
+        .update(ideas)
+        .set(updateData)
+        .where(eq(ideas.id, params.id))
+        .returning();
+
+      // Log roadmap status change to audit table
+      if (
+        roadmapStatusChanged &&
+        result.roadmapStatus !== previousRoadmapStatus
+      ) {
+        await tx.insert(roadmapStatusChanges).values({
+          ideaId: idea.id,
+          fromStatus: previousRoadmapStatus,
+          toStatus: result.roadmapStatus,
+          changedBy: session.user.id,
+        });
       }
-    }
 
-    const [updatedIdea] = await db
-      .update(ideas)
-      .set(updateData)
-      .where(eq(ideas.id, params.id))
-      .returning();
-
-    // Log roadmap status change to audit table
-    if (
-      roadmapStatusChanged &&
-      updatedIdea.roadmapStatus !== previousRoadmapStatus
-    ) {
-      await db.insert(roadmapStatusChanges).values({
-        ideaId: idea.id,
-        fromStatus: previousRoadmapStatus,
-        toStatus: updatedIdea.roadmapStatus,
-        changedBy: session.user.id,
-      });
-    }
-
-    // Auto-dismiss pending duplicate suggestions when moving to roadmap
-    if (
-      previousRoadmapStatus === "NONE" &&
-      updatedIdea.roadmapStatus !== "NONE"
-    ) {
-      await db
-        .update(duplicateSuggestions)
-        .set({ status: "DISMISSED" })
-        .where(
-          and(
-            eq(duplicateSuggestions.status, "PENDING"),
-            or(
-              eq(duplicateSuggestions.sourceIdeaId, idea.id),
-              eq(duplicateSuggestions.duplicateIdeaId, idea.id)
+      // Auto-dismiss pending duplicate suggestions when moving to roadmap
+      if (previousRoadmapStatus === "NONE" && result.roadmapStatus !== "NONE") {
+        await tx
+          .update(duplicateSuggestions)
+          .set({ status: "DISMISSED" })
+          .where(
+            and(
+              eq(duplicateSuggestions.status, "PENDING"),
+              or(
+                eq(duplicateSuggestions.sourceIdeaId, idea.id),
+                eq(duplicateSuggestions.duplicateIdeaId, idea.id)
+              )
             )
-          )
-        );
-    }
+          );
+      }
+
+      return result;
+    });
 
     // Regenerate embedding if title or description changed (fire-and-forget)
     if (data.title !== undefined || data.description !== undefined) {
@@ -198,27 +200,18 @@ export const DELETE = protectedApiRouteWrapper<RouteParams>(
   async (_request, { session, params }) => {
     const idea = await getIdeaWithOwnerCheck(params.id, session.user.id);
 
-    // Auto-reset roadmap status when declining
-    const shouldResetRoadmap = idea.roadmapStatus !== "NONE";
+    // Block deleting ideas that are on the roadmap
+    if (idea.roadmapStatus !== "NONE") {
+      throw new BadRequestError("Cannot delete an idea that is on the roadmap");
+    }
 
     await db
       .update(ideas)
       .set({
         status: "DECLINED",
-        roadmapStatus: "NONE",
         updatedAt: new Date(),
       })
       .where(eq(ideas.id, params.id));
-
-    // Log roadmap status change if it was on roadmap
-    if (shouldResetRoadmap) {
-      await db.insert(roadmapStatusChanges).values({
-        ideaId: idea.id,
-        fromStatus: idea.roadmapStatus,
-        toStatus: "NONE",
-        changedBy: session.user.id,
-      });
-    }
 
     return NextResponse.json({ success: true });
   },
