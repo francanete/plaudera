@@ -496,15 +496,12 @@ export function RoadmapIdeaDetail({
             </CollapsibleTrigger>
             <CollapsibleContent>
               <div className="border-border mt-3 ml-1 space-y-0 border-l pl-4">
-                {roadmapHistory.map((change, index) => {
+                {roadmapHistory.map((change) => {
                   const toConfig = ROADMAP_STATUS_CONFIG[change.toStatus];
-                  const isLast = index === roadmapHistory.length - 1;
                   return (
                     <div
                       key={change.id}
-                      className={`relative flex items-center gap-3 py-2 ${
-                        !isLast ? "" : ""
-                      }`}
+                      className="relative flex items-center gap-3 py-2"
                     >
                       <div className="bg-border absolute -left-[17px] h-2 w-2 rounded-full" />
                       <span
