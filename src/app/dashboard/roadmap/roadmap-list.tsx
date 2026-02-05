@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ChevronUp, Map } from "lucide-react";
+import { ThumbsUp, Map } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import type { Idea, RoadmapStatus } from "@/lib/db/schema";
 import {
@@ -80,46 +80,30 @@ function RoadmapCard({ idea }: { idea: Idea }) {
 
   return (
     <Link href={`/dashboard/roadmap/${idea.id}`} className="block">
-      <article className="group border-border bg-card hover:border-primary/30 flex items-start gap-5 rounded-xl border p-5 transition-all duration-200 hover:shadow-md">
-        {/* Vote Section */}
-        <div className="shrink-0">
-          <div className="border-border bg-muted/50 group-hover:border-primary/20 group-hover:bg-muted flex h-16 w-14 flex-col items-center justify-center rounded-lg border transition-all duration-150">
-            <ChevronUp className="text-muted-foreground group-hover:text-foreground h-4 w-4 transition-colors" />
-            <span className="text-foreground text-lg font-semibold">
-              {idea.voteCount}
-            </span>
-            <span className="text-muted-foreground text-xs">votes</span>
-          </div>
+      <article className="group border-border bg-card hover:border-primary/30 rounded-xl border p-5 transition-all duration-200 hover:shadow-md">
+        <div className="mb-1 flex items-center gap-2">
+          <h3 className="text-foreground truncate text-base font-semibold">
+            {idea.title}
+          </h3>
         </div>
 
-        {/* Content Section */}
-        <div className="min-w-0 flex-1">
-          <div className="mb-1 flex items-center gap-2">
-            <h3 className="text-foreground truncate text-base font-semibold">
-              {idea.title}
-            </h3>
-          </div>
+        {previewText && (
+          <p className="text-muted-foreground mb-3 line-clamp-2 text-sm">
+            {previewText}
+          </p>
+        )}
 
-          {previewText && (
-            <p className="text-muted-foreground mb-3 line-clamp-2 text-sm">
-              {previewText}
-            </p>
-          )}
-
-          <div className="flex flex-wrap items-center gap-4">
-            <Badge variant="outline" className={config.badgeClassName}>
-              {(() => {
-                const Icon = config.icon;
-                return <Icon className="mr-1 h-3 w-3" />;
-              })()}
-              {config.shortLabel}
-            </Badge>
-            <time
-              dateTime={new Date(idea.createdAt).toISOString()}
-              className="text-muted-foreground text-sm"
-            >
-              {new Date(idea.createdAt).toLocaleDateString("en-US")}
-            </time>
+        <div className="flex flex-wrap items-center gap-4">
+          <Badge variant="outline" className={config.badgeClassName}>
+            {(() => {
+              const Icon = config.icon;
+              return <Icon className="mr-1 h-3 w-3" />;
+            })()}
+            {config.shortLabel}
+          </Badge>
+          <div className="text-muted-foreground flex items-center gap-1">
+            <ThumbsUp className="h-3.5 w-3.5" />
+            <span className="text-xs font-medium">{idea.voteCount}</span>
           </div>
         </div>
       </article>
