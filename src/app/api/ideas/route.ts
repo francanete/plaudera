@@ -42,10 +42,11 @@ export const GET = protectedApiRouteWrapper(
         orderBy = desc(ideas.createdAt);
     }
 
-    // Build where clause - always exclude MERGED ideas
+    // Build where clause - always exclude MERGED ideas and roadmap items
     const whereConditions = [
       eq(ideas.workspaceId, workspace.id),
       ne(ideas.status, "MERGED"),
+      eq(ideas.roadmapStatus, "NONE"),
     ];
     if (status && ALL_IDEA_STATUSES.includes(status)) {
       whereConditions.push(eq(ideas.status, status));
