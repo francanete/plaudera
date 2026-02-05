@@ -1,4 +1,4 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { db } from "@/lib/db";
@@ -35,6 +35,11 @@ export default async function IdeaDetailPage({ params }: PageProps) {
   // Check if idea exists and user owns the workspace
   if (!idea || idea.workspace.ownerId !== session.user.id) {
     notFound();
+  }
+
+  // Roadmap ideas should be viewed on the roadmap detail page
+  if (idea.roadmapStatus !== "NONE") {
+    redirect(`/dashboard/roadmap/${idea.id}`);
   }
 
   // Fetch PUBLISHED ideas in the same workspace for the merge picker

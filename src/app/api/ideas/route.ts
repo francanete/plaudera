@@ -5,6 +5,7 @@ import { db, ideas, type IdeaStatus } from "@/lib/db";
 import { protectedApiRouteWrapper } from "@/lib/dal";
 import { getUserWorkspace } from "@/lib/workspace";
 import { NotFoundError } from "@/lib/errors";
+import { toDashboardIdea } from "@/lib/api-utils";
 import { ALL_IDEA_STATUSES } from "@/lib/idea-status-config";
 import { updateIdeaEmbedding } from "@/lib/ai/embeddings";
 
@@ -41,10 +42,11 @@ export const GET = protectedApiRouteWrapper(
         orderBy = desc(ideas.createdAt);
     }
 
-    // Build where clause - always exclude MERGED ideas
+    // Build where clause - always exclude MERGED ideas and roadmap items
     const whereConditions = [
       eq(ideas.workspaceId, workspace.id),
       ne(ideas.status, "MERGED"),
+      eq(ideas.roadmapStatus, "NONE"),
     ];
     if (status && ALL_IDEA_STATUSES.includes(status)) {
       whereConditions.push(eq(ideas.status, status));
@@ -59,7 +61,7 @@ export const GET = protectedApiRouteWrapper(
     });
 
     return NextResponse.json({
-      ideas: userIdeas,
+      ideas: userIdeas.map(toDashboardIdea),
       workspaceSlug: workspace.slug,
     });
   },
@@ -93,7 +95,10 @@ export const POST = protectedApiRouteWrapper(
       (err) => console.error("Failed to generate embedding for idea:", err)
     );
 
-    return NextResponse.json({ idea: newIdea }, { status: 201 });
+    return NextResponse.json(
+      { idea: toDashboardIdea(newIdea) },
+      { status: 201 }
+    );
   },
   { requirePaid: false }
 );

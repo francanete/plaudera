@@ -1,6 +1,39 @@
 import { NextResponse } from "next/server";
 import { ZodError } from "zod";
 import { AppError, RateLimitError, ValidationError } from "./errors";
+import type { ideas } from "./db/schema";
+
+type Idea = typeof ideas.$inferSelect;
+
+/**
+ * Whitelist mapper for dashboard API responses.
+ * Only returns fields the dashboard UI needs — prevents leaking
+ * relations (workspace) or future schema additions.
+ *
+ * Unlike the public API mapper, this INCLUDES internalNote
+ * since the dashboard owner needs it for editing.
+ */
+export function toDashboardIdea(idea: Idea) {
+  return {
+    id: idea.id,
+    workspaceId: idea.workspaceId,
+    contributorId: idea.contributorId,
+    title: idea.title,
+    description: idea.description,
+    status: idea.status,
+    roadmapStatus: idea.roadmapStatus,
+    voteCount: idea.voteCount,
+    internalNote: idea.internalNote,
+    publicUpdate: idea.publicUpdate,
+    showPublicUpdateOnRoadmap: idea.showPublicUpdateOnRoadmap,
+    featureDetails: idea.featureDetails,
+    mergedIntoId: idea.mergedIntoId,
+    authorEmail: idea.authorEmail,
+    authorName: idea.authorName,
+    createdAt: idea.createdAt,
+    updatedAt: idea.updatedAt,
+  };
+}
 
 function fromZodError(error: ZodError): ValidationError {
   const errors: Record<string, string[]> = {};

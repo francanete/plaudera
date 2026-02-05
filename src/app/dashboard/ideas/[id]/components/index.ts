@@ -1,9 +1,10 @@
 export { IdeaHeader } from "./idea-header";
-export { IdeaVoteBox } from "./idea-vote-box";
-export { IdeaStatus } from "./idea-status";
-export { IdeaDescription } from "./idea-description";
+export { IdeaInternalNote } from "./idea-internal-note";
 export { IdeaMeta } from "./idea-meta";
-export { IdeaMergeSection } from "./idea-merge-section";
 export { IdeaDeleteDialog } from "./idea-delete-dialog";
 export { IdeaMergeDialog } from "./idea-merge-dialog";
 export { IdeaMergedChildren } from "./idea-merged-children";
+export { IdeaStatusSection } from "./idea-status-section";
+export { IdeaContentTabs } from "./idea-content-tabs";
+export { IdeaDangerZone } from "./idea-danger-zone";
+export { MoveToRoadmapForm } from "./move-to-roadmap-form";

@@ -5,10 +5,13 @@ import { toast } from "sonner";
 import { useContributorLogout } from "@/hooks/use-contributor-logout";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { IdeaCard, type IdeaCardData } from "./idea-card";
-import { BoardHeader } from "./board-header";
+import { BoardHeader, type BoardView } from "./board-header";
+import { RoadmapGroupedView } from "./roadmap-grouped-view";
 import { ContributorAuthDialog } from "./contributor-auth-dialog";
 import { IdeaSubmissionDialog } from "./idea-submission-dialog";
 import { Lightbulb } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { isOnRoadmap } from "@/lib/roadmap-status-config";
 
 interface PublicIdeaListProps {
   workspaceName: string;
@@ -43,6 +46,30 @@ export function PublicIdeaList({
   const pathname = usePathname();
 
   const isAuthenticated = contributor !== null;
+
+  // View state from URL
+  const viewParam = searchParams.get("view");
+  const activeView: BoardView = viewParam === "roadmap" ? "roadmap" : "ideas";
+
+  const handleViewChange = useCallback(
+    (view: BoardView) => {
+      const newParams = new URLSearchParams(searchParams);
+      if (view === "roadmap") {
+        newParams.set("view", "roadmap");
+      } else {
+        newParams.delete("view");
+      }
+      const newUrl = newParams.toString()
+        ? `${pathname}?${newParams.toString()}`
+        : pathname;
+      router.push(newUrl);
+    },
+    [searchParams, pathname, router]
+  );
+
+  // Split ideas: board shows non-roadmap, roadmap tab shows roadmap-only
+  const boardIdeas = ideas.filter((idea) => !isOnRoadmap(idea.roadmapStatus));
+  const roadmapIdeas = ideas.filter((idea) => isOnRoadmap(idea.roadmapStatus));
 
   // Declare functions BEFORE the useEffect that uses them
   const refreshData = useCallback(async () => {
@@ -224,41 +251,56 @@ export function PublicIdeaList({
   // No need for client-side sorting
 
   return (
-    <div className="space-y-6">
-      <BoardHeader
-        workspaceName={workspaceName}
-        workspaceDescription={workspaceDescription}
-        onSubmitIdea={handleSubmitIdea}
-        contributor={contributor}
-        onLogout={handleLogout}
-        onLogin={handleLogin}
-      />
+    <div className="w-full">
+      {/* Full-width sticky header */}
+      <div className="-mx-4 sm:-mx-6">
+        <BoardHeader
+          workspaceName={workspaceName}
+          workspaceDescription={workspaceDescription}
+          onSubmitIdea={handleSubmitIdea}
+          contributor={contributor}
+          onLogout={handleLogout}
+          onLogin={handleLogin}
+          activeView={activeView}
+          onViewChange={handleViewChange}
+        />
+      </div>
 
-      {ideas.length === 0 ? (
-        <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-slate-300 bg-white py-16 dark:border-slate-600 dark:bg-slate-800">
-          <Lightbulb className="mb-4 h-12 w-12 text-slate-400 dark:text-slate-500" />
-          <h3 className="mb-2 text-lg font-semibold text-slate-900 dark:text-white">
-            No ideas yet
-          </h3>
-          <p className="mb-4 max-w-md text-center text-slate-600 dark:text-slate-400">
-            Be the first to share a feature request or suggestion!
-          </p>
-        </div>
-      ) : (
-        <div className="space-y-3">
-          {ideas.map((idea) => (
-            <IdeaCard
-              key={idea.id}
-              idea={idea}
-              isAuthenticated={isAuthenticated}
-              onVote={handleVote}
-              onRequireAuth={() =>
-                handleRequireAuth({ type: "vote", ideaId: idea.id })
-              }
-            />
-          ))}
-        </div>
-      )}
+      {/* Constrained content area */}
+      <div
+        className={cn(
+          "mx-auto w-full pt-6 transition-all duration-200",
+          activeView === "roadmap" ? "max-w-6xl" : "max-w-4xl"
+        )}
+      >
+        {activeView === "roadmap" ? (
+          <RoadmapGroupedView ideas={roadmapIdeas} />
+        ) : boardIdeas.length === 0 ? (
+          <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-slate-300 bg-white py-16 dark:border-slate-600 dark:bg-slate-800">
+            <Lightbulb className="mb-4 h-12 w-12 text-slate-400 dark:text-slate-500" />
+            <h3 className="mb-2 text-lg font-semibold text-slate-900 dark:text-white">
+              No ideas yet
+            </h3>
+            <p className="mb-4 max-w-md text-center text-slate-600 dark:text-slate-400">
+              Be the first to share a feature request or suggestion!
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {boardIdeas.map((idea) => (
+              <IdeaCard
+                key={idea.id}
+                idea={idea}
+                isAuthenticated={isAuthenticated}
+                onVote={handleVote}
+                onRequireAuth={() =>
+                  handleRequireAuth({ type: "vote", ideaId: idea.id })
+                }
+              />
+            ))}
+          </div>
+        )}
+      </div>
 
       <ContributorAuthDialog
         open={authDialogOpen}

@@ -1,14 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import { ChevronDown, ChevronUp, GitMerge } from "lucide-react";
+import { ChevronRight, GitMerge } from "lucide-react";
 
 interface MergedChild {
   id: string;
@@ -32,36 +30,33 @@ export function IdeaMergedChildren({
 
   return (
     <Collapsible open={isOpen} onOpenChange={onOpenChange}>
-      <CollapsibleTrigger asChild>
-        <Button
-          variant="ghost"
-          size="sm"
-          className="gap-2 text-slate-600 hover:bg-slate-100 hover:text-slate-900"
-        >
-          <GitMerge className="h-4 w-4" />
-          <Badge
-            variant="secondary"
-            className="border-slate-200 bg-slate-100 text-slate-700"
-          >
-            {items.length} idea{items.length > 1 ? "s" : ""} merged into this
-          </Badge>
-          {isOpen ? (
-            <ChevronUp className="h-3 w-3" />
-          ) : (
-            <ChevronDown className="h-3 w-3" />
-          )}
-        </Button>
+      <CollapsibleTrigger className="group text-muted-foreground hover:text-foreground flex items-center gap-2 transition-colors">
+        <ChevronRight
+          className={`h-4 w-4 transition-transform duration-200 ${
+            isOpen ? "rotate-90" : ""
+          }`}
+        />
+        <GitMerge className="h-4 w-4" />
+        <span className="text-sm">
+          <span className="font-mono tabular-nums">{items.length}</span>
+          {" merged idea"}
+          {items.length > 1 ? "s" : ""}
+        </span>
       </CollapsibleTrigger>
-      <CollapsibleContent className="mt-2 space-y-1 pl-6">
-        {items.map((child) => (
-          <Link
-            key={child.id}
-            href={`/dashboard/ideas/${child.id}`}
-            className="block text-sm text-slate-500 transition-colors hover:text-slate-900"
-          >
-            &bull; {child.title}
-          </Link>
-        ))}
+
+      <CollapsibleContent>
+        <div className="border-border mt-2 ml-1 space-y-0 border-l pl-5">
+          {items.map((child) => (
+            <Link
+              key={child.id}
+              href={`/dashboard/ideas/${child.id}`}
+              className="text-muted-foreground hover:text-foreground relative block py-1.5 text-sm transition-colors"
+            >
+              <div className="bg-border absolute top-1/2 -left-[17px] h-1.5 w-1.5 -translate-y-1/2 rounded-full" />
+              {child.title}
+            </Link>
+          ))}
+        </div>
       </CollapsibleContent>
     </Collapsible>
   );

@@ -7,10 +7,14 @@ import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { ContributorAuthDialog } from "@/components/board/contributor-auth-dialog";
 import { IdeaSubmissionDialog } from "@/components/board/idea-submission-dialog";
-import { ChevronUp, Plus, ExternalLink, User, LogOut } from "lucide-react";
+import { ChevronUp, Plus, ExternalLink, User, LogOut, Map } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { IdeaStatus } from "@/lib/db/schema";
+import type { IdeaStatus, RoadmapStatus } from "@/lib/db/schema";
 import { IDEA_STATUS_CONFIG } from "@/lib/idea-status-config";
+import {
+  ROADMAP_STATUS_CONFIG,
+  isOnRoadmap,
+} from "@/lib/roadmap-status-config";
 import { appConfig } from "@/lib/config";
 
 type PendingAction =
@@ -22,6 +26,7 @@ interface CompactIdea {
   id: string;
   title: string;
   status: IdeaStatus;
+  roadmapStatus: RoadmapStatus;
   voteCount: number;
   hasVoted: boolean;
 }
@@ -68,6 +73,7 @@ export function EmbedBoard({
             id: idea.id,
             title: idea.title,
             status: idea.status,
+            roadmapStatus: idea.roadmapStatus,
             voteCount: idea.voteCount,
             hasVoted: idea.hasVoted,
           }))
@@ -208,6 +214,7 @@ export function EmbedBoard({
               voteCount: 0,
               title: "",
               status: "UNDER_REVIEW" as const,
+              roadmapStatus: "NONE" as const,
             }
           );
         } else if (action === "submit") {
@@ -367,8 +374,8 @@ export function EmbedBoard({
         )}
       </div>
 
-      {/* View all link */}
-      <div className="mt-4 border-t pt-3 text-center">
+      {/* Footer links */}
+      <div className="mt-4 flex items-center justify-center gap-4 border-t pt-3">
         <a
           href={boardUrl}
           target="_blank"
@@ -377,6 +384,15 @@ export function EmbedBoard({
         >
           View all ideas
           <ExternalLink className="ml-1 h-3 w-3" />
+        </a>
+        <a
+          href={`${boardUrl}?view=roadmap`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-muted-foreground hover:text-foreground inline-flex items-center text-xs transition-colors"
+        >
+          <Map className="mr-1 h-3 w-3" />
+          View roadmap
         </a>
       </div>
 
@@ -420,6 +436,10 @@ function CompactIdeaRow({
 }) {
   const [isPending, startTransition] = useTransition();
   const statusConfig = IDEA_STATUS_CONFIG[idea.status];
+  const showRoadmapBadge = isOnRoadmap(idea.roadmapStatus);
+  const roadmapConfig = showRoadmapBadge
+    ? ROADMAP_STATUS_CONFIG[idea.roadmapStatus]
+    : null;
 
   return (
     <div className="bg-card flex items-center gap-3 rounded-lg border p-3">
@@ -441,17 +461,30 @@ function CompactIdeaRow({
       {/* Title and status */}
       <div className="min-w-0 flex-1">
         <p className="truncate text-sm font-medium">{idea.title}</p>
-        <span
-          className={cn(
-            "text-xs",
-            statusConfig.variant === "destructive" && "text-destructive",
-            statusConfig.variant === "default" && "text-primary",
-            statusConfig.variant === "secondary" && "text-muted-foreground",
-            statusConfig.variant === "outline" && "text-muted-foreground"
+        <div className="flex items-center gap-2">
+          <span
+            className={cn(
+              "text-xs",
+              statusConfig.variant === "destructive" && "text-destructive",
+              statusConfig.variant === "default" && "text-primary",
+              statusConfig.variant === "secondary" && "text-muted-foreground",
+              statusConfig.variant === "outline" && "text-muted-foreground"
+            )}
+          >
+            {statusConfig.label}
+          </span>
+          {roadmapConfig && (
+            <span
+              className={cn(
+                "inline-flex items-center gap-0.5 rounded-full border px-1.5 py-0.5 text-[10px] font-medium",
+                roadmapConfig.badgeClassName
+              )}
+            >
+              <roadmapConfig.icon className="h-2.5 w-2.5" />
+              {roadmapConfig.shortLabel}
+            </span>
           )}
-        >
-          {statusConfig.label}
-        </span>
+        </div>
       </div>
     </div>
   );

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { ChevronUp, Copy } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import {
   Tooltip,
   TooltipContent,
@@ -10,6 +11,10 @@ import {
 } from "@/components/ui/tooltip";
 import type { Idea, IdeaStatus } from "@/lib/db/schema";
 import { StatusBadge } from "./status-badge";
+import {
+  ROADMAP_STATUS_CONFIG,
+  isOnRoadmap,
+} from "@/lib/roadmap-status-config";
 
 export interface IdeaCardProps {
   idea: Idea;
@@ -23,7 +28,14 @@ export function IdeaCard({
   onStatusChange,
 }: IdeaCardProps) {
   return (
-    <Link href={`/dashboard/ideas/${idea.id}`} className="block">
+    <Link
+      href={
+        isOnRoadmap(idea.roadmapStatus)
+          ? `/dashboard/roadmap/${idea.id}`
+          : `/dashboard/ideas/${idea.id}`
+      }
+      className="block"
+    >
       <article
         className="group border-border bg-card hover:border-primary/30 flex items-start gap-5 rounded-xl border p-5 transition-all duration-200 hover:shadow-md"
         aria-label={`Feature request: ${idea.title}`}
@@ -76,6 +88,20 @@ export function IdeaCard({
               onChange={(newStatus) => onStatusChange(idea.id, newStatus)}
               disabled={idea.status === "MERGED"}
             />
+            {isOnRoadmap(idea.roadmapStatus) && (
+              <Badge
+                variant="outline"
+                className={
+                  ROADMAP_STATUS_CONFIG[idea.roadmapStatus].badgeClassName
+                }
+              >
+                {(() => {
+                  const Icon = ROADMAP_STATUS_CONFIG[idea.roadmapStatus].icon;
+                  return <Icon className="mr-1 h-3 w-3" />;
+                })()}
+                {ROADMAP_STATUS_CONFIG[idea.roadmapStatus].shortLabel}
+              </Badge>
+            )}
             <time
               dateTime={idea.createdAt.toISOString()}
               className="text-muted-foreground text-sm"

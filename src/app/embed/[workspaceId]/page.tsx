@@ -1,14 +1,10 @@
 import { notFound } from "next/navigation";
 import { Suspense, cache } from "react";
 import { db } from "@/lib/db";
-import {
-  ideas,
-  votes,
-  workspaces,
-  PUBLIC_VISIBLE_STATUSES,
-} from "@/lib/db/schema";
-import { eq, desc, and, inArray } from "drizzle-orm";
+import { votes, workspaces } from "@/lib/db/schema";
+import { eq, and, inArray } from "drizzle-orm";
 import { getContributor } from "@/lib/contributor-auth";
+import { queryPublicIdeas } from "@/lib/idea-queries";
 import { EmbedBoard } from "./embed-board";
 import type { Metadata } from "next";
 
@@ -50,13 +46,8 @@ async function EmbedContent({ workspaceId }: { workspaceId: string }) {
   // Check if contributor is authenticated
   const contributor = await getContributor();
 
-  // Get top ideas (only public visible, no pending)
-  const workspaceIdeas = await db.query.ideas.findMany({
-    where: and(
-      eq(ideas.workspaceId, workspace.id),
-      inArray(ideas.status, PUBLIC_VISIBLE_STATUSES)
-    ),
-    orderBy: [desc(ideas.voteCount), desc(ideas.createdAt)],
+  const workspaceIdeas = await queryPublicIdeas(workspace.id, {
+    contributorId: contributor?.id,
     limit: MAX_EMBED_IDEAS,
   });
 
@@ -81,6 +72,7 @@ async function EmbedContent({ workspaceId }: { workspaceId: string }) {
     id: idea.id,
     title: idea.title,
     status: idea.status,
+    roadmapStatus: idea.roadmapStatus,
     voteCount: idea.voteCount,
     hasVoted: votedIdeaIds.has(idea.id),
   }));

@@ -1,4 +1,4 @@
-import { handleApiError } from "@/lib/api-utils";
+import { handleApiError, toDashboardIdea } from "@/lib/api-utils";
 import {
   BadRequestError,
   UnauthorizedError,
@@ -77,5 +77,85 @@ describe("handleApiError", () => {
 
     const body = await response.json();
     expect(body.code).toBe("INTERNAL_ERROR");
+  });
+});
+
+describe("toDashboardIdea", () => {
+  const fullIdea = {
+    id: "idea_1",
+    workspaceId: "ws_1",
+    contributorId: "contrib_1",
+    title: "Add dark mode",
+    description: "Users want dark mode",
+    status: "PUBLISHED" as const,
+    roadmapStatus: "PLANNED" as const,
+    voteCount: 5,
+    internalNote: "Prioritize for Q2",
+    publicUpdate: "Coming soon!",
+    showPublicUpdateOnRoadmap: true,
+    featureDetails: "Toggle in settings",
+    mergedIntoId: null,
+    authorEmail: "user@example.com",
+    authorName: "Jane",
+    createdAt: new Date("2025-01-01"),
+    updatedAt: new Date("2025-01-15"),
+  };
+
+  it("includes all whitelisted fields", () => {
+    const result = toDashboardIdea(fullIdea);
+
+    expect(result).toEqual({
+      id: "idea_1",
+      workspaceId: "ws_1",
+      contributorId: "contrib_1",
+      title: "Add dark mode",
+      description: "Users want dark mode",
+      status: "PUBLISHED",
+      roadmapStatus: "PLANNED",
+      voteCount: 5,
+      internalNote: "Prioritize for Q2",
+      publicUpdate: "Coming soon!",
+      showPublicUpdateOnRoadmap: true,
+      featureDetails: "Toggle in settings",
+      mergedIntoId: null,
+      authorEmail: "user@example.com",
+      authorName: "Jane",
+      createdAt: new Date("2025-01-01"),
+      updatedAt: new Date("2025-01-15"),
+    });
+  });
+
+  it("strips extra fields like workspace relation", () => {
+    const ideaWithRelation = {
+      ...fullIdea,
+      workspace: { id: "ws_1", ownerId: "user_123", slug: "my-board" },
+    };
+
+    const result = toDashboardIdea(ideaWithRelation as never);
+    expect(result).not.toHaveProperty("workspace");
+  });
+
+  it("includes internalNote (needed for dashboard editing)", () => {
+    const result = toDashboardIdea(fullIdea);
+    expect(result.internalNote).toBe("Prioritize for Q2");
+  });
+
+  it("preserves null values", () => {
+    const ideaWithNulls = {
+      ...fullIdea,
+      description: null,
+      internalNote: null,
+      publicUpdate: null,
+      featureDetails: null,
+      contributorId: null,
+      authorEmail: null,
+      authorName: null,
+    };
+
+    const result = toDashboardIdea(ideaWithNulls);
+    expect(result.description).toBeNull();
+    expect(result.internalNote).toBeNull();
+    expect(result.publicUpdate).toBeNull();
+    expect(result.featureDetails).toBeNull();
   });
 });
