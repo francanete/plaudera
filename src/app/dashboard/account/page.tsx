@@ -14,6 +14,7 @@ import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ProfileForm } from "@/components/settings/profile-form";
 import { BillingSection } from "@/components/settings/billing-section";
+import { DashboardPageHeader } from "@/components/dashboard/dashboard-page-header";
 
 export default async function SettingsPage() {
   const session = await auth.api.getSession({
@@ -37,12 +38,10 @@ export default async function SettingsPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold">Account</h1>
-        <p className="text-muted-foreground mt-1">
-          Manage your account and billing.
-        </p>
-      </div>
+      <DashboardPageHeader
+        title="Account"
+        subtitle="Manage your account and billing."
+      />
 
       <Tabs defaultValue="profile" className="space-y-6">
         <TabsList id="tour-settings-tabs">

@@ -1,14 +1,22 @@
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import { db, duplicateSuggestions } from "@/lib/db";
 import { eq, and } from "drizzle-orm";
 import { queryDashboardIdeas } from "@/lib/idea-queries";
 import { getUserWorkspace, createUserWorkspace } from "@/lib/workspace";
 import { IdeasList } from "./ideas-list";
-import { Lightbulb } from "lucide-react";
+import { Lightbulb, Plus } from "lucide-react";
+import { DashboardPageHeader } from "@/components/dashboard/dashboard-page-header";
+import { Button } from "@/components/ui/button";
 
-export default async function IdeasPage() {
+export default async function IdeasPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ create?: string }>;
+}) {
+  const resolvedSearchParams = await searchParams;
   const session = await auth.api.getSession({
     headers: await headers(),
   });
@@ -55,22 +63,29 @@ export default async function IdeasPage() {
 
   return (
     <div className="space-y-8">
-      <header className="mb-2">
-        <div className="mb-2 flex items-center gap-3">
-          <div className="rounded-lg bg-amber-100 p-2 dark:bg-amber-900/30">
-            <Lightbulb className="h-6 w-6 text-amber-600 dark:text-amber-400" />
-          </div>
-          <h1 className="text-foreground text-2xl font-semibold">Ideas</h1>
-        </div>
-        <p className="text-muted-foreground text-base">
-          Collect and manage feature requests from your users.
-        </p>
-      </header>
+      <DashboardPageHeader
+        title="Ideas"
+        subtitle="Collect and manage feature requests from your users."
+        icon={Lightbulb}
+        iconClassName="bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400"
+        action={
+          <Button
+            asChild
+            className="bg-foreground text-background hover:bg-foreground/90 gap-2"
+          >
+            <Link href="/dashboard/ideas?create=true">
+              <Plus className="h-4 w-4" />
+              New idea
+            </Link>
+          </Button>
+        }
+      />
 
       <IdeasList
         initialIdeas={workspaceIdeas}
         workspaceSlug={workspace.slug}
         ideasWithDuplicates={Array.from(ideasWithDuplicates)}
+        defaultCreating={resolvedSearchParams.create === "true"}
       />
     </div>
   );

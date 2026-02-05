@@ -5,7 +5,7 @@ import { eq, sql, desc } from "drizzle-orm";
 import { Lightbulb, ChevronUp, Calendar, AlertCircle } from "lucide-react";
 import { getUserWorkspace } from "@/lib/workspace";
 import { PublicBoardCard } from "@/components/dashboard/public-board-card";
-import { DashboardHeader } from "@/components/dashboard/dashboard-header";
+import { DashboardPageHeader } from "@/components/dashboard/dashboard-page-header";
 import { StatsCard } from "@/components/dashboard/stats-card";
 import { QuickActions } from "@/components/dashboard/quick-actions";
 import { RecentActivity } from "@/components/dashboard/recent-activity";
@@ -105,7 +105,10 @@ export default async function DashboardPage() {
 
   return (
     <div className="space-y-8">
-      <DashboardHeader userName={session!.user.name || "there"} />
+      <DashboardPageHeader
+        title={`Welcome back, ${session!.user.name || "there"}!`}
+        subtitle="Here's what's happening with your account."
+      />
 
       {/* Public Board URL */}
       {boardUrl && <PublicBoardCard boardUrl={boardUrl} />}

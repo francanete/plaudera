@@ -6,7 +6,7 @@ import { eq, and, desc } from "drizzle-orm";
 import { getUserWorkspace } from "@/lib/workspace";
 import { DuplicatesList } from "./duplicates-list";
 import { Copy } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { DashboardPageHeader } from "@/components/dashboard/dashboard-page-header";
 
 export default async function DuplicatesPage() {
   const session = await auth.api.getSession({
@@ -56,24 +56,12 @@ export default async function DuplicatesPage() {
 
   return (
     <div className="space-y-8">
-      <div>
-        <div className="flex items-center gap-3">
-          <div
-            className={cn(
-              "rounded-lg bg-indigo-600 p-2 shadow-sm",
-              "flex items-center justify-center"
-            )}
-          >
-            <Copy className="h-6 w-6 text-white" />
-          </div>
-          <h1 className="text-2xl font-bold tracking-tight">
-            Duplicate Detection
-          </h1>
-        </div>
-        <p className="text-muted-foreground mt-1 ml-[3.25rem] text-lg leading-relaxed">
-          AI-detected potential duplicate ideas for your review.
-        </p>
-      </div>
+      <DashboardPageHeader
+        title="Duplicate Detection"
+        subtitle="AI-detected potential duplicate ideas for your review."
+        icon={Copy}
+        iconClassName="bg-indigo-100 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-400"
+      />
 
       <DuplicatesList initialSuggestions={suggestions} />
     </div>

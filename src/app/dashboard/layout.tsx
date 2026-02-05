@@ -106,9 +106,8 @@ export default async function DashboardLayout({
           pendingDuplicatesCount={pendingDuplicatesCount}
         />
         <SidebarInset>
-          <header className="flex h-12 shrink-0 items-center gap-2 px-4">
+          <header className="flex h-12 shrink-0 items-center gap-2 px-4 md:hidden">
             <MobileSidebarTrigger />
-            <span className="text-muted-foreground text-sm">Dashboard</span>
           </header>
           {subscription.status === "TRIALING" && subscription.expiresAt && (
             <TrialBanner endsAt={subscription.expiresAt} />
