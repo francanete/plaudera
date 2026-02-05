@@ -19,7 +19,7 @@ import { OnboardingProvider } from "@/components/onboarding/onboarding-provider"
 import {
   SidebarInset,
   SidebarProvider,
-  SidebarTrigger,
+  MobileSidebarTrigger,
 } from "@/components/ui/sidebar";
 import { IdentifyUser } from "@/components/analytics/identify-user";
 
@@ -107,7 +107,7 @@ export default async function DashboardLayout({
         />
         <SidebarInset>
           <header className="flex h-12 shrink-0 items-center gap-2 px-4">
-            <SidebarTrigger className="-ml-1" />
+            <MobileSidebarTrigger />
             <span className="text-muted-foreground text-sm">Dashboard</span>
           </header>
           {subscription.status === "TRIALING" && subscription.expiresAt && (
