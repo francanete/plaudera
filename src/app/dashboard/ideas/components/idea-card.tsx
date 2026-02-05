@@ -28,7 +28,14 @@ export function IdeaCard({
   onStatusChange,
 }: IdeaCardProps) {
   return (
-    <Link href={`/dashboard/ideas/${idea.id}`} className="block">
+    <Link
+      href={
+        isOnRoadmap(idea.roadmapStatus)
+          ? `/dashboard/roadmap/${idea.id}`
+          : `/dashboard/ideas/${idea.id}`
+      }
+      className="block"
+    >
       <article
         className="group border-border bg-card hover:border-primary/30 flex items-start gap-5 rounded-xl border p-5 transition-all duration-200 hover:shadow-md"
         aria-label={`Feature request: ${idea.title}`}
