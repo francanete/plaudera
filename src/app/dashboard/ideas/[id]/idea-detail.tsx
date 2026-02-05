@@ -84,7 +84,7 @@ export function IdeaDetail({
 
       if (!res.ok) throw new Error();
 
-      setIdea({ ...idea, title: title.trim() });
+      setIdea((prev) => ({ ...prev, title: title.trim() }));
       toast.success("Title updated");
     } catch {
       setTitle(idea.title); // Reset on error
@@ -105,7 +105,7 @@ export function IdeaDetail({
 
       if (!res.ok) throw new Error();
 
-      setIdea({ ...idea, description: description || null });
+      setIdea((prev) => ({ ...prev, description: description || null }));
       toast.success("Description updated");
     } catch {
       toast.error("Failed to update description");
@@ -117,7 +117,7 @@ export function IdeaDetail({
   const handleStatusChange = async (newStatus: IdeaStatus) => {
     const previousStatus = idea.status;
 
-    setIdea({ ...idea, status: newStatus });
+    setIdea((prev) => ({ ...prev, status: newStatus }));
 
     try {
       const res = await fetch(`/api/ideas/${idea.id}`, {
@@ -130,7 +130,7 @@ export function IdeaDetail({
 
       toast.success("Status updated");
     } catch {
-      setIdea({ ...idea, status: previousStatus });
+      setIdea((prev) => ({ ...prev, status: previousStatus }));
       toast.error("Failed to update status");
     }
   };
@@ -173,7 +173,7 @@ export function IdeaDetail({
 
       if (!res.ok) throw new Error();
 
-      setIdea({ ...idea, internalNote: internalNote || null });
+      setIdea((prev) => ({ ...prev, internalNote: internalNote || null }));
       toast.success("Internal note saved");
     } catch {
       toast.error("Failed to save internal note");
@@ -193,7 +193,7 @@ export function IdeaDetail({
 
       if (!res.ok) throw new Error();
 
-      setIdea({ ...idea, publicUpdate: publicUpdate || null });
+      setIdea((prev) => ({ ...prev, publicUpdate: publicUpdate || null }));
       toast.success("Public update saved");
     } catch {
       toast.error("Failed to save public update");

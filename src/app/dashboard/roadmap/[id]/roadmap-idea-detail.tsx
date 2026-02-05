@@ -167,7 +167,7 @@ export function RoadmapIdeaDetail({
 
       if (!res.ok) throw new Error();
 
-      setIdea({ ...idea, title: title.trim() });
+      setIdea((prev) => ({ ...prev, title: title.trim() }));
       toast.success("Title updated");
     } catch {
       setTitle(idea.title);
@@ -179,7 +179,7 @@ export function RoadmapIdeaDetail({
 
   const handleRoadmapStatusChange = async (newStatus: RoadmapStatus) => {
     const previousStatus = idea.roadmapStatus;
-    setIdea({ ...idea, roadmapStatus: newStatus });
+    setIdea((prev) => ({ ...prev, roadmapStatus: newStatus }));
 
     try {
       const res = await fetch(`/api/ideas/${idea.id}`, {
@@ -199,7 +199,7 @@ export function RoadmapIdeaDetail({
 
       toast.success("Roadmap status updated");
     } catch {
-      setIdea({ ...idea, roadmapStatus: previousStatus });
+      setIdea((prev) => ({ ...prev, roadmapStatus: previousStatus }));
       toast.error("Failed to update roadmap status");
     }
   };
@@ -215,7 +215,7 @@ export function RoadmapIdeaDetail({
 
       if (!res.ok) throw new Error();
 
-      setIdea({ ...idea, featureDetails: featureDetails || null });
+      setIdea((prev) => ({ ...prev, featureDetails: featureDetails || null }));
       toast.success("Feature details saved");
     } catch {
       toast.error("Failed to save feature details");
@@ -235,7 +235,7 @@ export function RoadmapIdeaDetail({
 
       if (!res.ok) throw new Error();
 
-      setIdea({ ...idea, publicUpdate: publicUpdate || null });
+      setIdea((prev) => ({ ...prev, publicUpdate: publicUpdate || null }));
       toast.success("Public update saved");
     } catch {
       toast.error("Failed to save public update");
@@ -247,7 +247,7 @@ export function RoadmapIdeaDetail({
   const handleToggleShowOnRoadmap = async (checked: boolean) => {
     const previous = showPublicUpdateOnRoadmap;
     setShowPublicUpdateOnRoadmap(checked);
-    setIdea({ ...idea, showPublicUpdateOnRoadmap: checked });
+    setIdea((prev) => ({ ...prev, showPublicUpdateOnRoadmap: checked }));
 
     try {
       const res = await fetch(`/api/ideas/${idea.id}`, {
@@ -265,7 +265,7 @@ export function RoadmapIdeaDetail({
       );
     } catch {
       setShowPublicUpdateOnRoadmap(previous);
-      setIdea({ ...idea, showPublicUpdateOnRoadmap: previous });
+      setIdea((prev) => ({ ...prev, showPublicUpdateOnRoadmap: previous }));
       toast.error("Failed to update setting");
     }
   };
@@ -281,7 +281,7 @@ export function RoadmapIdeaDetail({
 
       if (!res.ok) throw new Error();
 
-      setIdea({ ...idea, internalNote: internalNote || null });
+      setIdea((prev) => ({ ...prev, internalNote: internalNote || null }));
       toast.success("Internal note saved");
     } catch {
       toast.error("Failed to save internal note");
