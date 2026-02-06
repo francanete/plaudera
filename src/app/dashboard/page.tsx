@@ -11,6 +11,7 @@ import { QuickActions } from "@/components/dashboard/quick-actions";
 import { RecentActivity } from "@/components/dashboard/recent-activity";
 import { appConfig } from "@/lib/config";
 import type { IdeaStatus, RoadmapStatus } from "@/lib/db/schema";
+import { VISIBLE_ROADMAP_STATUSES } from "@/lib/roadmap-status-config";
 import { RoadmapSummaryCard } from "@/components/dashboard/roadmap-summary-card";
 
 export default async function DashboardPage() {
@@ -104,16 +105,24 @@ export default async function DashboardPage() {
     topIdeas = topIdeasResult;
 
     for (const row of pipelineResult) {
-      const status = row.roadmapStatus as keyof typeof pipelineCounts;
-      if (status in pipelineCounts) {
-        pipelineCounts[status] = row.count;
+      if (VISIBLE_ROADMAP_STATUSES.includes(row.roadmapStatus)) {
+        pipelineCounts[row.roadmapStatus as keyof typeof pipelineCounts] =
+          row.count;
+      } else {
+        console.warn(
+          `Unexpected roadmap status in pipeline query: ${row.roadmapStatus}`
+        );
       }
     }
 
     for (const row of momentumResult.rows) {
-      const status = row.to_status as keyof typeof weeklyMomentum;
-      if (status in weeklyMomentum) {
-        weeklyMomentum[status] = row.count;
+      if (VISIBLE_ROADMAP_STATUSES.includes(row.to_status as RoadmapStatus)) {
+        weeklyMomentum[row.to_status as keyof typeof weeklyMomentum] =
+          row.count;
+      } else {
+        console.warn(
+          `Unexpected roadmap status in momentum query: ${row.to_status}`
+        );
       }
     }
   }
