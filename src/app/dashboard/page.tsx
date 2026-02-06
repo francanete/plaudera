@@ -90,13 +90,12 @@ export default async function DashboardPage() {
       db.execute<{ to_status: string; count: number }>(sql`
         SELECT to_status, COUNT(*)::int as count
         FROM (
-          SELECT DISTINCT ON (idea_id) to_status
-          FROM roadmap_status_changes
-          WHERE changed_at >= ${oneWeekAgo}
-            AND idea_id IN (
-              SELECT id FROM ideas WHERE workspace_id = ${workspace.id}
-            )
-          ORDER BY idea_id, changed_at DESC
+          SELECT DISTINCT ON (rsc.idea_id) rsc.to_status
+          FROM roadmap_status_changes rsc
+          INNER JOIN ideas i ON i.id = rsc.idea_id
+          WHERE rsc.changed_at >= ${oneWeekAgo}
+            AND i.workspace_id = ${workspace.id}
+          ORDER BY rsc.idea_id, rsc.changed_at DESC
         ) latest
         GROUP BY to_status
       `),
