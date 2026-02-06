@@ -15,7 +15,10 @@ import {
   IdeaContentTabs,
   IdeaDangerZone,
   MoveToRoadmapForm,
+  DuplicateSuggestionAlert,
 } from "./components";
+import type { DuplicateSuggestionForView } from "./components";
+import { isOnRoadmap } from "@/lib/roadmap-status-config";
 
 interface MergedChild {
   id: string;
@@ -31,12 +34,14 @@ interface IdeaDetailProps {
   idea: Idea;
   mergedChildren?: MergedChild[];
   publishedIdeas?: PublishedIdea[];
+  duplicateSuggestions?: DuplicateSuggestionForView[];
 }
 
 export function IdeaDetail({
   idea: initialIdea,
   mergedChildren = [],
   publishedIdeas = [],
+  duplicateSuggestions: initialDupSuggestions = [],
 }: IdeaDetailProps) {
   const router = useRouter();
   const [idea, setIdea] = useState(initialIdea);
@@ -46,6 +51,18 @@ export function IdeaDetail({
   const [isSavingDescription, setIsSavingDescription] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+
+  // Duplicate suggestion state
+  const [dupSuggestions, setDupSuggestions] = useState(initialDupSuggestions);
+  const [dupLoadingStates, setDupLoadingStates] = useState<
+    Record<string, string>
+  >({});
+  const [pendingDupMerge, setPendingDupMerge] = useState<{
+    suggestionId: string;
+    keepIdeaId: string;
+    keepIdeaTitle: string;
+  } | null>(null);
+  const [isDupMerging, setIsDupMerging] = useState(false);
 
   // Roadmap fields state
   const [internalNote, setInternalNote] = useState(idea.internalNote || "");
@@ -245,6 +262,88 @@ export function IdeaDetail({
     }
   };
 
+  // Duplicate suggestion handlers
+  const handleDupMergeClick = (suggestionId: string, keepIdeaId: string) => {
+    const suggestion = dupSuggestions.find(
+      (s) => s.suggestionId === suggestionId
+    );
+    if (!suggestion) return;
+    setPendingDupMerge({
+      suggestionId,
+      keepIdeaId,
+      keepIdeaTitle: suggestion.otherIdea.title,
+    });
+  };
+
+  const handleDupMergeConfirm = async () => {
+    if (!pendingDupMerge) return;
+    setIsDupMerging(true);
+
+    try {
+      const res = await fetch(
+        `/api/duplicates/${pendingDupMerge.suggestionId}/merge`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ keepIdeaId: pendingDupMerge.keepIdeaId }),
+        }
+      );
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "Failed to merge ideas");
+      }
+
+      toast.success("Ideas merged successfully");
+
+      const otherIdea = dupSuggestions.find(
+        (s) => s.suggestionId === pendingDupMerge.suggestionId
+      )?.otherIdea;
+
+      if (otherIdea && isOnRoadmap(otherIdea.roadmapStatus)) {
+        router.push(`/dashboard/roadmap/${otherIdea.id}`);
+      } else {
+        router.push(`/dashboard/ideas/${pendingDupMerge.keepIdeaId}`);
+      }
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Failed to merge ideas"
+      );
+      setIsDupMerging(false);
+      setPendingDupMerge(null);
+    }
+  };
+
+  const handleDupDismiss = async (suggestionId: string) => {
+    setDupLoadingStates((prev) => ({ ...prev, [suggestionId]: "dismiss" }));
+
+    const previousSuggestions = dupSuggestions;
+    setDupSuggestions(
+      dupSuggestions.filter((s) => s.suggestionId !== suggestionId)
+    );
+
+    try {
+      const res = await fetch(`/api/duplicates/${suggestionId}/dismiss`, {
+        method: "POST",
+      });
+
+      if (!res.ok) {
+        throw new Error("Failed to dismiss suggestion");
+      }
+
+      toast.success("Marked as not a duplicate");
+    } catch {
+      setDupSuggestions(previousSuggestions);
+      toast.error("Failed to dismiss suggestion");
+    } finally {
+      setDupLoadingStates((prev) => {
+        const { [suggestionId]: _removed, ...rest } = prev;
+        void _removed;
+        return rest;
+      });
+    }
+  };
+
   const selectedParent = publishedIdeas.find((i) => i.id === selectedParentId);
 
   if (showMoveToRoadmapForm) {
@@ -260,7 +359,7 @@ export function IdeaDetail({
   }
 
   return (
-    <div className="max-w-5xl space-y-10 py-8">
+    <div className="space-y-10">
       {/* Header: Back nav + Title + Merged indicator */}
       <IdeaHeader
         title={title}
@@ -270,6 +369,9 @@ export function IdeaDetail({
         isMerged={idea.status === "MERGED"}
         mergedIntoId={idea.mergedIntoId}
         voteCount={idea.voteCount}
+        status={idea.status}
+        roadmapStatus={idea.roadmapStatus}
+        onMoveToRoadmap={() => setShowMoveToRoadmapForm(true)}
       />
 
       {/* Status & Visibility Row */}
@@ -277,8 +379,18 @@ export function IdeaDetail({
         status={idea.status}
         roadmapStatus={idea.roadmapStatus}
         onStatusChange={handleStatusChange}
-        onMoveToRoadmap={() => setShowMoveToRoadmapForm(true)}
       />
+
+      {/* Duplicate Suggestion Alert */}
+      {dupSuggestions.length > 0 && (
+        <DuplicateSuggestionAlert
+          suggestions={dupSuggestions}
+          currentIdeaTitle={idea.title}
+          loadingStates={dupLoadingStates}
+          onMerge={handleDupMergeClick}
+          onDismiss={handleDupDismiss}
+        />
+      )}
 
       {/* Merged Children (if any) */}
       {mergedChildren.length > 0 && (
@@ -342,6 +454,18 @@ export function IdeaDetail({
         targetTitle={selectedParent?.title || ""}
         onConfirm={handleMergeConfirm}
         isMerging={isMerging}
+      />
+
+      {/* Duplicate suggestion merge dialog */}
+      <IdeaMergeDialog
+        open={!!pendingDupMerge}
+        onOpenChange={(open) => {
+          if (!open) setPendingDupMerge(null);
+        }}
+        sourceTitle={idea.title}
+        targetTitle={pendingDupMerge?.keepIdeaTitle || ""}
+        onConfirm={handleDupMergeConfirm}
+        isMerging={isDupMerging}
       />
     </div>
   );

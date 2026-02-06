@@ -70,6 +70,10 @@ export async function updateIdea(
     throw new BadRequestError("Use the merge endpoint to merge ideas");
   }
 
+  if (idea.status === "MERGED") {
+    throw new BadRequestError("Cannot modify a merged idea");
+  }
+
   // Build update object with only provided fields
   const updateData: Partial<{
     title: string;
@@ -96,15 +100,6 @@ export async function updateIdea(
     updateData.featureDetails = data.featureDetails;
   if (data.showPublicUpdateOnRoadmap !== undefined)
     updateData.showPublicUpdateOnRoadmap = data.showPublicUpdateOnRoadmap;
-
-  // Block moving merged ideas to the roadmap
-  if (
-    idea.status === "MERGED" &&
-    data.roadmapStatus !== undefined &&
-    data.roadmapStatus !== "NONE"
-  ) {
-    throw new BadRequestError("Cannot move a merged idea to the roadmap");
-  }
 
   // Track roadmap status changes for audit log
   let roadmapStatusChanged = false;
@@ -140,10 +135,6 @@ export async function updateIdea(
     }
 
     updateData.status = data.status;
-    // Clear mergedIntoId when changing away from MERGED (CHECK constraint requires it)
-    if (idea.status === "MERGED") {
-      updateData.mergedIntoId = null;
-    }
   }
 
   const updatedIdea = await db.transaction(async (tx) => {

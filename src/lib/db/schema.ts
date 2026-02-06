@@ -456,6 +456,29 @@ export const widgetSettings = pgTable(
   ]
 );
 
+// ============ Board Settings Table ============
+export const boardSettings = pgTable(
+  "board_settings",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => createId()),
+    workspaceId: text("workspace_id")
+      .notNull()
+      .unique()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    roadmapDefaultListView: boolean("roadmap_default_list_view")
+      .default(false)
+      .notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at")
+      .defaultNow()
+      .notNull()
+      .$onUpdate(() => new Date()),
+  },
+  (table) => [index("board_settings_workspace_idx").on(table.workspaceId)]
+);
+
 // ============ Ideas Table ============
 export const ideas = pgTable(
   "ideas",
@@ -633,6 +656,7 @@ export const workspacesRelations = relations(workspaces, ({ one, many }) => ({
   }),
   ideas: many(ideas),
   widgetSettings: one(widgetSettings),
+  boardSettings: one(boardSettings),
   duplicateSuggestions: many(duplicateSuggestions),
   slugChangeHistory: many(slugChangeHistory),
 }));
@@ -652,6 +676,14 @@ export const slugChangeHistoryRelations = relations(
 export const widgetSettingsRelations = relations(widgetSettings, ({ one }) => ({
   workspace: one(workspaces, {
     fields: [widgetSettings.workspaceId],
+    references: [workspaces.id],
+  }),
+}));
+
+// ============ Board Settings Relations ============
+export const boardSettingsRelations = relations(boardSettings, ({ one }) => ({
+  workspace: one(workspaces, {
+    fields: [boardSettings.workspaceId],
     references: [workspaces.id],
   }),
 }));
@@ -769,6 +801,8 @@ export type ContributorToken = typeof contributorTokens.$inferSelect;
 export type NewContributorToken = typeof contributorTokens.$inferInsert;
 export type WidgetSettings = typeof widgetSettings.$inferSelect;
 export type NewWidgetSettings = typeof widgetSettings.$inferInsert;
+export type BoardSettings = typeof boardSettings.$inferSelect;
+export type NewBoardSettings = typeof boardSettings.$inferInsert;
 // Derive IdeaStatus type from the enum to keep them in sync
 export type IdeaStatus = (typeof ideaStatusEnum.enumValues)[number];
 export type WidgetPosition = (typeof widgetPositionEnum.enumValues)[number];

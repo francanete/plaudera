@@ -2,9 +2,10 @@ import { notFound, redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { db } from "@/lib/db";
-import { ideas } from "@/lib/db/schema";
-import { eq, and, ne } from "drizzle-orm";
+import { ideas, duplicateSuggestions } from "@/lib/db/schema";
+import { eq, and, ne, or, desc } from "drizzle-orm";
 import { IdeaDetail } from "./idea-detail";
+import type { DuplicateSuggestionForView } from "./components";
 
 type PageProps = {
   params: Promise<{ id: string }>;
@@ -42,23 +43,74 @@ export default async function IdeaDetailPage({ params }: PageProps) {
     redirect(`/dashboard/roadmap/${idea.id}`);
   }
 
-  // Fetch PUBLISHED ideas in the same workspace for the merge picker
-  const publishedIdeas = await db
-    .select({ id: ideas.id, title: ideas.title })
-    .from(ideas)
-    .where(
-      and(
-        eq(ideas.workspaceId, idea.workspaceId),
-        eq(ideas.status, "PUBLISHED"),
-        ne(ideas.id, id)
-      )
-    );
+  // Fetch published ideas and duplicate suggestions in parallel
+  const [publishedIdeas, rawDupSuggestions] = await Promise.all([
+    db
+      .select({ id: ideas.id, title: ideas.title })
+      .from(ideas)
+      .where(
+        and(
+          eq(ideas.workspaceId, idea.workspaceId),
+          eq(ideas.status, "PUBLISHED"),
+          ne(ideas.id, id)
+        )
+      ),
+    db.query.duplicateSuggestions.findMany({
+      where: and(
+        eq(duplicateSuggestions.workspaceId, idea.workspaceId),
+        eq(duplicateSuggestions.status, "PENDING"),
+        or(
+          eq(duplicateSuggestions.sourceIdeaId, id),
+          eq(duplicateSuggestions.duplicateIdeaId, id)
+        )
+      ),
+      with: {
+        sourceIdea: {
+          columns: {
+            id: true,
+            title: true,
+            description: true,
+            status: true,
+            roadmapStatus: true,
+            voteCount: true,
+            createdAt: true,
+          },
+        },
+        duplicateIdea: {
+          columns: {
+            id: true,
+            title: true,
+            description: true,
+            status: true,
+            roadmapStatus: true,
+            voteCount: true,
+            createdAt: true,
+          },
+        },
+      },
+      orderBy: [desc(duplicateSuggestions.similarity)],
+    }),
+  ]);
+
+  // Transform: for each suggestion, pick the "other" idea (not the current one)
+  // and filter out suggestions where the other idea has been merged
+  const dupSuggestionsForView: DuplicateSuggestionForView[] = rawDupSuggestions
+    .map((s) => {
+      const otherIdea = s.sourceIdeaId === id ? s.duplicateIdea : s.sourceIdea;
+      return {
+        suggestionId: s.id,
+        similarity: s.similarity,
+        otherIdea,
+      };
+    })
+    .filter((s) => s.otherIdea.status !== "MERGED");
 
   return (
     <IdeaDetail
       idea={idea}
       mergedChildren={idea.mergedFrom}
       publishedIdeas={publishedIdeas}
+      duplicateSuggestions={dupSuggestionsForView}
     />
   );
 }

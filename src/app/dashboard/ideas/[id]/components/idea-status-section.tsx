@@ -7,7 +7,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { GitMerge, ChevronDown, Map } from "lucide-react";
+import { GitMerge, ChevronDown } from "lucide-react";
 import type { IdeaStatus, RoadmapStatus } from "@/lib/db/schema";
 import {
   SELECTABLE_IDEA_STATUSES,
@@ -18,7 +18,6 @@ interface IdeaStatusSectionProps {
   status: IdeaStatus;
   roadmapStatus: RoadmapStatus;
   onStatusChange: (status: IdeaStatus) => void;
-  onMoveToRoadmap: () => void;
 }
 
 // Color mappings for status icons
@@ -33,7 +32,6 @@ export function IdeaStatusSection({
   status,
   roadmapStatus,
   onStatusChange,
-  onMoveToRoadmap,
 }: IdeaStatusSectionProps) {
   const isOnRoadmap = roadmapStatus !== "NONE";
   const StatusIcon = IDEA_STATUS_CONFIG[status].icon;
@@ -43,9 +41,6 @@ export function IdeaStatusSection({
   const selectableStatuses = isOnRoadmap
     ? SELECTABLE_IDEA_STATUSES.filter((s) => s !== "DECLINED")
     : SELECTABLE_IDEA_STATUSES;
-
-  const showMoveToRoadmap =
-    !isOnRoadmap && status !== "MERGED" && status !== "DECLINED";
 
   return (
     <div className="space-y-4">
@@ -96,17 +91,6 @@ export function IdeaStatusSection({
               })}
             </DropdownMenuContent>
           </DropdownMenu>
-        )}
-
-        {/* Move to Roadmap button — only shows for non-roadmap, non-merged, non-declined ideas */}
-        {showMoveToRoadmap && (
-          <button
-            onClick={onMoveToRoadmap}
-            className="border-border bg-background hover:border-muted-foreground/30 inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm font-medium transition-all hover:shadow-sm"
-          >
-            <Map className="text-muted-foreground h-4 w-4" />
-            <span className="text-foreground">Move to Roadmap</span>
-          </button>
         )}
       </div>
     </div>

@@ -7,6 +7,7 @@ import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { IdeaCard, type IdeaCardData } from "./idea-card";
 import { BoardHeader, type BoardView } from "./board-header";
 import { RoadmapGroupedView } from "./roadmap-grouped-view";
+import { PublicRoadmapListView } from "./public-roadmap-list-view";
 import { ContributorAuthDialog } from "./contributor-auth-dialog";
 import { IdeaSubmissionDialog } from "./idea-submission-dialog";
 import { Lightbulb } from "lucide-react";
@@ -20,6 +21,7 @@ interface PublicIdeaListProps {
   workspaceSlug: string;
   initialIdeas: IdeaCardData[];
   initialContributor: { email: string; id: string } | null;
+  roadmapDefaultListView: boolean;
 }
 
 type PendingAction =
@@ -34,6 +36,7 @@ export function PublicIdeaList({
   workspaceSlug: _workspaceSlug,
   initialIdeas,
   initialContributor,
+  roadmapDefaultListView,
 }: PublicIdeaListProps) {
   const [ideas, setIdeas] = useState(initialIdeas);
   const [contributor, setContributor] = useState(initialContributor);
@@ -274,7 +277,18 @@ export function PublicIdeaList({
         )}
       >
         {activeView === "roadmap" ? (
-          <RoadmapGroupedView ideas={roadmapIdeas} />
+          roadmapDefaultListView ? (
+            <PublicRoadmapListView ideas={roadmapIdeas} />
+          ) : (
+            <>
+              <div className="block sm:hidden">
+                <PublicRoadmapListView ideas={roadmapIdeas} />
+              </div>
+              <div className="hidden sm:block">
+                <RoadmapGroupedView ideas={roadmapIdeas} />
+              </div>
+            </>
+          )
         ) : boardIdeas.length === 0 ? (
           <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-slate-300 bg-white py-16 dark:border-slate-600 dark:bg-slate-800">
             <Lightbulb className="mb-4 h-12 w-12 text-slate-400 dark:text-slate-500" />

@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ArrowLeft, GitMerge } from "lucide-react";
+import { ArrowLeft, GitMerge, Map } from "lucide-react";
+import type { IdeaStatus, RoadmapStatus } from "@/lib/db/schema";
 
 interface IdeaHeaderProps {
   title: string;
@@ -13,6 +14,9 @@ interface IdeaHeaderProps {
   isMerged: boolean;
   mergedIntoId?: string | null;
   voteCount: number;
+  status: IdeaStatus;
+  roadmapStatus: RoadmapStatus;
+  onMoveToRoadmap: () => void;
 }
 
 export function IdeaHeader({
@@ -23,20 +27,42 @@ export function IdeaHeader({
   isMerged,
   mergedIntoId,
   voteCount,
+  status,
+  roadmapStatus,
+  onMoveToRoadmap,
 }: IdeaHeaderProps) {
+  const showMoveToRoadmap =
+    roadmapStatus === "NONE" && status !== "MERGED" && status !== "DECLINED";
+
   return (
     <div className="space-y-6">
-      {/* Back Navigation with micro-interaction */}
-      <Link href="/dashboard/ideas" className="group inline-flex">
-        <Button
-          variant="ghost"
-          size="sm"
-          className="text-muted-foreground hover:text-foreground gap-2 px-2 transition-colors hover:bg-transparent"
-        >
-          <ArrowLeft className="h-4 w-4 transition-transform duration-200 group-hover:-translate-x-1" />
-          <span className="text-sm">Back to Ideas</span>
-        </Button>
-      </Link>
+      {/* Contextual Toolbar */}
+      <div className="flex items-center justify-between">
+        {/* Left: Back navigation */}
+        <Link href="/dashboard/ideas" className="group inline-flex">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-muted-foreground hover:text-foreground gap-2 px-2 transition-colors hover:bg-transparent"
+          >
+            <ArrowLeft className="h-4 w-4 transition-transform duration-200 group-hover:-translate-x-1" />
+            <span className="text-sm">Ideas</span>
+          </Button>
+        </Link>
+
+        {/* Right: Move to Roadmap */}
+        {showMoveToRoadmap && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onMoveToRoadmap}
+            className="gap-1.5"
+          >
+            <Map className="h-3.5 w-3.5" />
+            Move to Roadmap
+          </Button>
+        )}
+      </div>
 
       {/* Vote Count + Title */}
       <div className="flex items-center gap-4">
