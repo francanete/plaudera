@@ -106,7 +106,11 @@ export function IdeaCard({
               dateTime={idea.createdAt.toISOString()}
               className="text-muted-foreground text-sm"
             >
-              {new Date(idea.createdAt).toLocaleDateString("en-US")}
+              {new Date(idea.createdAt).toLocaleDateString("en-US", {
+                month: "short",
+                day: "numeric",
+                year: "numeric",
+              })}
             </time>
           </div>
         </div>

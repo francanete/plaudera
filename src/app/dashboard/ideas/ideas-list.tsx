@@ -1,16 +1,28 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Plus, Lightbulb } from "lucide-react";
 import type { Idea, IdeaStatus } from "@/lib/db/schema";
-import { IdeaCard } from "./components";
+import {
+  ALL_IDEA_STATUSES,
+  IDEA_STATUS_CONFIG,
+} from "@/lib/idea-status-config";
+import { IdeaCard, IdeasStatsBar, IdeasToolbar } from "./components";
+import type { SortOption } from "./components";
 
-type ViewMode = "active" | "archive";
+type TabValue = "all" | IdeaStatus;
 
 interface IdeasListProps {
   initialIdeas: Idea[];
@@ -31,25 +43,50 @@ export function IdeasList({
   const [isCreating, setIsCreating] = useState(defaultCreating);
   const [newTitle, setNewTitle] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [viewMode, setViewMode] = useState<ViewMode>("active");
+  const [activeTab, setActiveTab] = useState<TabValue>("all");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [sortBy, setSortBy] = useState<SortOption>("votes");
 
-  // Filter and sort ideas by view mode
-  const filteredIdeas = ideas
-    .filter((idea) => {
-      if (viewMode === "active") {
-        return idea.status === "PUBLISHED" || idea.status === "UNDER_REVIEW";
-      }
-      return idea.status === "MERGED" || idea.status === "DECLINED";
-    })
-    .sort((a, b) => {
-      if (viewMode === "active") {
-        // PUBLISHED first, then UNDER_REVIEW, each sorted by votes (high to low)
-        if (a.status === "PUBLISHED" && b.status !== "PUBLISHED") return -1;
-        if (a.status !== "PUBLISHED" && b.status === "PUBLISHED") return 1;
-      }
-      // Within same status group, sort by vote count descending
-      return b.voteCount - a.voteCount;
-    });
+  // Count ideas per status for tab badges
+  const countByStatus = useMemo(() => {
+    const counts: Record<string, number> = { all: ideas.length };
+    for (const status of ALL_IDEA_STATUSES) {
+      counts[status] = ideas.filter((idea) => idea.status === status).length;
+    }
+    return counts;
+  }, [ideas]);
+
+  // Filtering pipeline: tab → search → sort
+  const displayedIdeas = useMemo(() => {
+    const lowerSearch = searchTerm.toLowerCase();
+
+    return ideas
+      .filter((idea) => {
+        // Tab filter
+        if (activeTab !== "all" && idea.status !== activeTab) return false;
+        // Search filter
+        if (lowerSearch) {
+          const titleMatch = idea.title.toLowerCase().includes(lowerSearch);
+          const descMatch = idea.description
+            ?.toLowerCase()
+            .includes(lowerSearch);
+          if (!titleMatch && !descMatch) return false;
+        }
+        return true;
+      })
+      .sort((a, b) => {
+        if (sortBy === "newest")
+          return (
+            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+          );
+        if (sortBy === "oldest")
+          return (
+            new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+          );
+        // Default: most votes
+        return b.voteCount - a.voteCount;
+      });
+  }, [ideas, activeTab, searchTerm, sortBy]);
 
   const handleCreateIdea = async () => {
     if (!newTitle.trim() || isSubmitting) return;
@@ -64,7 +101,6 @@ export function IdeasList({
 
       if (res.ok) {
         const { idea } = await res.json();
-        // Convert date string back to Date object (JSON serialization loses Date type)
         const ideaWithDate = {
           ...idea,
           createdAt: new Date(idea.createdAt),
@@ -99,7 +135,6 @@ export function IdeasList({
 
   const handleStatusChange = async (ideaId: string, newStatus: IdeaStatus) => {
     const previousIdeas = ideas;
-    // Optimistic update
     setIdeas(
       ideas.map((i) => (i.id === ideaId ? { ...i, status: newStatus } : i))
     );
@@ -117,13 +152,12 @@ export function IdeasList({
 
       toast.success("Status updated");
     } catch {
-      // Rollback on error
       setIdeas(previousIdeas);
       toast.error("Failed to update status");
     }
   };
 
-  // Empty state
+  // Global empty state (no ideas at all)
   if (ideas.length === 0 && !isCreating) {
     return (
       <div className="border-border bg-card rounded-xl border-2 border-dashed">
@@ -150,10 +184,70 @@ export function IdeasList({
     );
   }
 
+  // Build context-aware empty state for filtered results
+  const renderFilteredEmptyState = () => {
+    if (searchTerm) {
+      return (
+        <div className="border-border bg-card rounded-xl border-2 border-dashed py-12 text-center">
+          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800">
+            <Lightbulb className="h-6 w-6 text-slate-500 dark:text-slate-400" />
+          </div>
+          <h3 className="text-foreground mb-1 font-semibold">
+            No matching ideas
+          </h3>
+          <p className="text-muted-foreground text-sm">
+            Try adjusting your search term
+          </p>
+        </div>
+      );
+    }
+
+    const statusConfig =
+      activeTab !== "all" ? IDEA_STATUS_CONFIG[activeTab] : null;
+    const StatusIcon = statusConfig?.icon ?? Lightbulb;
+
+    const emptyMessages: Record<string, { heading: string; body: string }> = {
+      all: {
+        heading: "No ideas yet",
+        body: "Create your first idea to get started.",
+      },
+      UNDER_REVIEW: {
+        heading: "No ideas under review",
+        body: "Ideas submitted by contributors will appear here for review.",
+      },
+      PUBLISHED: {
+        heading: "No published ideas",
+        body: "Publish ideas to make them visible on your public board.",
+      },
+      DECLINED: {
+        heading: "No declined ideas",
+        body: "Ideas you decline will appear here.",
+      },
+      MERGED: {
+        heading: "No merged ideas",
+        body: "Duplicate ideas that have been merged will appear here.",
+      },
+    };
+
+    const message = emptyMessages[activeTab] ?? emptyMessages.all;
+
+    return (
+      <div className="border-border bg-card rounded-xl border-2 border-dashed py-12 text-center">
+        <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800">
+          <StatusIcon className="h-6 w-6 text-slate-500 dark:text-slate-400" />
+        </div>
+        <h3 className="text-foreground mb-1 font-semibold">
+          {message.heading}
+        </h3>
+        <p className="text-muted-foreground text-sm">{message.body}</p>
+      </div>
+    );
+  };
+
   return (
     <div className="space-y-6">
-      {/* Actions bar */}
-      {isCreating ? (
+      {/* Creation input (always above everything when active) */}
+      {isCreating && (
         <div className="border-border bg-card flex flex-1 gap-2 rounded-xl border p-4">
           <Input
             placeholder="What's your idea?"
@@ -181,64 +275,83 @@ export function IdeasList({
             Cancel
           </Button>
         </div>
-      ) : (
-        <Tabs
-          value={viewMode}
-          onValueChange={(value) => setViewMode(value as ViewMode)}
-        >
-          <TabsList className="bg-muted/50 h-10 gap-1 rounded-lg p-1">
-            <TabsTrigger
-              value="active"
-              className="data-[state=inactive]:text-muted-foreground data-[state=inactive]:hover:text-foreground data-[state=active]:bg-background data-[state=active]:text-foreground h-8 rounded-md px-4 text-sm font-medium transition-all duration-200 data-[state=active]:shadow-sm data-[state=inactive]:bg-transparent"
-            >
-              Active
-            </TabsTrigger>
-            <TabsTrigger
-              value="archive"
-              className="data-[state=inactive]:text-muted-foreground data-[state=inactive]:hover:text-foreground data-[state=active]:bg-background data-[state=active]:text-foreground h-8 rounded-md px-4 text-sm font-medium transition-all duration-200 data-[state=active]:shadow-sm data-[state=inactive]:bg-transparent"
-            >
-              Archive
-            </TabsTrigger>
-          </TabsList>
-        </Tabs>
       )}
+
+      {/* Stats bar */}
+      <IdeasStatsBar ideas={ideas} />
+
+      {/* Status filter — dropdown on mobile, tabs on desktop */}
+      <Tabs
+        value={activeTab}
+        onValueChange={(value) => setActiveTab(value as TabValue)}
+      >
+        {/* Mobile: Select dropdown */}
+        <div className="block sm:hidden">
+          <Select
+            value={activeTab}
+            onValueChange={(value) => setActiveTab(value as TabValue)}
+          >
+            <SelectTrigger className="w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All ({countByStatus.all})</SelectItem>
+              {ALL_IDEA_STATUSES.map((status) => {
+                const config = IDEA_STATUS_CONFIG[status];
+                return (
+                  <SelectItem key={status} value={status}>
+                    {config.label} ({countByStatus[status]})
+                  </SelectItem>
+                );
+              })}
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Desktop: Horizontal tabs */}
+        <div className="hidden sm:block">
+          <TabsList>
+            <TabsTrigger value="all">
+              All
+              <span className="bg-foreground/10 ml-1 rounded-full px-1.5 py-0.5 text-xs tabular-nums">
+                {countByStatus.all}
+              </span>
+            </TabsTrigger>
+            {ALL_IDEA_STATUSES.map((status) => {
+              const config = IDEA_STATUS_CONFIG[status];
+              return (
+                <TabsTrigger key={status} value={status}>
+                  {config.label}
+                  <span className="bg-foreground/10 ml-1 rounded-full px-1.5 py-0.5 text-xs tabular-nums">
+                    {countByStatus[status]}
+                  </span>
+                </TabsTrigger>
+              );
+            })}
+          </TabsList>
+        </div>
+      </Tabs>
+
+      {/* Search + sort toolbar */}
+      <IdeasToolbar
+        searchTerm={searchTerm}
+        onSearchChange={setSearchTerm}
+        sortBy={sortBy}
+        onSortChange={setSortBy}
+      />
 
       {/* Ideas list */}
       <div className="space-y-5" role="feed" aria-label="Feature requests">
-        {filteredIdeas.length === 0 ? (
-          <div className="border-border bg-card rounded-xl border-2 border-dashed py-12 text-center">
-            <Lightbulb className="text-muted-foreground/50 mx-auto mb-4 h-12 w-12" />
-            <p className="text-muted-foreground">
-              {viewMode === "active"
-                ? "No active ideas yet."
-                : "No archived ideas."}
-            </p>
-          </div>
-        ) : (
-          filteredIdeas.map((idea) => (
-            <IdeaCard
-              key={idea.id}
-              idea={idea}
-              hasDuplicate={duplicateIdeaIds.has(idea.id)}
-              onStatusChange={handleStatusChange}
-            />
-          ))
-        )}
-      </div>
-
-      {/* Public board link */}
-      <div className="border-border bg-muted/30 rounded-xl border px-5 py-4">
-        <p className="text-muted-foreground text-sm">
-          <span className="text-foreground font-medium">Public board:</span>{" "}
-          <a
-            href={`/b/${workspaceSlug}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="bg-muted hover:bg-muted/80 rounded px-2 py-1 font-mono text-xs transition-colors"
-          >
-            /b/{workspaceSlug}
-          </a>
-        </p>
+        {displayedIdeas.length === 0
+          ? renderFilteredEmptyState()
+          : displayedIdeas.map((idea) => (
+              <IdeaCard
+                key={idea.id}
+                idea={idea}
+                hasDuplicate={duplicateIdeaIds.has(idea.id)}
+                onStatusChange={handleStatusChange}
+              />
+            ))}
       </div>
     </div>
   );
