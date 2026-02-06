@@ -293,7 +293,7 @@ export function RoadmapIdeaDetail({
   return (
     <div className="xl:grid xl:grid-cols-[1fr_360px] xl:gap-8">
       {/* Left: Editor */}
-      <div className="max-w-5xl space-y-10">
+      <div className="space-y-10">
         {/* Contextual Toolbar */}
         <div className="flex items-center justify-between">
           {/* Left: Back navigation */}

@@ -359,7 +359,7 @@ export function IdeaDetail({
   }
 
   return (
-    <div className="max-w-5xl space-y-10">
+    <div className="space-y-10">
       {/* Header: Back nav + Title + Merged indicator */}
       <IdeaHeader
         title={title}
