@@ -10,7 +10,7 @@ import { StatsCard } from "@/components/dashboard/stats-card";
 import { QuickActions } from "@/components/dashboard/quick-actions";
 import { RecentActivity } from "@/components/dashboard/recent-activity";
 import { appConfig } from "@/lib/config";
-import type { IdeaStatus } from "@/lib/db/schema";
+import type { IdeaStatus, RoadmapStatus } from "@/lib/db/schema";
 import { RoadmapSummaryCard } from "@/components/dashboard/roadmap-summary-card";
 
 export default async function DashboardPage() {
@@ -31,6 +31,7 @@ export default async function DashboardPage() {
     title: string;
     voteCount: number;
     status: IdeaStatus;
+    roadmapStatus: RoadmapStatus;
   }[] = [];
   const pipelineCounts = { PLANNED: 0, IN_PROGRESS: 0, RELEASED: 0 };
   const weeklyMomentum = { PLANNED: 0, IN_PROGRESS: 0, RELEASED: 0 };
@@ -63,6 +64,7 @@ export default async function DashboardPage() {
           title: ideas.title,
           voteCount: ideas.voteCount,
           status: ideas.status,
+          roadmapStatus: ideas.roadmapStatus,
         })
         .from(ideas)
         .where(eq(ideas.workspaceId, workspace.id))
