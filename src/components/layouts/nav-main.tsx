@@ -37,12 +37,16 @@ export function NavMain({ items, label, badges = {} }: NavMainProps) {
             const isActive = pathname === item.href;
             const badgeCount = badges[item.href];
             return (
-              <SidebarMenuItem key={item.name}>
+              <SidebarMenuItem key={item.name} className="relative">
+                {isActive && (
+                  <span className="bg-sidebar-primary absolute top-1 bottom-1 left-0 w-[3px] rounded-full" />
+                )}
                 <SidebarMenuButton
                   asChild
                   isActive={isActive}
                   tooltip={item.name}
                   id={`tour-nav-${item.name.toLowerCase()}`}
+                  className={isActive ? "font-semibold" : ""}
                 >
                   <Link href={item.href}>
                     <item.icon />
@@ -50,7 +54,9 @@ export function NavMain({ items, label, badges = {} }: NavMainProps) {
                   </Link>
                 </SidebarMenuButton>
                 {badgeCount !== undefined && badgeCount > 0 && (
-                  <SidebarMenuBadge>{badgeCount}</SidebarMenuBadge>
+                  <SidebarMenuBadge className="bg-destructive rounded-full px-2 font-semibold text-white shadow-sm peer-hover/menu-button:text-white peer-data-[active=true]/menu-button:text-white">
+                    {badgeCount}
+                  </SidebarMenuBadge>
                 )}
               </SidebarMenuItem>
             );

@@ -42,7 +42,8 @@ export function IdeaDangerZone({
 }: IdeaDangerZoneProps) {
   const [isOpen, setIsOpen] = useState(false);
 
-  const showMergeSection = !isMerged && publishedIdeas.length > 0;
+  const showMergeSection =
+    !isMerged && !isOnRoadmap && publishedIdeas.length > 0;
   const showDeleteSection = !isOnRoadmap;
 
   return (

@@ -38,44 +38,37 @@ export function PublicBoardCard({ boardUrl }: PublicBoardCardProps) {
   };
 
   return (
-    <Card
-      id="tour-public-board"
-      className="border-gray-200 bg-gray-50 transition-shadow hover:shadow-md dark:border-gray-800 dark:bg-gray-900"
-    >
-      <CardContent className="flex flex-col items-start gap-4 py-4 sm:flex-row sm:items-center">
-        <div className="rounded-full bg-gray-200 p-3 dark:bg-gray-700">
-          <Globe className="h-6 w-6 text-gray-600 dark:text-gray-300" />
-        </div>
+    <Card id="tour-public-board">
+      <CardContent className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0 flex-1">
-          <h3 className="font-semibold">Your Public Board</h3>
-          <p className="text-muted-foreground truncate text-sm">{boardUrl}</p>
+          <p className="flex items-center gap-1.5 text-sm font-medium">
+            <Globe className="h-4 w-4 text-gray-500 dark:text-gray-400" />
+            Your Public Board
+          </p>
+          <div className="mt-1.5 flex items-center gap-2">
+            <code className="text-muted-foreground min-w-0 truncate rounded bg-gray-100 px-2 py-1 text-xs dark:bg-gray-800">
+              {boardUrl}
+            </code>
+            <button
+              type="button"
+              onClick={handleCopy}
+              className="text-muted-foreground hover:text-foreground shrink-0 rounded p-1 transition-colors hover:bg-gray-100 dark:hover:bg-gray-800"
+              aria-label={copied ? "Copied" : "Copy URL"}
+            >
+              {copied ? (
+                <Check className="h-3.5 w-3.5 text-green-600 dark:text-green-400" />
+              ) : (
+                <Copy className="h-3.5 w-3.5" />
+              )}
+            </button>
+          </div>
         </div>
-        <div className="flex w-full gap-2 sm:w-auto">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleCopy}
-            className="flex-1 sm:flex-none"
-          >
-            {copied ? (
-              <>
-                <Check className="mr-1 h-4 w-4" />
-                Copied
-              </>
-            ) : (
-              <>
-                <Copy className="mr-1 h-4 w-4" />
-                Copy
-              </>
-            )}
-          </Button>
-          <Button size="sm" asChild className="flex-1 sm:flex-none">
-            <a href={boardUrl} target="_blank" rel="noopener noreferrer">
-              <ExternalLink className="mr-1 h-4 w-4" />
-              Open
-            </a>
-          </Button>
-        </div>
+        <Button size="sm" asChild className="w-full shrink-0 sm:w-auto">
+          <a href={boardUrl} target="_blank" rel="noopener noreferrer">
+            <ExternalLink className="mr-1.5 h-3.5 w-3.5" />
+            Open Board
+          </a>
+        </Button>
       </CardContent>
     </Card>
   );

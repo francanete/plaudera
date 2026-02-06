@@ -6,6 +6,7 @@ import { eq, ne, and, desc } from "drizzle-orm";
 import { getUserWorkspace, createUserWorkspace } from "@/lib/workspace";
 import { RoadmapList } from "./roadmap-list";
 import { Map } from "lucide-react";
+import { DashboardPageHeader } from "@/components/dashboard/dashboard-page-header";
 
 export default async function RoadmapPage() {
   const session = await auth.api.getSession({
@@ -36,17 +37,12 @@ export default async function RoadmapPage() {
 
   return (
     <div className="space-y-8">
-      <header className="mb-2">
-        <div className="mb-2 flex items-center gap-3">
-          <div className="rounded-lg bg-indigo-100 p-2 dark:bg-indigo-900/30">
-            <Map className="h-6 w-6 text-indigo-600 dark:text-indigo-400" />
-          </div>
-          <h1 className="text-foreground text-2xl font-semibold">Roadmap</h1>
-        </div>
-        <p className="text-muted-foreground text-base">
-          Track the progress of ideas you&apos;ve committed to building.
-        </p>
-      </header>
+      <DashboardPageHeader
+        title="Roadmap"
+        subtitle="Track the progress of ideas you've committed to building."
+        icon={Map}
+        iconClassName="bg-indigo-100 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-400"
+      />
 
       <RoadmapList ideas={roadmapIdeas} />
     </div>

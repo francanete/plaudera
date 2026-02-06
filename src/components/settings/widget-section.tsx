@@ -25,9 +25,7 @@ import {
   Palette,
   Link as LinkIcon,
   AlertTriangle,
-  ExternalLink,
 } from "lucide-react";
-import Link from "next/link";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { appConfig } from "@/lib/config";
@@ -429,16 +427,6 @@ export function WidgetSection({
               When enabled, the widget button expands on hover to show
               &quot;Feedback&quot; text. When disabled, only the icon is shown.
             </p>
-          </div>
-
-          {/* Preview Widget button */}
-          <div className="pt-2">
-            <Button asChild className="w-full">
-              <Link href="/preview" target="_blank" rel="noopener noreferrer">
-                <ExternalLink className="mr-2 h-4 w-4" />
-                Preview Widget
-              </Link>
-            </Button>
           </div>
         </CardContent>
       </Card>

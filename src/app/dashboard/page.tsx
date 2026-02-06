@@ -1,16 +1,18 @@
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { db, ideas } from "@/lib/db";
-import { eq, sql, desc } from "drizzle-orm";
+import { eq, sql, desc, and, ne } from "drizzle-orm";
 import { Lightbulb, ChevronUp, Calendar, AlertCircle } from "lucide-react";
 import { getUserWorkspace } from "@/lib/workspace";
 import { PublicBoardCard } from "@/components/dashboard/public-board-card";
-import { DashboardHeader } from "@/components/dashboard/dashboard-header";
+import { DashboardPageHeader } from "@/components/dashboard/dashboard-page-header";
 import { StatsCard } from "@/components/dashboard/stats-card";
 import { QuickActions } from "@/components/dashboard/quick-actions";
 import { RecentActivity } from "@/components/dashboard/recent-activity";
 import { appConfig } from "@/lib/config";
-import type { IdeaStatus } from "@/lib/db/schema";
+import type { IdeaStatus, RoadmapStatus } from "@/lib/db/schema";
+import { VISIBLE_ROADMAP_STATUSES } from "@/lib/roadmap-status-config";
+import { RoadmapSummaryCard } from "@/components/dashboard/roadmap-summary-card";
 
 export default async function DashboardPage() {
   const session = await auth.api.getSession({
@@ -30,7 +32,10 @@ export default async function DashboardPage() {
     title: string;
     voteCount: number;
     status: IdeaStatus;
+    roadmapStatus: RoadmapStatus;
   }[] = [];
+  const pipelineCounts = { PLANNED: 0, IN_PROGRESS: 0, RELEASED: 0 };
+  const weeklyMomentum = { PLANNED: 0, IN_PROGRESS: 0, RELEASED: 0 };
 
   if (workspace) {
     const oneWeekAgo = new Date();
@@ -52,18 +57,74 @@ export default async function DashboardPage() {
     weeklyIdeas = analytics?.weeklyIdeas ?? 0;
     pendingIdeas = analytics?.pendingIdeas ?? 0;
 
-    // Fetch top 5 voted ideas
-    topIdeas = await db
-      .select({
-        id: ideas.id,
-        title: ideas.title,
-        voteCount: ideas.voteCount,
-        status: ideas.status,
-      })
-      .from(ideas)
-      .where(eq(ideas.workspaceId, workspace.id))
-      .orderBy(desc(ideas.voteCount))
-      .limit(5);
+    // Fetch top 5 voted ideas + roadmap pipeline counts in parallel
+    const [topIdeasResult, pipelineResult, momentumResult] = await Promise.all([
+      db
+        .select({
+          id: ideas.id,
+          title: ideas.title,
+          voteCount: ideas.voteCount,
+          status: ideas.status,
+          roadmapStatus: ideas.roadmapStatus,
+        })
+        .from(ideas)
+        .where(eq(ideas.workspaceId, workspace.id))
+        .orderBy(desc(ideas.voteCount))
+        .limit(5),
+
+      // Roadmap pipeline counts by status
+      db
+        .select({
+          roadmapStatus: ideas.roadmapStatus,
+          count: sql<number>`COUNT(*)::int`,
+        })
+        .from(ideas)
+        .where(
+          and(
+            eq(ideas.workspaceId, workspace.id),
+            ne(ideas.roadmapStatus, "NONE")
+          )
+        )
+        .groupBy(ideas.roadmapStatus),
+
+      // Weekly roadmap momentum (latest transition per idea only)
+      db.execute<{ to_status: string; count: number }>(sql`
+        SELECT to_status, COUNT(*)::int as count
+        FROM (
+          SELECT DISTINCT ON (rsc.idea_id) rsc.to_status
+          FROM roadmap_status_changes rsc
+          INNER JOIN ideas i ON i.id = rsc.idea_id
+          WHERE rsc.changed_at >= ${oneWeekAgo}
+            AND i.workspace_id = ${workspace.id}
+          ORDER BY rsc.idea_id, rsc.changed_at DESC
+        ) latest
+        GROUP BY to_status
+      `),
+    ]);
+
+    topIdeas = topIdeasResult;
+
+    for (const row of pipelineResult) {
+      if (VISIBLE_ROADMAP_STATUSES.includes(row.roadmapStatus)) {
+        pipelineCounts[row.roadmapStatus as keyof typeof pipelineCounts] =
+          row.count;
+      } else {
+        console.warn(
+          `Unexpected roadmap status in pipeline query: ${row.roadmapStatus}`
+        );
+      }
+    }
+
+    for (const row of momentumResult.rows) {
+      if (VISIBLE_ROADMAP_STATUSES.includes(row.to_status as RoadmapStatus)) {
+        weeklyMomentum[row.to_status as keyof typeof weeklyMomentum] =
+          row.count;
+      } else {
+        console.warn(
+          `Unexpected roadmap status in momentum query: ${row.to_status}`
+        );
+      }
+    }
   }
 
   const stats = [
@@ -105,7 +166,10 @@ export default async function DashboardPage() {
 
   return (
     <div className="space-y-8">
-      <DashboardHeader userName={session!.user.name || "there"} />
+      <DashboardPageHeader
+        title={`Welcome back, ${session!.user.name || "there"}!`}
+        subtitle="Here's what's happening with your account."
+      />
 
       {/* Public Board URL */}
       {boardUrl && <PublicBoardCard boardUrl={boardUrl} />}
@@ -125,6 +189,14 @@ export default async function DashboardPage() {
           />
         ))}
       </div>
+
+      {/* Roadmap Summary */}
+      {workspace && (
+        <RoadmapSummaryCard
+          pipelineCounts={pipelineCounts}
+          weeklyMomentum={weeklyMomentum}
+        />
+      )}
 
       {/* Quick Actions & Recent Activity */}
       <div className="grid gap-4 md:grid-cols-2">

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,16 +16,19 @@ interface IdeasListProps {
   initialIdeas: Idea[];
   workspaceSlug: string;
   ideasWithDuplicates?: string[];
+  defaultCreating?: boolean;
 }
 
 export function IdeasList({
   initialIdeas,
   workspaceSlug,
   ideasWithDuplicates = [],
+  defaultCreating = false,
 }: IdeasListProps) {
+  const router = useRouter();
   const [ideas, setIdeas] = useState(initialIdeas);
   const duplicateIdeaIds = new Set(ideasWithDuplicates);
-  const [isCreating, setIsCreating] = useState(false);
+  const [isCreating, setIsCreating] = useState(defaultCreating);
   const [newTitle, setNewTitle] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>("active");
@@ -68,6 +72,7 @@ export function IdeasList({
         setIdeas([ideaWithDate, ...ideas]);
         setNewTitle("");
         setIsCreating(false);
+        router.replace("/dashboard/ideas");
         toast.success("Idea created successfully");
       } else {
         const data = await res.json().catch(() => ({}));
@@ -170,40 +175,32 @@ export function IdeasList({
             onClick={() => {
               setIsCreating(false);
               setNewTitle("");
+              router.replace("/dashboard/ideas");
             }}
           >
             Cancel
           </Button>
         </div>
       ) : (
-        <div className="flex items-center justify-between">
-          <Tabs
-            value={viewMode}
-            onValueChange={(value) => setViewMode(value as ViewMode)}
-          >
-            <TabsList className="bg-muted/50 h-10 gap-1 rounded-lg p-1">
-              <TabsTrigger
-                value="active"
-                className="data-[state=inactive]:text-muted-foreground data-[state=inactive]:hover:text-foreground data-[state=active]:bg-background data-[state=active]:text-foreground h-8 rounded-md px-4 text-sm font-medium transition-all duration-200 data-[state=active]:shadow-sm data-[state=inactive]:bg-transparent"
-              >
-                Active
-              </TabsTrigger>
-              <TabsTrigger
-                value="archive"
-                className="data-[state=inactive]:text-muted-foreground data-[state=inactive]:hover:text-foreground data-[state=active]:bg-background data-[state=active]:text-foreground h-8 rounded-md px-4 text-sm font-medium transition-all duration-200 data-[state=active]:shadow-sm data-[state=inactive]:bg-transparent"
-              >
-                Archive
-              </TabsTrigger>
-            </TabsList>
-          </Tabs>
-          <Button
-            onClick={() => setIsCreating(true)}
-            className="bg-foreground text-background hover:bg-foreground/90 gap-2"
-          >
-            <Plus className="h-4 w-4" />
-            New idea
-          </Button>
-        </div>
+        <Tabs
+          value={viewMode}
+          onValueChange={(value) => setViewMode(value as ViewMode)}
+        >
+          <TabsList className="bg-muted/50 h-10 gap-1 rounded-lg p-1">
+            <TabsTrigger
+              value="active"
+              className="data-[state=inactive]:text-muted-foreground data-[state=inactive]:hover:text-foreground data-[state=active]:bg-background data-[state=active]:text-foreground h-8 rounded-md px-4 text-sm font-medium transition-all duration-200 data-[state=active]:shadow-sm data-[state=inactive]:bg-transparent"
+            >
+              Active
+            </TabsTrigger>
+            <TabsTrigger
+              value="archive"
+              className="data-[state=inactive]:text-muted-foreground data-[state=inactive]:hover:text-foreground data-[state=active]:bg-background data-[state=active]:text-foreground h-8 rounded-md px-4 text-sm font-medium transition-all duration-200 data-[state=active]:shadow-sm data-[state=inactive]:bg-transparent"
+            >
+              Archive
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
       )}
 
       {/* Ideas list */}

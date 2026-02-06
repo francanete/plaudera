@@ -3,7 +3,12 @@
 import * as React from "react";
 import { Slot } from "@radix-ui/react-slot";
 import { cva, type VariantProps } from "class-variance-authority";
-import { PanelLeftIcon } from "lucide-react";
+import {
+  PanelLeftIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  MenuIcon,
+} from "lucide-react";
 
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
@@ -295,6 +300,58 @@ function SidebarRail({ className, ...props }: React.ComponentProps<"button">) {
       )}
       {...props}
     />
+  );
+}
+
+function SidebarTogglePill({
+  className,
+  ...props
+}: React.ComponentProps<"button">) {
+  const { toggleSidebar, state } = useSidebar();
+
+  return (
+    <button
+      data-slot="sidebar-toggle-pill"
+      aria-label="Toggle Sidebar"
+      onClick={toggleSidebar}
+      className={cn(
+        "border-border bg-background text-muted-foreground hover:text-foreground focus-visible:ring-ring absolute top-10 right-0 z-20 hidden size-6 translate-x-1/2 items-center justify-center rounded-full border shadow-sm transition-colors focus-visible:ring-2 focus-visible:outline-none md:flex",
+        className
+      )}
+      {...props}
+    >
+      {state === "expanded" ? (
+        <ChevronLeftIcon className="size-3.5" />
+      ) : (
+        <ChevronRightIcon className="size-3.5" />
+      )}
+    </button>
+  );
+}
+
+function MobileSidebarTrigger({
+  className,
+  onClick,
+  ...props
+}: React.ComponentProps<typeof Button>) {
+  const { toggleSidebar } = useSidebar();
+
+  return (
+    <Button
+      data-sidebar="mobile-trigger"
+      data-slot="mobile-sidebar-trigger"
+      variant="ghost"
+      size="icon"
+      className={cn("bg-muted/50 hover:bg-muted size-9 md:hidden", className)}
+      onClick={(event) => {
+        onClick?.(event);
+        toggleSidebar();
+      }}
+      {...props}
+    >
+      <MenuIcon className="size-5" />
+      <span className="sr-only">Toggle Sidebar</span>
+    </Button>
   );
 }
 
@@ -721,6 +778,8 @@ export {
   SidebarProvider,
   SidebarRail,
   SidebarSeparator,
+  SidebarTogglePill,
   SidebarTrigger,
+  MobileSidebarTrigger,
   useSidebar,
 };

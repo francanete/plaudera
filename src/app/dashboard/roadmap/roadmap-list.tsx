@@ -1,8 +1,18 @@
 "use client";
 
+import { useMemo, useState } from "react";
 import Link from "next/link";
-import { ChevronUp, Map } from "lucide-react";
+import { ThumbsUp, Map } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+} from "@/components/ui/table";
 import type { Idea, RoadmapStatus } from "@/lib/db/schema";
 import {
   VISIBLE_ROADMAP_STATUSES,
@@ -13,7 +23,29 @@ interface RoadmapListProps {
   ideas: Idea[];
 }
 
+type TabValue = "all" | RoadmapStatus;
+
 export function RoadmapList({ ideas }: RoadmapListProps) {
+  const [activeTab, setActiveTab] = useState<TabValue>("all");
+
+  const filteredIdeas = useMemo(
+    () =>
+      activeTab === "all"
+        ? ideas
+        : ideas.filter((idea) => idea.roadmapStatus === activeTab),
+    [ideas, activeTab]
+  );
+
+  const countByStatus = useMemo(() => {
+    const counts: Record<string, number> = { all: ideas.length };
+    for (const status of VISIBLE_ROADMAP_STATUSES) {
+      counts[status] = ideas.filter(
+        (idea) => idea.roadmapStatus === status
+      ).length;
+    }
+    return counts;
+  }, [ideas]);
+
   if (ideas.length === 0) {
     return (
       <div className="border-border bg-card rounded-xl border-2 border-dashed">
@@ -33,96 +65,97 @@ export function RoadmapList({ ideas }: RoadmapListProps) {
     );
   }
 
-  const groupedIdeas = VISIBLE_ROADMAP_STATUSES.reduce(
-    (groups, status) => {
-      groups[status] = ideas.filter((idea) => idea.roadmapStatus === status);
-      return groups;
-    },
-    {} as Record<RoadmapStatus, Idea[]>
-  );
-
   return (
-    <div className="space-y-10">
-      {VISIBLE_ROADMAP_STATUSES.map((status) => {
-        const items = groupedIdeas[status];
-        if (items.length === 0) return null;
-
-        const config = ROADMAP_STATUS_CONFIG[status];
-        const Icon = config.icon;
-
-        return (
-          <section key={status}>
-            <div className="mb-4 flex items-center gap-2">
-              <Icon className="h-5 w-5 opacity-70" />
-              <h2 className="text-foreground text-lg font-semibold">
-                {config.label}
-              </h2>
-              <span className="text-muted-foreground font-mono text-sm tabular-nums">
-                ({items.length})
-              </span>
-            </div>
-
-            <div className="space-y-4">
-              {items.map((idea) => (
-                <RoadmapCard key={idea.id} idea={idea} />
-              ))}
-            </div>
-          </section>
-        );
-      })}
-    </div>
-  );
-}
-
-function RoadmapCard({ idea }: { idea: Idea }) {
-  const config = ROADMAP_STATUS_CONFIG[idea.roadmapStatus];
-  const previewText = idea.featureDetails || idea.description;
-
-  return (
-    <Link href={`/dashboard/roadmap/${idea.id}`} className="block">
-      <article className="group border-border bg-card hover:border-primary/30 flex items-start gap-5 rounded-xl border p-5 transition-all duration-200 hover:shadow-md">
-        {/* Vote Section */}
-        <div className="shrink-0">
-          <div className="border-border bg-muted/50 group-hover:border-primary/20 group-hover:bg-muted flex h-16 w-14 flex-col items-center justify-center rounded-lg border transition-all duration-150">
-            <ChevronUp className="text-muted-foreground group-hover:text-foreground h-4 w-4 transition-colors" />
-            <span className="text-foreground text-lg font-semibold">
-              {idea.voteCount}
+    <Tabs
+      value={activeTab}
+      onValueChange={(value) => setActiveTab(value as TabValue)}
+    >
+      <div className="overflow-x-auto">
+        <TabsList>
+          <TabsTrigger value="all">
+            All
+            <span className="bg-foreground/10 ml-1 rounded-full px-1.5 py-0.5 text-xs tabular-nums">
+              {countByStatus.all}
             </span>
-            <span className="text-muted-foreground text-xs">votes</span>
-          </div>
-        </div>
+          </TabsTrigger>
+          {VISIBLE_ROADMAP_STATUSES.map((status) => {
+            const config = ROADMAP_STATUS_CONFIG[status];
+            return (
+              <TabsTrigger key={status} value={status}>
+                {config.label}
+                <span className="bg-foreground/10 ml-1 rounded-full px-1.5 py-0.5 text-xs tabular-nums">
+                  {countByStatus[status]}
+                </span>
+              </TabsTrigger>
+            );
+          })}
+        </TabsList>
+      </div>
 
-        {/* Content Section */}
-        <div className="min-w-0 flex-1">
-          <div className="mb-1 flex items-center gap-2">
-            <h3 className="text-foreground truncate text-base font-semibold">
-              {idea.title}
-            </h3>
-          </div>
-
-          {previewText && (
-            <p className="text-muted-foreground mb-3 line-clamp-2 text-sm">
-              {previewText}
-            </p>
-          )}
-
-          <div className="flex flex-wrap items-center gap-4">
-            <Badge variant="outline" className={config.badgeClassName}>
-              {(() => {
+      <TabsContent value={activeTab}>
+        <div className="border-border bg-card rounded-xl border">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="pl-4">Feature</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Votes</TableHead>
+                <TableHead className="hidden sm:table-cell">
+                  Description
+                </TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredIdeas.map((idea) => {
+                const config = ROADMAP_STATUS_CONFIG[idea.roadmapStatus];
                 const Icon = config.icon;
-                return <Icon className="mr-1 h-3 w-3" />;
-              })()}
-              {config.shortLabel}
-            </Badge>
-            <time
-              dateTime={new Date(idea.createdAt).toISOString()}
-              className="text-muted-foreground text-sm"
-            >
-              {new Date(idea.createdAt).toLocaleDateString("en-US")}
-            </time>
+                const previewText = idea.featureDetails || idea.description;
+
+                return (
+                  <TableRow key={idea.id} className="group">
+                    <TableCell className="pl-4">
+                      <Link
+                        href={`/dashboard/roadmap/${idea.id}`}
+                        className="text-foreground group-hover:text-primary font-semibold transition-colors"
+                      >
+                        {idea.title}
+                      </Link>
+                    </TableCell>
+                    <TableCell>
+                      <Badge
+                        variant="outline"
+                        className={config.badgeClassName}
+                      >
+                        <Icon className="mr-1 h-3 w-3" />
+                        {config.shortLabel}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <div className="text-muted-foreground flex items-center gap-1">
+                        <ThumbsUp className="h-3.5 w-3.5" />
+                        <span className="text-xs font-medium tabular-nums">
+                          {idea.voteCount}
+                        </span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="hidden max-w-xs sm:table-cell">
+                      {previewText && (
+                        <p className="text-muted-foreground truncate text-sm">
+                          {previewText}
+                        </p>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+
+          <div className="text-muted-foreground border-t px-4 py-3 text-center text-xs">
+            Showing {filteredIdeas.length} of {ideas.length} total ideas
           </div>
         </div>
-      </article>
-    </Link>
+      </TabsContent>
+    </Tabs>
   );
 }

@@ -57,6 +57,18 @@ export const POST = protectedApiRouteWrapper<{ id: string }>(
         ? suggestion.duplicateIdeaId
         : suggestion.sourceIdeaId;
 
+    // Validation: roadmap ideas cannot be merged away (only kept as parent)
+    const mergeIdea =
+      keepIdeaId === suggestion.sourceIdeaId
+        ? suggestion.duplicateIdea
+        : suggestion.sourceIdea;
+
+    if (mergeIdea.roadmapStatus !== "NONE") {
+      throw new BadRequestError(
+        "Cannot merge a roadmap idea. Roadmap ideas can only be kept, not merged away."
+      );
+    }
+
     // Execute merge in a transaction with row-level locking
     await db.transaction(async (tx) => {
       // Acquire row lock and re-check status to prevent concurrent merges

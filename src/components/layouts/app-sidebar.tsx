@@ -19,8 +19,8 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarRail,
   SidebarSeparator,
+  SidebarTogglePill,
 } from "@/components/ui/sidebar";
 import { NavMain } from "./nav-main";
 import { NavUser } from "./nav-user";
@@ -116,7 +116,7 @@ export function AppSidebar({
         />
       </SidebarFooter>
 
-      <SidebarRail />
+      <SidebarTogglePill />
     </Sidebar>
   );
 }
