@@ -15,6 +15,8 @@ export interface DuplicatePair {
 /**
  * Find potential duplicate pairs in a workspace using vector similarity.
  * Compares all ideas (except MERGED) and returns pairs above the similarity threshold.
+ * Excludes roadmap-vs-roadmap pairs (both ideas have roadmapStatus != 'NONE'),
+ * since the owner has already triaged those as distinct.
  * Source idea is always the older one (by createdAt).
  */
 export async function findDuplicatesInWorkspace(
@@ -67,6 +69,7 @@ export async function findDuplicatesInWorkspace(
     INNER JOIN idea_embeddings b_emb ON b_emb.idea_id = b_idea.id
     WHERE a_idea.workspace_id = ${workspaceId}
       AND a_idea.status != 'MERGED'
+      AND (a_idea.roadmap_status = 'NONE' OR b_idea.roadmap_status = 'NONE')
       AND 1 - (a_emb.embedding <=> b_emb.embedding) > ${SIMILARITY_THRESHOLD}
     ORDER BY similarity DESC
   `);
