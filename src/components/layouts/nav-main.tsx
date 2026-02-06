@@ -50,7 +50,9 @@ export function NavMain({ items, label, badges = {} }: NavMainProps) {
                   </Link>
                 </SidebarMenuButton>
                 {badgeCount !== undefined && badgeCount > 0 && (
-                  <SidebarMenuBadge>{badgeCount}</SidebarMenuBadge>
+                  <SidebarMenuBadge className="bg-destructive rounded-full px-2 font-semibold text-white shadow-sm peer-hover/menu-button:text-white peer-data-[active=true]/menu-button:text-white">
+                    {badgeCount}
+                  </SidebarMenuBadge>
                 )}
               </SidebarMenuItem>
             );
