@@ -1,15 +1,28 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { ArrowUp, Check, X, Loader2, Sparkles, Calendar } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { DuplicateSuggestion, Idea } from "@/lib/db/schema";
+import { IDEA_STATUS_CONFIG } from "@/lib/idea-status-config";
+import {
+  ROADMAP_STATUS_CONFIG,
+  isOnRoadmap,
+} from "@/lib/roadmap-status-config";
 
 type IdeaPreview = Pick<
   Idea,
-  "id" | "title" | "description" | "status" | "voteCount" | "createdAt"
+  | "id"
+  | "title"
+  | "description"
+  | "status"
+  | "roadmapStatus"
+  | "voteCount"
+  | "createdAt"
 >;
 
 type SuggestionWithIdeas = DuplicateSuggestion & {
@@ -235,7 +248,19 @@ function IdeaCard({ idea, type, onKeep, isLoading, isKeeping }: IdeaCardProps) {
       </div>
 
       {/* Title */}
-      <h4 className="mb-2 font-semibold text-slate-900">{idea.title}</h4>
+      <h4 className="mb-2 font-semibold text-slate-900">
+        <Link
+          href={
+            isOnRoadmap(idea.roadmapStatus)
+              ? `/dashboard/roadmap/${idea.id}`
+              : `/dashboard/ideas/${idea.id}`
+          }
+          className="hover:underline"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {idea.title}
+        </Link>
+      </h4>
 
       {/* Description */}
       {idea.description && (
@@ -243,6 +268,38 @@ function IdeaCard({ idea, type, onKeep, isLoading, isKeeping }: IdeaCardProps) {
           {idea.description}
         </p>
       )}
+
+      {/* Status badge — roadmap status if on roadmap, idea status otherwise */}
+      <div className="mb-3 flex items-center gap-2">
+        <span className="text-xs text-slate-400">
+          {isOnRoadmap(idea.roadmapStatus) ? "Roadmap" : "Ideas Board"}
+        </span>
+        {isOnRoadmap(idea.roadmapStatus) ? (
+          <Badge
+            variant="outline"
+            className={ROADMAP_STATUS_CONFIG[idea.roadmapStatus].badgeClassName}
+          >
+            {(() => {
+              const Icon = ROADMAP_STATUS_CONFIG[idea.roadmapStatus].icon;
+              return <Icon className="mr-1 h-3 w-3" />;
+            })()}
+            {ROADMAP_STATUS_CONFIG[idea.roadmapStatus].shortLabel}
+          </Badge>
+        ) : (
+          <Badge
+            variant="outline"
+            className={IDEA_STATUS_CONFIG[idea.status].badgeClassName}
+          >
+            {(() => {
+              const Icon = IDEA_STATUS_CONFIG[idea.status].icon;
+              return <Icon className="mr-1 h-3 w-3" />;
+            })()}
+            {idea.status === "PUBLISHED"
+              ? "Published"
+              : IDEA_STATUS_CONFIG[idea.status].label}
+          </Badge>
+        )}
+      </div>
 
       {/* Date with icon */}
       <div className="mb-4 flex items-center gap-1.5 text-xs text-slate-400">
