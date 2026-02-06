@@ -4,7 +4,7 @@ import { eq } from "drizzle-orm";
 import { db, boardSettings } from "@/lib/db";
 import { protectedApiRouteWrapper } from "@/lib/dal";
 import { getUserWorkspace } from "@/lib/workspace";
-import { NotFoundError, BadRequestError } from "@/lib/errors";
+import { NotFoundError } from "@/lib/errors";
 
 const updateSettingsSchema = z.object({
   roadmapDefaultListView: z.boolean(),
@@ -40,10 +40,6 @@ export const PATCH = protectedApiRouteWrapper(
     const body = await request.json();
     const data = updateSettingsSchema.parse(body);
 
-    if (data.roadmapDefaultListView === undefined) {
-      throw new BadRequestError("At least one setting must be provided");
-    }
-
     const [updated] = await db
       .insert(boardSettings)
       .values({
@@ -54,6 +50,7 @@ export const PATCH = protectedApiRouteWrapper(
         target: boardSettings.workspaceId,
         set: {
           roadmapDefaultListView: data.roadmapDefaultListView,
+          updatedAt: new Date(),
         },
       })
       .returning({

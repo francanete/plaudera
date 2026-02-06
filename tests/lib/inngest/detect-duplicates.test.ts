@@ -32,7 +32,7 @@ function createMockStep(): InngestStepLike {
   return {
     run: vi.fn((_name: string, fn: () => Promise<unknown>) => fn()),
     sleep: vi.fn().mockResolvedValue(undefined),
-  };
+  } as InngestStepLike;
 }
 
 describe("detectDuplicatesHandler", () => {
