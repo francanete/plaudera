@@ -67,6 +67,13 @@ export const POST = protectedApiRouteWrapper<RouteParams>(
       );
     }
 
+    // Validation: roadmap ideas cannot be merged away (only kept as parent)
+    if (sourceIdea.roadmapStatus !== "NONE") {
+      throw new BadRequestError(
+        "Cannot merge a roadmap idea. Remove it from the roadmap first."
+      );
+    }
+
     // Validation: parent must be PUBLISHED
     if (parentIdea.status !== "PUBLISHED") {
       throw new BadRequestError("Parent idea must be in Published status");

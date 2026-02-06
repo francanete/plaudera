@@ -168,6 +168,9 @@ export function DuplicatesList({ initialSuggestions }: DuplicatesListProps) {
                   }
                   isLoading={isLoading}
                   isKeeping={loadingAction === "merge"}
+                  mergeDisabled={isOnRoadmap(
+                    suggestion.duplicateIdea.roadmapStatus
+                  )}
                 />
                 <IdeaCard
                   idea={suggestion.duplicateIdea}
@@ -177,6 +180,9 @@ export function DuplicatesList({ initialSuggestions }: DuplicatesListProps) {
                   }
                   isLoading={isLoading}
                   isKeeping={loadingAction === "merge"}
+                  mergeDisabled={isOnRoadmap(
+                    suggestion.sourceIdea.roadmapStatus
+                  )}
                 />
               </div>
             </div>
@@ -215,9 +221,17 @@ interface IdeaCardProps {
   onKeep: () => void;
   isLoading: boolean;
   isKeeping: boolean;
+  mergeDisabled: boolean;
 }
 
-function IdeaCard({ idea, type, onKeep, isLoading, isKeeping }: IdeaCardProps) {
+function IdeaCard({
+  idea,
+  type,
+  onKeep,
+  isLoading,
+  isKeeping,
+  mergeDisabled,
+}: IdeaCardProps) {
   const isOriginal = type === "original";
 
   return (
@@ -324,7 +338,12 @@ function IdeaCard({ idea, type, onKeep, isLoading, isKeeping }: IdeaCardProps) {
             : ""
         )}
         onClick={onKeep}
-        disabled={isLoading}
+        disabled={isLoading || mergeDisabled}
+        title={
+          mergeDisabled
+            ? "The other idea is on the roadmap and cannot be merged away"
+            : undefined
+        }
       >
         {isKeeping ? (
           <>
