@@ -359,7 +359,7 @@ export function IdeaDetail({
   }
 
   return (
-    <div className="max-w-5xl space-y-10 py-8">
+    <div className="max-w-5xl space-y-10">
       {/* Header: Back nav + Title + Merged indicator */}
       <IdeaHeader
         title={title}
@@ -369,6 +369,9 @@ export function IdeaDetail({
         isMerged={idea.status === "MERGED"}
         mergedIntoId={idea.mergedIntoId}
         voteCount={idea.voteCount}
+        status={idea.status}
+        roadmapStatus={idea.roadmapStatus}
+        onMoveToRoadmap={() => setShowMoveToRoadmapForm(true)}
       />
 
       {/* Status & Visibility Row */}
@@ -376,7 +379,6 @@ export function IdeaDetail({
         status={idea.status}
         roadmapStatus={idea.roadmapStatus}
         onStatusChange={handleStatusChange}
-        onMoveToRoadmap={() => setShowMoveToRoadmapForm(true)}
       />
 
       {/* Duplicate Suggestion Alert */}

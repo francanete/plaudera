@@ -3,7 +3,14 @@
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { toast } from "sonner";
-import { ArrowLeft, Clock, ChevronRight, TriangleAlert } from "lucide-react";
+import {
+  ArrowLeft,
+  Clock,
+  ChevronRight,
+  ThumbsUp,
+  TriangleAlert,
+} from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -286,14 +293,44 @@ export function RoadmapIdeaDetail({
   return (
     <div className="xl:grid xl:grid-cols-[1fr_360px] xl:gap-8">
       {/* Left: Editor */}
-      <div className="max-w-5xl space-y-10 py-8">
-        {/* Back Navigation */}
-        <Link href="/dashboard/roadmap" className="group inline-flex">
-          <button className="text-muted-foreground hover:text-foreground inline-flex items-center gap-2 px-2 text-sm transition-colors">
-            <ArrowLeft className="h-4 w-4 transition-transform duration-200 group-hover:-translate-x-1" />
-            Back to Roadmap
-          </button>
-        </Link>
+      <div className="max-w-5xl space-y-10">
+        {/* Contextual Toolbar */}
+        <div className="flex items-center justify-between">
+          {/* Left: Back navigation */}
+          <Link href="/dashboard/roadmap" className="group inline-flex">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-muted-foreground hover:text-foreground gap-2 px-2 transition-colors hover:bg-transparent"
+            >
+              <ArrowLeft className="h-4 w-4 transition-transform duration-200 group-hover:-translate-x-1" />
+              <span className="text-sm">Roadmap</span>
+            </Button>
+          </Link>
+
+          {/* Right: Status badge + Vote count */}
+          <div className="flex items-center gap-3">
+            {(() => {
+              const statusConfig = ROADMAP_STATUS_CONFIG[idea.roadmapStatus];
+              const StatusIcon = statusConfig.icon;
+              return (
+                <Badge
+                  variant="outline"
+                  className={statusConfig.badgeClassName}
+                >
+                  <StatusIcon className="mr-1 h-3 w-3" />
+                  {statusConfig.shortLabel}
+                </Badge>
+              );
+            })()}
+            <div className="text-muted-foreground flex items-center gap-1">
+              <ThumbsUp className="h-3.5 w-3.5" />
+              <span className="text-xs font-medium tabular-nums">
+                {idea.voteCount}
+              </span>
+            </div>
+          </div>
+        </div>
 
         {/* Editable Title */}
         <Input
@@ -510,16 +547,17 @@ export function RoadmapIdeaDetail({
 
       {/* Right: Live Preview (hidden below xl) */}
       <aside className="hidden xl:block">
-        <div className="sticky top-20 space-y-3 py-8">
-          <div className="space-y-1.5">
-            <p className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
-              Public Board Preview
-            </p>
-            <p className="text-muted-foreground text-xs">
-              This is how the card appears on your public roadmap.
+        <div className="sticky top-20 space-y-3">
+          <div className="flex items-center gap-2">
+            <span className="relative flex h-2 w-2">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-400 opacity-75" />
+              <span className="relative inline-flex h-2 w-2 rounded-full bg-green-500" />
+            </span>
+            <p className="text-muted-foreground text-xs font-medium">
+              Live preview
             </p>
           </div>
-          <div>
+          <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50/50 p-4 dark:border-slate-700 dark:bg-slate-900/50">
             <RoadmapIdeaCard
               idea={{
                 id: idea.id,
