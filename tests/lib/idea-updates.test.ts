@@ -193,7 +193,7 @@ describe("idea-updates", () => {
 
       await expect(
         updateIdea("idea-1", "user-1", { roadmapStatus: "PLANNED" })
-      ).rejects.toThrow("Cannot move a merged idea to the roadmap");
+      ).rejects.toThrow("Cannot modify a merged idea");
     });
 
     it("throws BadRequestError when declining a roadmap idea", async () => {
@@ -375,25 +375,17 @@ describe("idea-updates", () => {
       ).rejects.toThrow("Use the merge endpoint to merge ideas");
     });
 
-    it("clears mergedIntoId when changing away from MERGED status", async () => {
+    it("throws BadRequestError when updating a MERGED idea's status", async () => {
       const idea = makeIdea({
         status: "MERGED",
         mergedIntoId: "idea-2",
         roadmapStatus: "NONE",
       });
       mockFindFirst.mockResolvedValue(idea);
-      const { setFn } = setupTxUpdate({
-        ...idea,
-        status: "PUBLISHED",
-        mergedIntoId: null,
-      });
-      setupTxInsert();
 
-      await updateIdea("idea-1", "user-1", { status: "PUBLISHED" });
-
-      const updateData = setFn.mock.calls[0][0];
-      expect(updateData.mergedIntoId).toBeNull();
-      expect(updateData.status).toBe("PUBLISHED");
+      await expect(
+        updateIdea("idea-1", "user-1", { status: "PUBLISHED" })
+      ).rejects.toThrow("Cannot modify a merged idea");
     });
 
     it("calls updateIdeaEmbedding when title changes", async () => {
