@@ -7,11 +7,13 @@ import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { IdeaCard, type IdeaCardData } from "./idea-card";
 import { BoardHeader, type BoardView } from "./board-header";
 import { RoadmapGroupedView } from "./roadmap-grouped-view";
+import { PublicRoadmapListView } from "./public-roadmap-list-view";
 import { ContributorAuthDialog } from "./contributor-auth-dialog";
 import { IdeaSubmissionDialog } from "./idea-submission-dialog";
 import { Lightbulb } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { isOnRoadmap } from "@/lib/roadmap-status-config";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface PublicIdeaListProps {
   workspaceName: string;
@@ -20,6 +22,7 @@ interface PublicIdeaListProps {
   workspaceSlug: string;
   initialIdeas: IdeaCardData[];
   initialContributor: { email: string; id: string } | null;
+  roadmapDefaultListView: boolean;
 }
 
 type PendingAction =
@@ -34,6 +37,7 @@ export function PublicIdeaList({
   workspaceSlug: _workspaceSlug,
   initialIdeas,
   initialContributor,
+  roadmapDefaultListView,
 }: PublicIdeaListProps) {
   const [ideas, setIdeas] = useState(initialIdeas);
   const [contributor, setContributor] = useState(initialContributor);
@@ -46,6 +50,8 @@ export function PublicIdeaList({
   const pathname = usePathname();
 
   const isAuthenticated = contributor !== null;
+  const isMobile = useIsMobile();
+  const showListView = roadmapDefaultListView || isMobile;
 
   // View state from URL
   const viewParam = searchParams.get("view");
@@ -274,7 +280,11 @@ export function PublicIdeaList({
         )}
       >
         {activeView === "roadmap" ? (
-          <RoadmapGroupedView ideas={roadmapIdeas} />
+          showListView ? (
+            <PublicRoadmapListView ideas={roadmapIdeas} />
+          ) : (
+            <RoadmapGroupedView ideas={roadmapIdeas} />
+          )
         ) : boardIdeas.length === 0 ? (
           <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-slate-300 bg-white py-16 dark:border-slate-600 dark:bg-slate-800">
             <Lightbulb className="mb-4 h-12 w-12 text-slate-400 dark:text-slate-500" />

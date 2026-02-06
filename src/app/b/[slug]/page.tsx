@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { Suspense, cache } from "react";
 import { db } from "@/lib/db";
-import { votes, workspaces } from "@/lib/db/schema";
+import { votes, workspaces, boardSettings } from "@/lib/db/schema";
 import { eq, and, inArray } from "drizzle-orm";
 import { getContributor } from "@/lib/contributor-auth";
 import { queryPublicIdeas, queryPublicRoadmapIdeas } from "@/lib/idea-queries";
@@ -45,9 +45,13 @@ async function BoardContent({ slug }: { slug: string }) {
   // Check if contributor is authenticated
   const contributor = await getContributor();
 
-  const [workspaceIdeas, roadmapIdeas] = await Promise.all([
+  const [workspaceIdeas, roadmapIdeas, boardSettingsRow] = await Promise.all([
     queryPublicIdeas(workspace.id, { contributorId: contributor?.id }),
     queryPublicRoadmapIdeas(workspace.id),
+    db.query.boardSettings.findFirst({
+      where: eq(boardSettings.workspaceId, workspace.id),
+      columns: { roadmapDefaultListView: true },
+    }),
   ]);
 
   const allIdeas = [...workspaceIdeas, ...roadmapIdeas];
@@ -95,6 +99,7 @@ async function BoardContent({ slug }: { slug: string }) {
       initialContributor={
         contributor ? { email: contributor.email, id: contributor.id } : null
       }
+      roadmapDefaultListView={boardSettingsRow?.roadmapDefaultListView ?? false}
     />
   );
 }

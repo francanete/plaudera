@@ -11,8 +11,9 @@ import {
 import { WorkspaceSlugForm } from "@/components/settings/workspace-slug-form";
 import { WorkspaceBrandingForm } from "@/components/settings/workspace-branding-form";
 import { getUserWorkspace } from "@/lib/workspace";
-import { db, slugChangeHistory } from "@/lib/db";
+import { db, slugChangeHistory, boardSettings } from "@/lib/db";
 import { DashboardPageHeader } from "@/components/dashboard/dashboard-page-header";
+import { RoadmapSettingsSection } from "@/components/settings/roadmap-settings-section";
 
 export default async function BoardPage() {
   const session = await auth.api.getSession({
@@ -22,14 +23,22 @@ export default async function BoardPage() {
   const workspace = await getUserWorkspace(session!.user.id);
 
   let slugChangesUsed = 0;
+  let roadmapDefaultListView = false;
 
   if (workspace) {
-    const [slugCountResult] = await db
-      .select({ count: count() })
-      .from(slugChangeHistory)
-      .where(eq(slugChangeHistory.workspaceId, workspace.id));
+    const [slugCountResults, boardSettingsRow] = await Promise.all([
+      db
+        .select({ count: count() })
+        .from(slugChangeHistory)
+        .where(eq(slugChangeHistory.workspaceId, workspace.id)),
+      db.query.boardSettings.findFirst({
+        where: eq(boardSettings.workspaceId, workspace.id),
+        columns: { roadmapDefaultListView: true },
+      }),
+    ]);
 
-    slugChangesUsed = slugCountResult?.count ?? 0;
+    slugChangesUsed = slugCountResults[0]?.count ?? 0;
+    roadmapDefaultListView = boardSettingsRow?.roadmapDefaultListView ?? false;
   }
 
   return (
@@ -68,6 +77,20 @@ export default async function BoardPage() {
               <WorkspaceSlugForm
                 currentSlug={workspace.slug}
                 changesUsed={slugChangesUsed}
+              />
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Roadmap Settings</CardTitle>
+              <CardDescription>
+                Configure how the public roadmap is displayed to visitors.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <RoadmapSettingsSection
+                initialRoadmapDefaultListView={roadmapDefaultListView}
               />
             </CardContent>
           </Card>
