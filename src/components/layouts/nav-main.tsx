@@ -34,7 +34,11 @@ export function NavMain({ items, label, badges = {} }: NavMainProps) {
       <SidebarGroupContent>
         <SidebarMenu>
           {items.map((item) => {
-            const isActive = pathname === item.href;
+            const isActive =
+              item.href === "/dashboard"
+                ? pathname === item.href
+                : pathname === item.href ||
+                  pathname.startsWith(item.href + "/");
             const badgeCount = badges[item.href];
             return (
               <SidebarMenuItem key={item.name} className="relative">
