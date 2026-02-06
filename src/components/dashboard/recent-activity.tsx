@@ -70,7 +70,11 @@ export function RecentActivity({ topIdeas }: RecentActivityProps) {
               return (
                 <Link
                   key={idea.id}
-                  href={`/dashboard/ideas/${idea.id}`}
+                  href={
+                    onRoadmap
+                      ? `/dashboard/roadmap/${idea.id}`
+                      : `/dashboard/ideas/${idea.id}`
+                  }
                   className="group flex items-center gap-3 rounded-lg px-3 py-2.5 transition-colors hover:bg-gray-50 dark:hover:bg-gray-900"
                 >
                   {/* Vote count — the hero element */}
