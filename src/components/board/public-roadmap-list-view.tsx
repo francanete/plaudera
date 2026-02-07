@@ -83,7 +83,10 @@ export function PublicRoadmapListView({ ideas }: PublicRoadmapListViewProps) {
         <div className="min-w-0 flex-1">
           <Tabs
             value={activeTab}
-            onValueChange={(value) => setActiveTab(value as TabValue)}
+            onValueChange={(value) => {
+              setActiveTab(value as TabValue);
+              setSelectedIdeaId(null);
+            }}
           >
             <div className="overflow-x-auto">
               <TabsList>
