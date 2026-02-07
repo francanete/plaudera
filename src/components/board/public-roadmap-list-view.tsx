@@ -130,13 +130,22 @@ export function PublicRoadmapListView({ ideas }: PublicRoadmapListViewProps) {
                       return (
                         <TableRow
                           key={idea.id}
+                          tabIndex={0}
+                          role="button"
+                          aria-expanded={selectedIdea?.id === idea.id}
                           className={cn(
-                            "group cursor-pointer transition-colors",
+                            "group cursor-pointer transition-colors focus-visible:ring-2 focus-visible:ring-blue-500/60 focus-visible:outline-none",
                             selectedIdea?.id === idea.id
                               ? "bg-slate-100 dark:bg-slate-700/50"
                               : "hover:bg-slate-50 dark:hover:bg-slate-700/30"
                           )}
                           onClick={() => handleRowClick(idea)}
+                          onKeyDown={(event) => {
+                            if (event.key === "Enter" || event.key === " ") {
+                              event.preventDefault();
+                              handleRowClick(idea);
+                            }
+                          }}
                         >
                           <TableCell className="pl-4">
                             <span className="font-semibold text-slate-900 dark:text-white">
