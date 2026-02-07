@@ -16,6 +16,7 @@ interface ColumnConfig {
   emptyMessage: string;
   iconColor: string;
   textColor: string;
+  countBg: string;
 }
 
 const COLUMNS: ColumnConfig[] = [
@@ -26,6 +27,7 @@ const COLUMNS: ColumnConfig[] = [
     emptyMessage: "No planned items yet",
     iconColor: "text-blue-600 dark:text-blue-400",
     textColor: "text-blue-600 dark:text-blue-400",
+    countBg: "bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-400",
   },
   {
     status: "IN_PROGRESS",
@@ -34,6 +36,8 @@ const COLUMNS: ColumnConfig[] = [
     emptyMessage: "No items in progress",
     iconColor: "text-orange-600 dark:text-orange-400",
     textColor: "text-orange-600 dark:text-orange-400",
+    countBg:
+      "bg-orange-100 text-orange-700 dark:bg-orange-900/50 dark:text-orange-400",
   },
   {
     status: "RELEASED",
@@ -42,6 +46,8 @@ const COLUMNS: ColumnConfig[] = [
     emptyMessage: "No released items yet",
     iconColor: "text-green-600 dark:text-green-400",
     textColor: "text-green-600 dark:text-green-400",
+    countBg:
+      "bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-400",
   },
 ];
 
@@ -78,30 +84,38 @@ export function RoadmapGroupedView({ ideas }: RoadmapGroupedViewProps) {
   }
 
   return (
-    <div className="grid grid-cols-1 gap-6 md:grid-cols-3 lg:gap-8">
+    <div className="flex flex-col gap-6 sm:flex-row sm:justify-center sm:gap-6 sm:overflow-x-auto sm:pb-2">
       {COLUMNS.map((column) => {
         const columnIdeas = groupedIdeas[column.status];
         const Icon = column.icon;
 
         return (
-          <div key={column.status} className="flex flex-col gap-4">
+          <div
+            key={column.status}
+            className="flex shrink-0 flex-col gap-3 sm:max-w-md sm:min-w-[320px] sm:flex-1"
+          >
             {/* Column Header */}
-            <div className="flex items-center justify-between rounded-lg border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-800">
-              <div className="flex items-center gap-2">
-                <Icon className={cn("h-5 w-5", column.iconColor)} />
-                <span className={cn("font-semibold", column.textColor)}>
+            <div className="mb-1 flex items-center justify-between px-1">
+              <div className="flex items-center gap-2.5">
+                <Icon className={cn("h-4 w-4", column.iconColor)} />
+                <span className="text-sm font-medium text-slate-700 dark:text-slate-200">
                   {column.title}
                 </span>
+                <span
+                  className={cn(
+                    "flex h-5 min-w-[20px] items-center justify-center rounded-full px-1.5 text-xs font-medium",
+                    column.countBg
+                  )}
+                >
+                  {columnIdeas.length}
+                </span>
               </div>
-              <span className="flex h-6 w-6 items-center justify-center rounded-full bg-slate-100 text-xs font-medium text-slate-600 dark:bg-slate-700 dark:text-slate-400">
-                {columnIdeas.length}
-              </span>
             </div>
 
             {/* Column Content */}
-            <div className="flex flex-col gap-4">
+            <div className="flex flex-col gap-3">
               {columnIdeas.length === 0 ? (
-                <div className="flex h-48 flex-col items-center justify-center rounded-xl border border-dashed border-slate-200 bg-slate-50/50 text-center dark:border-slate-700 dark:bg-slate-900/50">
+                <div className="flex h-32 flex-col items-center justify-center rounded-lg border border-dashed border-slate-200 bg-slate-50/30 text-center dark:border-slate-700 dark:bg-slate-900/50">
                   <p className="text-sm text-slate-400 dark:text-slate-500">
                     {column.emptyMessage}
                   </p>

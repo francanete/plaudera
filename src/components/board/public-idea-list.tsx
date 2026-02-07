@@ -273,7 +273,7 @@ export function PublicIdeaList({
       <div
         className={cn(
           "mx-auto w-full pt-6 transition-all duration-200",
-          activeView === "roadmap" ? "max-w-6xl" : "max-w-4xl"
+          activeView === "roadmap" ? "max-w-full" : "max-w-4xl"
         )}
       >
         {activeView === "roadmap" ? (
