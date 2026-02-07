@@ -7,12 +7,13 @@ import { setContributorCookie } from "@/lib/contributor-auth";
 import { handleApiError } from "@/lib/api-utils";
 import { RateLimitError } from "@/lib/errors";
 import { checkIdentifyRateLimit } from "@/lib/contributor-rate-limit";
-import { isWorkspaceOriginAllowed, getWorkspaceCorsHeaders } from "@/lib/cors";
+import { isWorkspaceOriginAllowed, getWorkspaceCorsHeaders, getBaseAllowedOrigins } from "@/lib/cors";
 
 const identifySchema = z.object({
   email: z.string().email("Invalid email address"),
   name: z.string().optional(),
   workspaceId: z.string().min(1, "Workspace ID is required"),
+  callerOrigin: z.string().url("Invalid caller origin").optional(),
 });
 
 /**
@@ -48,6 +49,8 @@ export async function OPTIONS(request: NextRequest) {
 export async function POST(request: NextRequest) {
   const origin = request.headers.get("origin");
 
+  let workspaceId: string | null = null;
+
   try {
     // Rate limit by IP
     const ip =
@@ -65,20 +68,44 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { email, name, workspaceId } = identifySchema.parse(body);
+
+    // Extract raw workspaceId before validation so it's available in catch block
+    if (body && typeof body === "object" && typeof body.workspaceId === "string") {
+      workspaceId = body.workspaceId;
+    }
+
+    const {
+      email,
+      name,
+      workspaceId: validatedWsId,
+      callerOrigin,
+    } = identifySchema.parse(body);
+    workspaceId = validatedWsId;
 
     // Validate that the requesting origin is in this workspace's allowlist
-    const originAllowed = await isWorkspaceOriginAllowed(origin, workspaceId);
+    const originAllowed = await isWorkspaceOriginAllowed(origin, validatedWsId);
     if (!originAllowed) {
       const corsHeaders = await getWorkspaceCorsHeaders(
         origin,
-        workspaceId,
+        validatedWsId,
         "POST, OPTIONS"
       );
       return NextResponse.json(
         { error: "Origin not allowed for this workspace" },
         { status: 403, headers: corsHeaders }
       );
+    }
+
+    // Validate callerOrigin against workspace allowlist if provided
+    if (callerOrigin) {
+      const callerAllowed = await isWorkspaceOriginAllowed(callerOrigin, validatedWsId);
+      if (!callerAllowed) {
+        const corsHeaders = await getWorkspaceCorsHeaders(origin, validatedWsId, "POST, OPTIONS");
+        return NextResponse.json(
+          { error: "Caller origin not allowed for this workspace" },
+          { status: 403, headers: corsHeaders }
+        );
+      }
     }
 
     const normalizedEmail = email.toLowerCase().trim();
@@ -112,7 +139,7 @@ export async function POST(request: NextRequest) {
 
     const corsHeaders = await getWorkspaceCorsHeaders(
       origin,
-      workspaceId,
+      validatedWsId,
       "POST, OPTIONS"
     );
 
@@ -129,23 +156,39 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     const errorResponse = handleApiError(error);
 
-    // Apply CORS headers to error responses too
-    const appOrigin = process.env.NEXT_PUBLIC_APP_URL
-      ? new URL(process.env.NEXT_PUBLIC_APP_URL).origin
-      : null;
-    const isAllowed =
-      origin === appOrigin ||
-      (process.env.NODE_ENV === "development" &&
-        origin?.startsWith("http://localhost"));
+    // Apply workspace-aware CORS headers to error responses
+    try {
+      let corsHeaders: Record<string, string>;
 
-    errorResponse.headers.set(
-      "Access-Control-Allow-Origin",
-      isAllowed && origin ? origin : "null"
-    );
-    errorResponse.headers.set("Access-Control-Allow-Methods", "POST, OPTIONS");
-    errorResponse.headers.set("Access-Control-Allow-Headers", "Content-Type");
-    errorResponse.headers.set("Access-Control-Allow-Credentials", "true");
-    errorResponse.headers.set("Vary", "Origin");
+      if (workspaceId) {
+        // Use the full workspace allowlist for proper CORS on errors
+        corsHeaders = await getWorkspaceCorsHeaders(origin, workspaceId, "POST, OPTIONS");
+      } else {
+        // No workspaceId available (e.g. body parse failed) — fall back to base origins
+        const baseOrigins = getBaseAllowedOrigins();
+        const normalizedOrigin = origin ? origin : null;
+        const isAllowed = normalizedOrigin ? baseOrigins.includes(normalizedOrigin) : false;
+
+        corsHeaders = {
+          "Access-Control-Allow-Origin": isAllowed && origin ? origin : "null",
+          "Access-Control-Allow-Methods": "POST, OPTIONS",
+          "Access-Control-Allow-Headers": "Content-Type",
+          "Access-Control-Allow-Credentials": "true",
+          Vary: "Origin",
+        };
+      }
+
+      for (const [key, value] of Object.entries(corsHeaders)) {
+        errorResponse.headers.set(key, value);
+      }
+    } catch {
+      // If CORS header generation itself fails (e.g. DB error), apply safe defaults
+      errorResponse.headers.set("Access-Control-Allow-Origin", "null");
+      errorResponse.headers.set("Access-Control-Allow-Methods", "POST, OPTIONS");
+      errorResponse.headers.set("Access-Control-Allow-Headers", "Content-Type");
+      errorResponse.headers.set("Access-Control-Allow-Credentials", "true");
+      errorResponse.headers.set("Vary", "Origin");
+    }
 
     return errorResponse;
   }

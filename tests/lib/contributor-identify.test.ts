@@ -7,6 +7,7 @@ const mocks = vi.hoisted(() => ({
   mockUpdate: vi.fn(),
   mockIsWorkspaceOriginAllowed: vi.fn(),
   mockGetWorkspaceCorsHeaders: vi.fn(),
+  mockGetBaseAllowedOrigins: vi.fn(),
   mockSetContributorCookie: vi.fn(),
   mockCheckIdentifyRateLimit: vi.fn(),
 }));
@@ -42,6 +43,7 @@ vi.mock("@/lib/contributor-auth", () => ({
 vi.mock("@/lib/cors", () => ({
   isWorkspaceOriginAllowed: mocks.mockIsWorkspaceOriginAllowed,
   getWorkspaceCorsHeaders: mocks.mockGetWorkspaceCorsHeaders,
+  getBaseAllowedOrigins: mocks.mockGetBaseAllowedOrigins,
 }));
 
 vi.mock("@/lib/contributor-rate-limit", () => ({
@@ -86,6 +88,9 @@ describe("POST /api/contributor/identify", () => {
       "Access-Control-Allow-Credentials": "true",
       Vary: "Origin",
     });
+
+    // Default: base allowed origins
+    mocks.mockGetBaseAllowedOrigins.mockReturnValue(["https://app.plaudera.com"]);
 
     // Default: origin allowed
     mocks.mockIsWorkspaceOriginAllowed.mockResolvedValue(true);
@@ -249,5 +254,112 @@ describe("POST /api/contributor/identify", () => {
     });
 
     expect(response.status).toBe(500);
+  });
+
+  describe("error CORS headers", () => {
+    it("uses getWorkspaceCorsHeaders when workspaceId is available", async () => {
+      // Force a Zod validation error (invalid email) but with a valid workspaceId
+      const response = await callIdentify({
+        email: "not-an-email",
+        workspaceId: "ws-1",
+      });
+
+      expect(response.status).toBe(500);
+      expect(mocks.mockGetWorkspaceCorsHeaders).toHaveBeenCalledWith(
+        "https://example.com",
+        "ws-1",
+        "POST, OPTIONS"
+      );
+      expect(response.headers.get("Access-Control-Allow-Origin")).toBe(
+        "https://example.com"
+      );
+    });
+
+    it("falls back to base origins when workspaceId is unavailable", async () => {
+      const response = await callIdentify({
+        email: "test@example.com",
+        // no workspaceId
+      });
+
+      expect(response.status).toBe(500);
+      expect(mocks.mockGetBaseAllowedOrigins).toHaveBeenCalled();
+    });
+
+    it("sets origin to null when request origin is not in base allowed origins", async () => {
+      mocks.mockGetBaseAllowedOrigins.mockReturnValue(["https://app.plaudera.com"]);
+
+      const response = await callIdentify(
+        {
+          email: "test@example.com",
+          // no workspaceId — triggers fallback to base origins
+        },
+        "https://unknown-site.com"
+      );
+
+      expect(response.status).toBe(500);
+      expect(response.headers.get("Access-Control-Allow-Origin")).toBe("null");
+    });
+  });
+
+  describe("callerOrigin validation", () => {
+    it("accepts and validates callerOrigin when provided", async () => {
+      const newContributor = { id: "c1", email: "test@example.com", name: null };
+      mocks.mockFindFirst.mockResolvedValue(null);
+      mocks.mockInsert.mockReturnValue({
+        values: vi.fn().mockReturnValue({
+          returning: vi.fn().mockResolvedValue([newContributor]),
+        }),
+      });
+
+      const response = await callIdentify({
+        email: "test@example.com",
+        workspaceId: "ws-1",
+        callerOrigin: "https://customer-site.com",
+      });
+
+      expect(response.status).toBe(200);
+      // isWorkspaceOriginAllowed called twice: once for HTTP Origin, once for callerOrigin
+      expect(mocks.mockIsWorkspaceOriginAllowed).toHaveBeenCalledWith(
+        "https://customer-site.com",
+        "ws-1"
+      );
+    });
+
+    it("rejects callerOrigin not in workspace allowlist", async () => {
+      // Allow the HTTP Origin but reject the callerOrigin
+      mocks.mockIsWorkspaceOriginAllowed
+        .mockResolvedValueOnce(true) // HTTP Origin check passes
+        .mockResolvedValueOnce(false); // callerOrigin check fails
+
+      const response = await callIdentify({
+        email: "test@example.com",
+        workspaceId: "ws-1",
+        callerOrigin: "https://evil-site.com",
+      });
+
+      expect(response.status).toBe(403);
+      const data = await response.json();
+      expect(data.error).toBe("Caller origin not allowed for this workspace");
+    });
+
+    it("works without callerOrigin (backward compatibility)", async () => {
+      const newContributor = { id: "c1", email: "test@example.com", name: null };
+      mocks.mockFindFirst.mockResolvedValue(null);
+      mocks.mockInsert.mockReturnValue({
+        values: vi.fn().mockReturnValue({
+          returning: vi.fn().mockResolvedValue([newContributor]),
+        }),
+      });
+
+      const response = await callIdentify({
+        email: "test@example.com",
+        workspaceId: "ws-1",
+        // no callerOrigin
+      });
+
+      expect(response.status).toBe(200);
+      // isWorkspaceOriginAllowed called only once (for HTTP Origin)
+      expect(mocks.mockIsWorkspaceOriginAllowed).toHaveBeenCalledTimes(1);
+    });
   });
 });
