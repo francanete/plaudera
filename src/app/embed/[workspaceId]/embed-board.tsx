@@ -68,6 +68,10 @@ export function EmbedBoard({
       const data = await res.json();
       setIdeas(
         data.ideas
+          .filter(
+            (idea: CompactIdea & { description?: string }) =>
+              !isOnRoadmap(idea.roadmapStatus)
+          )
           .slice(0, 10)
           .map((idea: CompactIdea & { description?: string }) => ({
             id: idea.id,
@@ -88,6 +92,9 @@ export function EmbedBoard({
   }, [workspaceId]);
 
   // Build callback URL with intent params for post-verification redirect
+  // Redirect to public board (/b/{slug}) instead of embed page, because the
+  // verification link opens in a full browser tab — the embed page looks broken
+  // outside the customer's iframe, while the public board is a proper full-page view.
   const getCallbackUrl = useCallback(() => {
     const params = new URLSearchParams();
     if (pendingAction?.type === "vote") {
@@ -97,8 +104,9 @@ export function EmbedBoard({
       params.set("action", "submit");
     }
     const search = params.toString();
-    return search ? `${pathname}?${search}` : pathname;
-  }, [pathname, pendingAction]);
+    const boardPath = `/b/${workspaceSlug}`;
+    return search ? `${boardPath}?${search}` : boardPath;
+  }, [workspaceSlug, pendingAction]);
 
   // Shared vote execution logic
   const executeVote = useCallback(
@@ -292,6 +300,71 @@ export function EmbedBoard({
     },
     []
   );
+
+  // Emit ready signal to parent when mounted
+  useEffect(() => {
+    notifyParent({ type: "plaudera:ready" });
+  }, [notifyParent]);
+
+  // Listen for incoming messages from parent (e.g. identify)
+  useEffect(() => {
+    const parentOrigin = document.referrer
+      ? new URL(document.referrer).origin
+      : null;
+
+    if (!parentOrigin) return;
+
+    const handleParentMessage = async (event: MessageEvent) => {
+      if (event.origin !== parentOrigin) return;
+      if (!event.data || typeof event.data !== "object") return;
+
+      if (event.data.type === "plaudera:identify") {
+        const { email, name } = event.data.payload || {};
+        if (!email || typeof email !== "string") return;
+
+        // Skip if already authenticated with the same email
+        if (contributor && contributor.email === email.toLowerCase().trim()) {
+          notifyParent({
+            type: "plaudera:identified",
+            payload: { email: contributor.email, id: contributor.id },
+          });
+          return;
+        }
+
+        try {
+          const res = await fetch("/api/contributor/identify", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              email,
+              name: name || undefined,
+              workspaceId,
+            }),
+          });
+
+          if (!res.ok) {
+            console.error("[EmbedBoard] Trusted identify failed:", res.status);
+            return;
+          }
+
+          const data = await res.json();
+          if (data.contributor) {
+            setContributor(data.contributor);
+            await refreshData();
+            notifyParent({
+              type: "plaudera:identified",
+              payload: data.contributor,
+            });
+          }
+        } catch (error) {
+          console.error("[EmbedBoard] Trusted identify error:", error);
+        }
+      }
+    };
+
+    window.addEventListener("message", handleParentMessage);
+    return () => window.removeEventListener("message", handleParentMessage);
+  }, [contributor, workspaceId, notifyParent, refreshData]);
 
   // Logout handler - uses shared hook for proper cross-origin cookie handling
   const { logout: handleLogout, isLoggingOut } = useContributorLogout({

@@ -15,6 +15,7 @@ interface RateLimitEntry {
 const emailRateLimitMap = new Map<string, RateLimitEntry>();
 const ideaRateLimitMap = new Map<string, RateLimitEntry>();
 const voteRateLimitMap = new Map<string, RateLimitEntry>();
+const identifyRateLimitMap = new Map<string, RateLimitEntry>();
 
 // Email verification: 5 per hour (prevents email spam)
 const EMAIL_WINDOW_MS = 60 * 60 * 1000; // 1 hour
@@ -28,6 +29,10 @@ const IDEA_MAX_REQUESTS = 10;
 const VOTE_WINDOW_MS = 60 * 1000; // 1 minute
 const VOTE_MAX_REQUESTS = 60;
 
+// Identify: 20 per minute per IP (prevents abuse of trusted identify)
+const IDENTIFY_WINDOW_MS = 60 * 1000; // 1 minute
+const IDENTIFY_MAX_REQUESTS = 20;
+
 // Legacy constants for backwards compatibility
 const WINDOW_MS = EMAIL_WINDOW_MS;
 const MAX_REQUESTS = EMAIL_MAX_REQUESTS;
@@ -37,7 +42,12 @@ const MAX_REQUESTS = EMAIL_MAX_REQUESTS;
  */
 function cleanupExpiredEntries(): void {
   const now = Date.now();
-  const maps = [emailRateLimitMap, ideaRateLimitMap, voteRateLimitMap];
+  const maps = [
+    emailRateLimitMap,
+    ideaRateLimitMap,
+    voteRateLimitMap,
+    identifyRateLimitMap,
+  ];
 
   for (const map of maps) {
     for (const [key, entry] of map.entries()) {
@@ -138,6 +148,39 @@ export function checkVoteRateLimit(contributorId: string): {
 
   // Check if limit exceeded
   if (entry.count >= VOTE_MAX_REQUESTS) {
+    return { allowed: false, resetAt: new Date(entry.resetAt) };
+  }
+
+  // Increment counter and allow
+  entry.count++;
+  return { allowed: true };
+}
+
+/**
+ * Check if an IP is within rate limits for trusted identify calls.
+ * Limits to 20 requests per minute per IP.
+ *
+ * @param ip - The IP address to check
+ * @returns Object with `allowed` boolean and optional `resetAt` date when limit resets
+ */
+export function checkIdentifyRateLimit(ip: string): {
+  allowed: boolean;
+  resetAt?: Date;
+} {
+  const now = Date.now();
+  const entry = identifyRateLimitMap.get(ip);
+
+  // No previous requests or window expired - allow and start new window
+  if (!entry || entry.resetAt < now) {
+    identifyRateLimitMap.set(ip, {
+      count: 1,
+      resetAt: now + IDENTIFY_WINDOW_MS,
+    });
+    return { allowed: true };
+  }
+
+  // Check if limit exceeded
+  if (entry.count >= IDENTIFY_MAX_REQUESTS) {
     return { allowed: false, resetAt: new Date(entry.resetAt) };
   }
 

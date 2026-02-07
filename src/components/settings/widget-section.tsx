@@ -143,12 +143,31 @@ export function WidgetSection({
   };
 
   const siteUrl = appConfig.seo.siteUrl;
-  const embedCode = `<script
-  src="${siteUrl}/widget.js"
-  data-workspace="${workspaceId}"
-  data-position="${position}"
-  async
-></script>`;
+  const embedCode = `<!-- Plaudera Feedback Widget -->
+<script>
+  !function(w,d){var p=w.Plaudera=w.Plaudera||function(){
+    (p.q=p.q||[]).push(arguments)};p.l=+new Date;
+  var s=d.createElement("script");s.async=1;
+  s.src="${siteUrl}/widget.js";
+  d.head.appendChild(s)}(window,document);
+  Plaudera('init', { workspace: '${workspaceId}' });
+</script>`;
+
+  const identifyExample = `<!-- Plaudera Feedback Widget -->
+<script>
+  !function(w,d){var p=w.Plaudera=w.Plaudera||function(){
+    (p.q=p.q||[]).push(arguments)};p.l=+new Date;
+  var s=d.createElement("script");s.async=1;
+  s.src="${siteUrl}/widget.js";
+  d.head.appendChild(s)}(window,document);
+  Plaudera('init', {
+    workspace: '${workspaceId}',
+    user: {
+      email: user.email,  // required
+      name: user.name     // optional
+    }
+  });
+</script>`;
 
   const handleCopy = async () => {
     try {
@@ -472,6 +491,87 @@ export function WidgetSection({
             Paste this code before the closing <code>&lt;/body&gt;</code> tag on
             your website.
           </p>
+
+          {/* Identify Users guide */}
+          <details className="group rounded-lg border border-slate-200 bg-slate-50/50">
+            <summary className="cursor-pointer px-3 py-2.5 text-xs font-medium text-slate-600 hover:text-slate-900 sm:px-4 sm:py-3 sm:text-sm">
+              Optional: Auto-identify logged-in users
+            </summary>
+            <div className="space-y-4 border-t border-slate-200 px-3 py-3 sm:px-4 sm:py-4">
+              <p className="text-xs leading-relaxed text-slate-600 sm:text-sm">
+                If your website has its own login system, you can tell the
+                widget who the user is. They&apos;ll skip the email verification
+                step and can submit feedback immediately.
+              </p>
+
+              {/* Steps */}
+              <div className="space-y-3">
+                <div className="flex gap-2.5">
+                  <span className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-indigo-100 text-[10px] font-semibold text-indigo-700">
+                    1
+                  </span>
+                  <p className="text-xs leading-relaxed text-slate-600 sm:text-sm">
+                    <span className="font-medium text-slate-700">
+                      Add your domain
+                    </span>{" "}
+                    to the Allowed Domains list below (e.g.,{" "}
+                    <code className="rounded bg-slate-100 px-1 py-0.5 text-[11px]">
+                      https://yoursite.com
+                    </code>
+                    ). This is required for security — only allowed domains can
+                    identify users.
+                  </p>
+                </div>
+
+                <div className="flex gap-2.5">
+                  <span className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-indigo-100 text-[10px] font-semibold text-indigo-700">
+                    2
+                  </span>
+                  <p className="text-xs leading-relaxed text-slate-600 sm:text-sm">
+                    <span className="font-medium text-slate-700">
+                      Add the{" "}
+                      <code className="rounded bg-slate-100 px-1 py-0.5 text-[11px]">
+                        user
+                      </code>{" "}
+                      option
+                    </span>{" "}
+                    to your init call — replace{" "}
+                    <code className="rounded bg-slate-100 px-1 py-0.5 text-[11px]">
+                      user.email
+                    </code>{" "}
+                    and{" "}
+                    <code className="rounded bg-slate-100 px-1 py-0.5 text-[11px]">
+                      user.name
+                    </code>{" "}
+                    with your own logged-in user variables:
+                  </p>
+                </div>
+              </div>
+
+              <pre className="max-w-full overflow-x-auto rounded-lg bg-slate-100 p-3 text-xs sm:p-4 sm:text-sm">
+                <code className="block whitespace-pre text-slate-700">
+                  {identifyExample}
+                </code>
+              </pre>
+
+              <div className="flex gap-2.5">
+                <span className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-indigo-100 text-[10px] font-semibold text-indigo-700">
+                  3
+                </span>
+                <p className="text-xs leading-relaxed text-slate-600 sm:text-sm">
+                  <span className="font-medium text-slate-700">
+                    That&apos;s it!
+                  </span>{" "}
+                  Identified users will see the feedback form right away. If a
+                  visitor isn&apos;t logged in, just don&apos;t include the{" "}
+                  <code className="rounded bg-slate-100 px-1 py-0.5 text-[11px]">
+                    user
+                  </code>{" "}
+                  option — they&apos;ll verify their email the normal way.
+                </p>
+              </div>
+            </div>
+          </details>
         </CardContent>
       </Card>
 

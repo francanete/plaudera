@@ -256,4 +256,77 @@ describe("contributor-rate-limit", () => {
       expect(checkIdeaRateLimit("combo-user").allowed).toBe(true);
     });
   });
+
+  describe("checkIdentifyRateLimit", () => {
+    it("allows first request", async () => {
+      const { checkIdentifyRateLimit } =
+        await import("@/lib/contributor-rate-limit");
+
+      const result = checkIdentifyRateLimit("10.0.0.1");
+
+      expect(result.allowed).toBe(true);
+      expect(result.resetAt).toBeUndefined();
+    });
+
+    it("allows requests up to limit (20)", async () => {
+      const { checkIdentifyRateLimit } =
+        await import("@/lib/contributor-rate-limit");
+
+      for (let i = 0; i < 20; i++) {
+        const result = checkIdentifyRateLimit("10.0.0.2");
+        expect(result.allowed).toBe(true);
+      }
+    });
+
+    it("rejects request over limit with resetAt", async () => {
+      const { checkIdentifyRateLimit } =
+        await import("@/lib/contributor-rate-limit");
+
+      // Use up all 20 requests
+      for (let i = 0; i < 20; i++) {
+        checkIdentifyRateLimit("10.0.0.3");
+      }
+
+      // 21st request should be rejected
+      const result = checkIdentifyRateLimit("10.0.0.3");
+
+      expect(result.allowed).toBe(false);
+      expect(result.resetAt).toBeInstanceOf(Date);
+    });
+
+    it("resets counter after window expires (1 minute)", async () => {
+      const { checkIdentifyRateLimit } =
+        await import("@/lib/contributor-rate-limit");
+
+      // Use up all 20 requests
+      for (let i = 0; i < 20; i++) {
+        checkIdentifyRateLimit("10.0.0.4");
+      }
+
+      // Verify 21st is rejected
+      expect(checkIdentifyRateLimit("10.0.0.4").allowed).toBe(false);
+
+      // Advance time past 1 minute window
+      vi.advanceTimersByTime(60 * 1000 + 1);
+
+      // Should allow again
+      const result = checkIdentifyRateLimit("10.0.0.4");
+      expect(result.allowed).toBe(true);
+    });
+
+    it("tracks different IPs independently", async () => {
+      const { checkIdentifyRateLimit } =
+        await import("@/lib/contributor-rate-limit");
+
+      // Use up all requests for IP1
+      for (let i = 0; i < 20; i++) {
+        checkIdentifyRateLimit("identify-ip1");
+      }
+      expect(checkIdentifyRateLimit("identify-ip1").allowed).toBe(false);
+
+      // IP2 should still be allowed
+      const result = checkIdentifyRateLimit("identify-ip2");
+      expect(result.allowed).toBe(true);
+    });
+  });
 });

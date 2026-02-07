@@ -1,79 +1,91 @@
 (function() {
   'use strict';
 
-  // Get config from script tag
-  const script = document.currentScript;
-  if (!script) {
-    console.error('[Plaudera] Could not find script element');
-    return;
+  // ============ Constants ============
+  var BUTTON_HEIGHT = 44;
+  var PANEL_WIDTH = 400;
+  var Z_INDEX = 2147483647; // Max z-index
+  var MAX_DOUBLE_STARS = 2;
+
+  // ============ SDK State ============
+  var initialized = false;
+  var workspace = null;
+  var baseUrl = '';
+  var position = 'bottom-right';
+  var isOpen = false;
+  var iframeReady = false;
+  var pendingIdentify = null;
+  var button = null;
+  var panel = null;
+  var backdrop = null;
+  var iframe = null;
+  var pageRules = [];
+  var showLabel = true;
+  var eventListeners = {};
+
+  // ============ Event System ============
+
+  function emit(eventName, data) {
+    var listeners = eventListeners[eventName];
+    if (!listeners) return;
+    for (var i = 0; i < listeners.length; i++) {
+      try {
+        listeners[i](data);
+      } catch (e) {
+        console.error('[Plaudera] Event listener error:', e);
+      }
+    }
   }
 
-  const workspace = script.dataset.workspace;
-  const fallbackPosition = script.dataset.position || 'bottom-right';
-  let position = fallbackPosition; // Will be updated from API
-
-  if (!workspace) {
-    console.error('[Plaudera] Missing data-workspace attribute');
-    return;
+  function handleOn(eventName, callback) {
+    if (typeof eventName !== 'string' || typeof callback !== 'function') return;
+    if (!eventListeners[eventName]) {
+      eventListeners[eventName] = [];
+    }
+    eventListeners[eventName].push(callback);
   }
 
-  // Derive the base URL from the script src
-  const scriptSrc = script.src;
-  const baseUrl = scriptSrc.substring(0, scriptSrc.lastIndexOf('/'));
+  function handleOff(eventName, callback) {
+    if (typeof eventName !== 'string' || typeof callback !== 'function') return;
+    var listeners = eventListeners[eventName];
+    if (!listeners) return;
+    for (var i = listeners.length - 1; i >= 0; i--) {
+      if (listeners[i] === callback) {
+        listeners.splice(i, 1);
+      }
+    }
+  }
 
-  // State
-  let isOpen = false;
-  let button = null;
-  let panel = null;
-  let backdrop = null;
-  let iframe = null;
-
-  // Styles
-  const BUTTON_HEIGHT = 44;
-  const PANEL_WIDTH = 400;
-  const Z_INDEX = 2147483647; // Max z-index
-
-  // Page rules (populated from API)
-  let pageRules = [];
-  let showLabel = true; // Whether to show "Feedback" text on hover
-
-  // Convert a glob pattern to a RegExp
-  const MAX_DOUBLE_STARS = 2;
+  // ============ Glob / Page Rules ============
 
   function globToRegex(pattern) {
-    let result = '';
-    let i = 0;
-    let doubleStarCount = 0;
+    var result = '';
+    var i = 0;
+    var doubleStarCount = 0;
 
     while (i < pattern.length) {
-      const ch = pattern[i];
+      var ch = pattern[i];
 
       if (ch === '*' && pattern[i + 1] === '*') {
-        // ** matches any path segments including /
         doubleStarCount++;
         i += 2;
         if (pattern[i] === '/') i++;
 
         if (doubleStarCount > MAX_DOUBLE_STARS) {
-          // Degrade to single-segment match to prevent ReDoS
           result += '[^/]*';
         } else if (result.length > 0 && result[result.length - 1] === '/') {
-          // /docs/** → also matches /docs (make trailing segments optional)
           result = result.slice(0, -1);
           result += '(?:/.*)?';
         } else {
           result += '.*';
         }
       } else if (ch === '*') {
-        // * matches any characters except /
         result += '[^/]*';
         i++;
       } else if (ch === '?') {
-        // ? matches any single character except /
         result += '[^/]';
         i++;
       } else if ('^$.|+()[]{}\\'.indexOf(ch) !== -1) {
-        // Escape regex special characters (? excluded — handled above)
         result += '\\' + ch;
         i++;
       } else {
@@ -85,16 +97,16 @@
     return new RegExp('^' + result + '$');
   }
 
-  // Check if current page matches any page rule
   function matchesPageRules(rules) {
     if (!rules || rules.length === 0) return true;
-    const pathname = window.location.pathname;
+    var pathname = window.location.pathname;
     return rules.some(function(rule) {
       return globToRegex(rule).test(pathname);
     });
   }
 
-  // Fetch widget settings from API
+  // ============ Settings Fetch ============
+
   function fetchSettings() {
     return fetch(baseUrl + '/api/public/' + workspace + '/settings')
       .then(function(response) {
@@ -119,16 +131,17 @@
       });
   }
 
-  // Create floating button (pill shape, expands on hover to show label)
+  // ============ UI: Button ============
+
   function createButton() {
     button = document.createElement('button');
     button.id = 'plaudera-widget-button';
     button.setAttribute('aria-label', 'Open feedback');
+    button.setAttribute('data-plaudera', 'true');
 
-    var collapsedWidth = BUTTON_HEIGHT; // Circular when collapsed
-    var expandedWidth = 140; // Pill width when expanded with text
+    var collapsedWidth = BUTTON_HEIGHT;
+    var expandedWidth = 140;
 
-    // Base styles - starts as a circle (icon only)
     var buttonSide = position === 'bottom-left' ? 'left' : 'right';
     Object.assign(button.style, {
       position: 'fixed',
@@ -155,7 +168,6 @@
     });
     button.style[buttonSide] = '20px';
 
-    // Icon
     var iconSpan = document.createElement('span');
     Object.assign(iconSpan.style, {
       display: 'flex',
@@ -167,7 +179,6 @@
     });
     iconSpan.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg>';
 
-    // Label text (hidden initially, revealed on hover)
     var labelSpan = document.createElement('span');
     labelSpan.textContent = 'Feedback';
     Object.assign(labelSpan.style, {
@@ -183,7 +194,6 @@
       button.appendChild(labelSpan);
     }
 
-    // Hover: expand to show label
     button.onmouseenter = function() {
       if (showLabel) {
         button.style.width = expandedWidth + 'px';
@@ -199,7 +209,6 @@
       button.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.15)';
     };
 
-    // Focus ring for keyboard navigation (accessibility)
     button.onfocus = function() {
       button.style.outline = 'none';
       if (showLabel) {
@@ -217,14 +226,15 @@
     };
 
     button.onclick = togglePanel;
-
     document.body.appendChild(button);
   }
 
-  // Create backdrop
+  // ============ UI: Backdrop ============
+
   function createBackdrop() {
     backdrop = document.createElement('div');
     backdrop.id = 'plaudera-widget-backdrop';
+    backdrop.setAttribute('data-plaudera', 'true');
 
     Object.assign(backdrop.style, {
       position: 'fixed',
@@ -243,13 +253,15 @@
     document.body.appendChild(backdrop);
   }
 
-  // Create side panel
+  // ============ UI: Panel ============
+
   function createPanel() {
     panel = document.createElement('div');
     panel.id = 'plaudera-widget-panel';
+    panel.setAttribute('data-plaudera', 'true');
 
-    const isLeft = position === 'bottom-left';
-    const panelSide = isLeft ? 'left' : 'right';
+    var isLeft = position === 'bottom-left';
+    var panelSide = isLeft ? 'left' : 'right';
 
     Object.assign(panel.style, {
       position: 'fixed',
@@ -270,14 +282,13 @@
     });
     panel.style[panelSide] = '0';
 
-    // Edge close button (positioned on the inner edge of the panel)
-    const closeBtn = document.createElement('button');
-    // Chevron points in the direction the panel slides away
-    const chevronIcon = isLeft
+    var closeBtn = document.createElement('button');
+    var chevronIcon = isLeft
       ? '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>'
       : '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>';
     closeBtn.innerHTML = chevronIcon;
     closeBtn.setAttribute('aria-label', 'Close sidebar');
+    closeBtn.setAttribute('data-plaudera', 'true');
     Object.assign(closeBtn.style, {
       position: 'absolute',
       top: '50%',
@@ -297,7 +308,6 @@
       transition: 'background-color 0.2s ease, color 0.2s ease',
       zIndex: '1',
     });
-    // Position on the inner edge with rounded corners on the outside
     if (isLeft) {
       closeBtn.style.right = '-12px';
       closeBtn.style.borderRadius = '0 6px 6px 0';
@@ -316,8 +326,8 @@
     closeBtn.onclick = closePanel;
     panel.appendChild(closeBtn);
 
-    // Iframe container
-    const iframeContainer = document.createElement('div');
+    var iframeContainer = document.createElement('div');
+    iframeContainer.setAttribute('data-plaudera', 'true');
     Object.assign(iframeContainer.style, {
       flex: '1',
       overflow: 'hidden',
@@ -327,6 +337,7 @@
     iframe = document.createElement('iframe');
     iframe.src = baseUrl + '/embed/' + workspace;
     iframe.id = 'plaudera-widget-iframe';
+    iframe.setAttribute('data-plaudera', 'true');
     Object.assign(iframe.style, {
       width: '100%',
       height: '100%',
@@ -334,16 +345,15 @@
     });
     iframe.setAttribute('title', 'Feedback Widget');
     iframe.setAttribute('loading', 'lazy');
-    // Security: Sandbox restricts iframe capabilities to only what's needed
     iframe.setAttribute('sandbox', 'allow-same-origin allow-scripts allow-forms allow-popups');
 
     iframeContainer.appendChild(iframe);
     panel.appendChild(iframeContainer);
-
     document.body.appendChild(panel);
   }
 
-  // Toggle panel
+  // ============ Panel Control ============
+
   function togglePanel() {
     if (isOpen) {
       closePanel();
@@ -352,66 +362,50 @@
     }
   }
 
-  // Open panel
   function openPanel() {
-    if (isOpen) return;
+    if (!initialized || isOpen) return;
     isOpen = true;
 
-    // Show backdrop
     backdrop.style.pointerEvents = 'auto';
     backdrop.style.opacity = '1';
-
-    // Slide in panel
     panel.style.transform = 'translateX(0)';
-
-    // Hide button
     button.style.opacity = '0';
     button.style.pointerEvents = 'none';
-
-    // Prevent body scroll
     document.body.style.overflow = 'hidden';
+
+    emit('open');
   }
 
-  // Close panel
   function closePanel() {
-    if (!isOpen) return;
+    if (!initialized || !isOpen) return;
     isOpen = false;
 
-    const isLeft = position === 'bottom-left';
+    var isLeft = position === 'bottom-left';
 
-    // Hide backdrop
     backdrop.style.pointerEvents = 'none';
     backdrop.style.opacity = '0';
-
-    // Slide out panel
     panel.style.transform = 'translateX(' + (isLeft ? '-100%' : '100%') + ')';
-
-    // Show button
     button.style.opacity = '1';
     button.style.pointerEvents = 'auto';
-
-    // Restore body scroll
     document.body.style.overflow = '';
+
+    emit('close');
   }
 
-  // Handle keyboard events
+  // ============ Keyboard ============
+
   function handleKeydown(e) {
     if (e.key === 'Escape' && isOpen) {
       closePanel();
     }
   }
 
-  // Handle messages from iframe
-  function handleMessage(e) {
-    // Security: Only trust the origin that served this script
-    // The scriptOrigin is derived from script.src, which is the source of truth
-    const scriptOrigin = baseUrl.replace(/\/$/, ''); // Remove trailing slash if present
+  // ============ postMessage Handler ============
 
-    // Validate that message comes from the same origin as the script
-    if (e.origin !== scriptOrigin) {
-      console.warn('[Plaudera] Ignored message from untrusted origin:', e.origin);
-      return;
-    }
+  function handleMessage(e) {
+    // Validate origin against the base URL of the script
+    var scriptOrigin = baseUrl.replace(/\/$/, '');
+    if (e.origin !== scriptOrigin) return;
 
     if (!e.data || typeof e.data !== 'object') return;
 
@@ -420,25 +414,143 @@
         closePanel();
         break;
       case 'plaudera:submitted':
-        // Optionally close after submit or show success
+        emit('submitted', e.data);
+        break;
+      case 'plaudera:ready':
+        iframeReady = true;
+        emit('ready');
+        // Flush any pending identify call
+        if (pendingIdentify && iframe && iframe.contentWindow) {
+          iframe.contentWindow.postMessage({
+            type: 'plaudera:identify',
+            payload: pendingIdentify
+          }, scriptOrigin);
+          pendingIdentify = null;
+        }
+        break;
+      case 'plaudera:identified':
+        emit('identified', e.data.payload);
+        break;
+      case 'plaudera:logout':
+        emit('logout');
         break;
     }
   }
 
-  // Initialize widget
-  function init() {
-    // Wait for DOM ready
-    if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', loadAndSetup);
+  // ============ Identify ============
+
+  function handleIdentify(opts) {
+    if (!opts || typeof opts !== 'object') {
+      console.error('[Plaudera] identify() requires an object with { email }');
+      return;
+    }
+
+    var email = opts.email;
+    var name = opts.name || '';
+
+    if (!email || typeof email !== 'string') {
+      console.error('[Plaudera] identify() requires a valid email');
+      return;
+    }
+
+    // Basic email format check
+    if (email.indexOf('@') === -1 || email.indexOf('.') === -1) {
+      console.error('[Plaudera] identify() received an invalid email');
+      return;
+    }
+
+    var payload = { email: email, name: name };
+    var scriptOrigin = baseUrl.replace(/\/$/, '');
+
+    if (iframeReady && iframe && iframe.contentWindow) {
+      iframe.contentWindow.postMessage({
+        type: 'plaudera:identify',
+        payload: payload
+      }, scriptOrigin);
     } else {
-      loadAndSetup();
+      // Queue until iframe is ready
+      pendingIdentify = payload;
     }
   }
 
+  // ============ Destroy ============
+
+  function handleDestroy() {
+    if (!initialized) return;
+
+    // Close panel first (restores body scroll)
+    if (isOpen) {
+      isOpen = false;
+      document.body.style.overflow = '';
+    }
+
+    // Remove event listeners
+    document.removeEventListener('keydown', handleKeydown);
+    window.removeEventListener('message', handleMessage);
+
+    // Remove all DOM elements tagged with data-plaudera
+    var elements = document.querySelectorAll('[data-plaudera]');
+    for (var i = 0; i < elements.length; i++) {
+      elements[i].remove();
+    }
+
+    // Reset state
+    initialized = false;
+    workspace = null;
+    isOpen = false;
+    iframeReady = false;
+    pendingIdentify = null;
+    button = null;
+    panel = null;
+    backdrop = null;
+    iframe = null;
+    pageRules = [];
+    showLabel = true;
+    eventListeners = {};
+
+    // Restore queueing stub so re-init is possible
+    var stub = function() {
+      (stub.q = stub.q || []).push(arguments);
+    };
+    stub.q = [];
+    stub.l = +new Date();
+    window.Plaudera = stub;
+  }
+
+  // ============ Init ============
+
+  function handleInit(opts) {
+    if (initialized) {
+      console.warn('[Plaudera] Already initialized. Call destroy() first to re-initialize.');
+      return;
+    }
+
+    if (!opts || !opts.workspace) {
+      console.error('[Plaudera] init() requires { workspace: "your-workspace-id" }');
+      return;
+    }
+
+    workspace = opts.workspace;
+
+    // Position can be overridden in init, but will be updated from API
+    if (opts.position) {
+      position = opts.position;
+    }
+
+    initialized = true;
+
+    // If identify was passed in init options, queue it
+    if (opts.user && opts.user.email) {
+      pendingIdentify = { email: opts.user.email, name: opts.user.name || '' };
+    }
+
+    loadAndSetup();
+  }
+
   function loadAndSetup() {
-    // Fetch settings from API first, then check page rules before setup
     fetchSettings().then(function() {
       if (!matchesPageRules(pageRules)) return;
+      if (!initialized) return; // Guard against destroy during fetch
       setup();
     });
   }
@@ -448,11 +560,92 @@
     createBackdrop();
     createPanel();
 
-    // Event listeners
     document.addEventListener('keydown', handleKeydown);
     window.addEventListener('message', handleMessage);
+
+    emit('ready');
   }
 
-  // Start
-  init();
+  // ============ SDK Function ============
+
+  function PlauderaSDK() {
+    var args = Array.prototype.slice.call(arguments);
+    var method = args[0];
+
+    switch (method) {
+      case 'init':
+        return handleInit(args[1]);
+      case 'open':
+        return openPanel();
+      case 'close':
+        return closePanel();
+      case 'destroy':
+        return handleDestroy();
+      case 'identify':
+        return handleIdentify(args[1]);
+      case 'on':
+        return handleOn(args[1], args[2]);
+      case 'off':
+        return handleOff(args[1], args[2]);
+      default:
+        console.warn('[Plaudera] Unknown method:', method);
+    }
+  }
+
+  // ============ Derive Base URL ============
+
+  function deriveBaseUrl() {
+    // Try to find the widget script by scanning all script tags
+    var scripts = document.querySelectorAll('script[src*="widget.js"]');
+    for (var i = 0; i < scripts.length; i++) {
+      var src = scripts[i].src;
+      if (src && src.indexOf('widget.js') !== -1) {
+        return src.substring(0, src.lastIndexOf('/'));
+      }
+    }
+    // Fallback: use current page origin
+    return window.location.origin;
+  }
+
+  // ============ Bootstrap ============
+
+  function bootstrap() {
+    baseUrl = deriveBaseUrl();
+
+    // Capture any queued commands from the stub
+    var queue = (window.Plaudera && window.Plaudera.q) || [];
+
+    // Replace the stub with the real SDK function
+    window.Plaudera = PlauderaSDK;
+
+    // Check for legacy data-attribute initialization (backwards compat)
+    var legacyScripts = document.querySelectorAll('script[data-workspace]');
+    var legacyHandled = false;
+    for (var i = 0; i < legacyScripts.length; i++) {
+      var scriptEl = legacyScripts[i];
+      var ws = scriptEl.dataset.workspace;
+      if (ws) {
+        var legacyPosition = scriptEl.dataset.position || 'bottom-right';
+        // Only auto-init if no init command was queued
+        var hasInitInQueue = queue.some(function(cmd) { return cmd[0] === 'init'; });
+        if (!hasInitInQueue) {
+          queue.push(['init', { workspace: ws, position: legacyPosition }]);
+          legacyHandled = true;
+          break; // Only handle the first one
+        }
+      }
+    }
+
+    // Replay queued commands
+    for (var j = 0; j < queue.length; j++) {
+      PlauderaSDK.apply(null, queue[j]);
+    }
+  }
+
+  // Wait for DOM ready, then bootstrap
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', bootstrap);
+  } else {
+    bootstrap();
+  }
 })();
