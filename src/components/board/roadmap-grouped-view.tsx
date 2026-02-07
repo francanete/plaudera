@@ -84,7 +84,7 @@ export function RoadmapGroupedView({ ideas }: RoadmapGroupedViewProps) {
   }
 
   return (
-    <div className="flex flex-col gap-6 sm:flex-row sm:justify-center sm:gap-6 sm:overflow-x-auto sm:pb-2">
+    <div className="flex flex-col gap-6 lg:flex-row lg:justify-center lg:gap-6 lg:overflow-x-auto lg:pb-2">
       {COLUMNS.map((column) => {
         const columnIdeas = groupedIdeas[column.status];
         const Icon = column.icon;
@@ -92,7 +92,7 @@ export function RoadmapGroupedView({ ideas }: RoadmapGroupedViewProps) {
         return (
           <div
             key={column.status}
-            className="flex shrink-0 flex-col gap-3 sm:max-w-md sm:min-w-[320px] sm:flex-1"
+            className="flex shrink-0 flex-col gap-3 lg:max-w-md lg:min-w-[320px] lg:flex-1"
           >
             {/* Column Header */}
             <div className="mb-1 flex items-center justify-between px-1">

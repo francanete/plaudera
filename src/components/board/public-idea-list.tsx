@@ -281,10 +281,10 @@ export function PublicIdeaList({
             <PublicRoadmapListView ideas={roadmapIdeas} />
           ) : (
             <>
-              <div className="block sm:hidden">
+              <div className="block lg:hidden">
                 <PublicRoadmapListView ideas={roadmapIdeas} />
               </div>
-              <div className="hidden sm:block">
+              <div className="hidden lg:block">
                 <RoadmapGroupedView ideas={roadmapIdeas} />
               </div>
             </>
