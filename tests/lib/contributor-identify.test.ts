@@ -2,9 +2,7 @@ import { vi, describe, it, expect, beforeEach } from "vitest";
 
 // Mock dependencies using vi.hoisted to avoid TDZ issues
 const mocks = vi.hoisted(() => ({
-  mockFindFirst: vi.fn(),
   mockInsert: vi.fn(),
-  mockUpdate: vi.fn(),
   mockIsWorkspaceOriginAllowed: vi.fn(),
   mockGetWorkspaceCorsHeaders: vi.fn(),
   mockGetBaseAllowedOrigins: vi.fn(),
@@ -14,13 +12,7 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock("@/lib/db", () => ({
   db: {
-    query: {
-      contributors: {
-        findFirst: mocks.mockFindFirst,
-      },
-    },
     insert: mocks.mockInsert,
-    update: mocks.mockUpdate,
   },
 }));
 
@@ -34,6 +26,10 @@ vi.mock("@/lib/db/schema", () => ({
 
 vi.mock("drizzle-orm", () => ({
   eq: vi.fn((...args: unknown[]) => args),
+  sql: vi.fn((strings: TemplateStringsArray, ...values: unknown[]) => ({
+    strings,
+    values,
+  })),
 }));
 
 vi.mock("@/lib/contributor-auth", () => ({
@@ -90,7 +86,9 @@ describe("POST /api/contributor/identify", () => {
     });
 
     // Default: base allowed origins
-    mocks.mockGetBaseAllowedOrigins.mockReturnValue(["https://app.plaudera.com"]);
+    mocks.mockGetBaseAllowedOrigins.mockReturnValue([
+      "https://app.plaudera.com",
+    ]);
 
     // Default: origin allowed
     mocks.mockIsWorkspaceOriginAllowed.mockResolvedValue(true);
@@ -101,6 +99,17 @@ describe("POST /api/contributor/identify", () => {
     // Default: env
     process.env.NEXT_PUBLIC_APP_URL = "https://app.plaudera.com";
   });
+
+  /** Helper: set up the insert().values().onConflictDoUpdate().returning() mock chain */
+  function mockUpsertReturning(contributor: Record<string, unknown>) {
+    mocks.mockInsert.mockReturnValue({
+      values: vi.fn().mockReturnValue({
+        onConflictDoUpdate: vi.fn().mockReturnValue({
+          returning: vi.fn().mockResolvedValue([contributor]),
+        }),
+      }),
+    });
+  }
 
   async function callIdentify(
     body: Record<string, unknown>,
@@ -126,15 +135,9 @@ describe("POST /api/contributor/identify", () => {
     return POST(request as any);
   }
 
-  it("creates a new contributor when not found", async () => {
+  it("creates a new contributor via upsert", async () => {
     const newContributor = { id: "c1", email: "test@example.com", name: null };
-
-    mocks.mockFindFirst.mockResolvedValue(null);
-    mocks.mockInsert.mockReturnValue({
-      values: vi.fn().mockReturnValue({
-        returning: vi.fn().mockResolvedValue([newContributor]),
-      }),
-    });
+    mockUpsertReturning(newContributor);
 
     const response = await callIdentify({
       email: "test@example.com",
@@ -151,14 +154,13 @@ describe("POST /api/contributor/identify", () => {
     expect(mocks.mockSetContributorCookie).toHaveBeenCalledWith(newContributor);
   });
 
-  it("returns existing contributor when found", async () => {
+  it("returns existing contributor via upsert on conflict", async () => {
     const existingContributor = {
       id: "c2",
       email: "existing@example.com",
       name: "Existing User",
     };
-
-    mocks.mockFindFirst.mockResolvedValue(existingContributor);
+    mockUpsertReturning(existingContributor);
 
     const response = await callIdentify({
       email: "existing@example.com",
@@ -172,29 +174,16 @@ describe("POST /api/contributor/identify", () => {
       email: "existing@example.com",
       name: "Existing User",
     });
-    expect(mocks.mockInsert).not.toHaveBeenCalled();
+    expect(mocks.mockInsert).toHaveBeenCalled();
   });
 
-  it("updates name if contributor has none and name is provided", async () => {
-    const existingContributor = {
-      id: "c3",
-      email: "noname@example.com",
-      name: null,
-    };
+  it("upsert fills name via COALESCE when name is provided", async () => {
     const updatedContributor = {
       id: "c3",
       email: "noname@example.com",
       name: "New Name",
     };
-
-    mocks.mockFindFirst.mockResolvedValue(existingContributor);
-    mocks.mockUpdate.mockReturnValue({
-      set: vi.fn().mockReturnValue({
-        where: vi.fn().mockReturnValue({
-          returning: vi.fn().mockResolvedValue([updatedContributor]),
-        }),
-      }),
-    });
+    mockUpsertReturning(updatedContributor);
 
     const response = await callIdentify({
       email: "noname@example.com",
@@ -286,7 +275,9 @@ describe("POST /api/contributor/identify", () => {
     });
 
     it("sets origin to null when request origin is not in base allowed origins", async () => {
-      mocks.mockGetBaseAllowedOrigins.mockReturnValue(["https://app.plaudera.com"]);
+      mocks.mockGetBaseAllowedOrigins.mockReturnValue([
+        "https://app.plaudera.com",
+      ]);
 
       const response = await callIdentify(
         {
@@ -303,13 +294,12 @@ describe("POST /api/contributor/identify", () => {
 
   describe("callerOrigin validation", () => {
     it("accepts and validates callerOrigin when provided", async () => {
-      const newContributor = { id: "c1", email: "test@example.com", name: null };
-      mocks.mockFindFirst.mockResolvedValue(null);
-      mocks.mockInsert.mockReturnValue({
-        values: vi.fn().mockReturnValue({
-          returning: vi.fn().mockResolvedValue([newContributor]),
-        }),
-      });
+      const newContributor = {
+        id: "c1",
+        email: "test@example.com",
+        name: null,
+      };
+      mockUpsertReturning(newContributor);
 
       const response = await callIdentify({
         email: "test@example.com",
@@ -343,13 +333,12 @@ describe("POST /api/contributor/identify", () => {
     });
 
     it("works without callerOrigin (backward compatibility)", async () => {
-      const newContributor = { id: "c1", email: "test@example.com", name: null };
-      mocks.mockFindFirst.mockResolvedValue(null);
-      mocks.mockInsert.mockReturnValue({
-        values: vi.fn().mockReturnValue({
-          returning: vi.fn().mockResolvedValue([newContributor]),
-        }),
-      });
+      const newContributor = {
+        id: "c1",
+        email: "test@example.com",
+        name: null,
+      };
+      mockUpsertReturning(newContributor);
 
       const response = await callIdentify({
         email: "test@example.com",

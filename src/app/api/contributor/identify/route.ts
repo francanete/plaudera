@@ -2,12 +2,16 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { contributors } from "@/lib/db/schema";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { setContributorCookie } from "@/lib/contributor-auth";
 import { handleApiError } from "@/lib/api-utils";
 import { RateLimitError } from "@/lib/errors";
 import { checkIdentifyRateLimit } from "@/lib/contributor-rate-limit";
-import { isWorkspaceOriginAllowed, getWorkspaceCorsHeaders, getBaseAllowedOrigins } from "@/lib/cors";
+import {
+  isWorkspaceOriginAllowed,
+  getWorkspaceCorsHeaders,
+  getBaseAllowedOrigins,
+} from "@/lib/cors";
 
 const identifySchema = z.object({
   email: z.string().email("Invalid email address"),
@@ -70,7 +74,11 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
 
     // Extract raw workspaceId before validation so it's available in catch block
-    if (body && typeof body === "object" && typeof body.workspaceId === "string") {
+    if (
+      body &&
+      typeof body === "object" &&
+      typeof body.workspaceId === "string"
+    ) {
       workspaceId = body.workspaceId;
     }
 
@@ -98,9 +106,16 @@ export async function POST(request: NextRequest) {
 
     // Validate callerOrigin against workspace allowlist if provided
     if (callerOrigin) {
-      const callerAllowed = await isWorkspaceOriginAllowed(callerOrigin, validatedWsId);
+      const callerAllowed = await isWorkspaceOriginAllowed(
+        callerOrigin,
+        validatedWsId
+      );
       if (!callerAllowed) {
-        const corsHeaders = await getWorkspaceCorsHeaders(origin, validatedWsId, "POST, OPTIONS");
+        const corsHeaders = await getWorkspaceCorsHeaders(
+          origin,
+          validatedWsId,
+          "POST, OPTIONS"
+        );
         return NextResponse.json(
           { error: "Caller origin not allowed for this workspace" },
           { status: 403, headers: corsHeaders }
@@ -110,29 +125,24 @@ export async function POST(request: NextRequest) {
 
     const normalizedEmail = email.toLowerCase().trim();
 
-    // Create or find the contributor
-    let contributor = await db.query.contributors.findFirst({
-      where: eq(contributors.email, normalizedEmail),
-    });
-
-    if (!contributor) {
-      const [newContributor] = await db
-        .insert(contributors)
-        .values({
-          email: normalizedEmail,
-          name: name || null,
-        })
-        .returning();
-      contributor = newContributor;
-    } else if (name && !contributor.name) {
-      // Update name if provided and contributor doesn't have one
-      const [updated] = await db
-        .update(contributors)
-        .set({ name })
-        .where(eq(contributors.id, contributor.id))
-        .returning();
-      contributor = updated;
-    }
+    // Create or find the contributor (upsert to avoid race conditions
+    // between concurrent identify calls for the same email)
+    const [contributor] = await db
+      .insert(contributors)
+      .values({
+        email: normalizedEmail,
+        name: name || null,
+      })
+      .onConflictDoUpdate({
+        target: contributors.email,
+        set: {
+          // Only update name if the caller provided one and the existing row has none
+          name: name
+            ? sql`COALESCE(${contributors.name}, ${name})`
+            : sql`${contributors.name}`,
+        },
+      })
+      .returning();
 
     // Set the auth cookie
     await setContributorCookie(contributor);
@@ -162,12 +172,18 @@ export async function POST(request: NextRequest) {
 
       if (workspaceId) {
         // Use the full workspace allowlist for proper CORS on errors
-        corsHeaders = await getWorkspaceCorsHeaders(origin, workspaceId, "POST, OPTIONS");
+        corsHeaders = await getWorkspaceCorsHeaders(
+          origin,
+          workspaceId,
+          "POST, OPTIONS"
+        );
       } else {
         // No workspaceId available (e.g. body parse failed) — fall back to base origins
         const baseOrigins = getBaseAllowedOrigins();
         const normalizedOrigin = origin ? origin : null;
-        const isAllowed = normalizedOrigin ? baseOrigins.includes(normalizedOrigin) : false;
+        const isAllowed = normalizedOrigin
+          ? baseOrigins.includes(normalizedOrigin)
+          : false;
 
         corsHeaders = {
           "Access-Control-Allow-Origin": isAllowed && origin ? origin : "null",
@@ -184,7 +200,10 @@ export async function POST(request: NextRequest) {
     } catch {
       // If CORS header generation itself fails (e.g. DB error), apply safe defaults
       errorResponse.headers.set("Access-Control-Allow-Origin", "null");
-      errorResponse.headers.set("Access-Control-Allow-Methods", "POST, OPTIONS");
+      errorResponse.headers.set(
+        "Access-Control-Allow-Methods",
+        "POST, OPTIONS"
+      );
       errorResponse.headers.set("Access-Control-Allow-Headers", "Content-Type");
       errorResponse.headers.set("Access-Control-Allow-Credentials", "true");
       errorResponse.headers.set("Vary", "Origin");
