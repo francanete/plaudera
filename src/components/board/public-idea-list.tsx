@@ -273,7 +273,7 @@ export function PublicIdeaList({
       <div
         className={cn(
           "mx-auto w-full pt-6 transition-all duration-200",
-          activeView === "roadmap" ? "max-w-6xl" : "max-w-4xl"
+          activeView === "roadmap" ? "max-w-full" : "max-w-4xl"
         )}
       >
         {activeView === "roadmap" ? (
@@ -281,10 +281,10 @@ export function PublicIdeaList({
             <PublicRoadmapListView ideas={roadmapIdeas} />
           ) : (
             <>
-              <div className="block sm:hidden">
+              <div className="block lg:hidden">
                 <PublicRoadmapListView ideas={roadmapIdeas} />
               </div>
-              <div className="hidden sm:block">
+              <div className="hidden lg:block">
                 <RoadmapGroupedView ideas={roadmapIdeas} />
               </div>
             </>

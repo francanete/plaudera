@@ -507,14 +507,6 @@
     pageRules = [];
     showLabel = true;
     eventListeners = {};
-
-    // Restore queueing stub so re-init is possible
-    var stub = function() {
-      (stub.q = stub.q || []).push(arguments);
-    };
-    stub.q = [];
-    stub.l = +new Date();
-    window.Plaudera = stub;
   }
 
   // ============ Init ============

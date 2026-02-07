@@ -54,14 +54,14 @@ export function BoardHeader({
 
           {/* Center: Navigation Tabs (Desktop only) */}
           {onViewChange && (
-            <nav className="hidden items-center gap-1 md:flex">
+            <nav className="hidden items-center rounded-lg border border-slate-200/60 bg-slate-100 p-1 md:flex dark:border-slate-700/50 dark:bg-slate-800/50">
               <button
                 onClick={() => onViewChange("ideas")}
                 className={cn(
-                  "group flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors",
+                  "group flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-all duration-150",
                   activeView === "ideas"
-                    ? "bg-slate-100 text-slate-900 dark:bg-slate-800 dark:text-white"
-                    : "text-slate-500 hover:bg-slate-50 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-white"
+                    ? "border border-slate-200/80 bg-white text-slate-900 shadow-sm dark:border-slate-600 dark:bg-slate-700 dark:text-white"
+                    : "border border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
                 )}
               >
                 <Lightbulb
@@ -77,10 +77,10 @@ export function BoardHeader({
               <button
                 onClick={() => onViewChange("roadmap")}
                 className={cn(
-                  "group flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors",
+                  "group flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-all duration-150",
                   activeView === "roadmap"
-                    ? "bg-slate-100 text-slate-900 dark:bg-slate-800 dark:text-white"
-                    : "text-slate-500 hover:bg-slate-50 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-white"
+                    ? "border border-slate-200/80 bg-white text-slate-900 shadow-sm dark:border-slate-600 dark:bg-slate-700 dark:text-white"
+                    : "border border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
                 )}
               >
                 <Map
