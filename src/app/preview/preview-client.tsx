@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -10,7 +10,6 @@ interface PreviewClientProps {
 }
 
 export function PreviewClient({ workspaceId }: PreviewClientProps) {
-  const scriptRef = useRef<HTMLScriptElement | null>(null);
   const [widgetPosition, setWidgetPosition] = useState<
     "bottom-left" | "bottom-right"
   >("bottom-right");
@@ -30,24 +29,28 @@ export function PreviewClient({ workspaceId }: PreviewClientProps) {
   }, []);
 
   useEffect(() => {
-    // Dynamically inject the widget script
+    // Single script injection: stub + dynamic SDK load (same pattern as customer snippet)
     const script = document.createElement("script");
-    script.src = `${window.location.origin}/widget.js`;
-    script.dataset.workspace = workspaceId;
-    script.async = true;
+    script.textContent = `
+      !function(w,d){var p=w.Plaudera=w.Plaudera||function(){
+        (p.q=p.q||[]).push(arguments)};p.l=+new Date;
+      var s=d.createElement("script");s.async=1;
+      s.src="${window.location.origin}/widget.js";
+      d.head.appendChild(s)}(window,document);
+      Plaudera('init', { workspace: '${workspaceId}' });
+    `;
     document.body.appendChild(script);
-    scriptRef.current = script;
 
     return () => {
-      // Cleanup: remove script and widget elements
-      if (scriptRef.current) {
-        scriptRef.current.remove();
+      // Use SDK destroy for clean teardown
+      const win = window as unknown as Record<string, unknown>;
+      if (typeof win.Plaudera === "function") {
+        (win.Plaudera as (method: string) => void)("destroy");
       }
-      // Remove any widget-created DOM elements
-      const widgetContainer = document.getElementById("plaudera-widget-root");
-      if (widgetContainer) {
-        widgetContainer.remove();
-      }
+      // Remove injected scripts (inline + dynamically-created widget.js)
+      script.remove();
+      const widgetScript = document.querySelector('script[src*="widget.js"]');
+      if (widgetScript) widgetScript.remove();
     };
   }, [workspaceId]);
 
