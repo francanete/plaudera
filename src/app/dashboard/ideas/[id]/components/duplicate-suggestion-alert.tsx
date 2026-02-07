@@ -35,7 +35,6 @@ function getSimilarityBadgeStyles(similarity: number) {
 
 interface DuplicateSuggestionAlertProps {
   suggestions: DuplicateSuggestionForView[];
-  currentIdeaTitle: string;
   loadingStates: Record<string, string>;
   onMerge: (suggestionId: string, keepIdeaId: string) => void;
   onDismiss: (suggestionId: string) => void;
@@ -43,7 +42,6 @@ interface DuplicateSuggestionAlertProps {
 
 export function DuplicateSuggestionAlert({
   suggestions,
-  currentIdeaTitle,
   loadingStates,
   onMerge,
   onDismiss,

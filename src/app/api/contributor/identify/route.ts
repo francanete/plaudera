@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { contributors } from "@/lib/db/schema";
-import { eq, sql } from "drizzle-orm";
+import { sql } from "drizzle-orm";
 import { setContributorCookie } from "@/lib/contributor-auth";
 import { handleApiError } from "@/lib/api-utils";
 import { RateLimitError } from "@/lib/errors";

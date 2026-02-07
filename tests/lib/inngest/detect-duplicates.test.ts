@@ -97,7 +97,7 @@ describe("detectDuplicatesHandler", () => {
     // First call fetches workspaces, subsequent calls process each
     let callCount = 0;
     (step.run as ReturnType<typeof vi.fn>).mockImplementation(
-      (_name: string, fn: () => Promise<unknown>) => {
+      () => {
         callCount++;
         if (callCount === 1) {
           // Return 2 workspaces
@@ -135,7 +135,7 @@ describe("detectDuplicatesHandler", () => {
 
     let callCount = 0;
     (step.run as ReturnType<typeof vi.fn>).mockImplementation(
-      (_name: string, fn: () => Promise<unknown>) => {
+      () => {
         callCount++;
         if (callCount === 1) return Promise.resolve(workspaces);
         return Promise.resolve({ synced: 0, created: 0 });
@@ -160,7 +160,7 @@ describe("detectDuplicatesHandler", () => {
 
     let callCount = 0;
     (step.run as ReturnType<typeof vi.fn>).mockImplementation(
-      (_name: string, fn: () => Promise<unknown>) => {
+      () => {
         callCount++;
         if (callCount === 1) return Promise.resolve(workspaces);
         return Promise.resolve({ synced: 0, created: 0 });
@@ -177,7 +177,7 @@ describe("detectDuplicatesHandler", () => {
 
     let callCount = 0;
     (step.run as ReturnType<typeof vi.fn>).mockImplementation(
-      (_name: string, fn: () => Promise<unknown>) => {
+      () => {
         callCount++;
         if (callCount === 1) {
           return Promise.resolve([

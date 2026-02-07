@@ -180,8 +180,7 @@ export async function updateIdea(
   if (data.title !== undefined || data.description !== undefined) {
     updateIdeaEmbedding(
       updatedIdea.id,
-      updatedIdea.title,
-      updatedIdea.description
+      updatedIdea.title
     ).catch((err) =>
       console.error("Failed to update embedding for idea:", err)
     );

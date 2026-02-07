@@ -61,7 +61,6 @@ export default async function WidgetPage() {
       {workspace ? (
         <WidgetSection
           workspaceId={workspace.id}
-          workspaceSlug={workspace.slug}
           initialPosition={initialPosition}
           initialAllowedOrigins={initialAllowedOrigins}
           initialPageRules={initialPageRules}

@@ -1,7 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Map, ArrowRight } from "lucide-react";
 import Link from "next/link";
-import type { RoadmapStatus } from "@/lib/db/schema";
 import {
   ROADMAP_STATUS_CONFIG,
   VISIBLE_ROADMAP_STATUSES,

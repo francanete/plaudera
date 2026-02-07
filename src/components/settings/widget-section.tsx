@@ -23,7 +23,6 @@ import {
   Route,
   Type,
   Palette,
-  Link as LinkIcon,
   AlertTriangle,
 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
@@ -52,7 +51,6 @@ function normalizeOrigin(origin: string): string | null {
 
 interface WidgetSectionProps {
   workspaceId: string;
-  workspaceSlug: string;
   initialPosition: WidgetPosition;
   initialAllowedOrigins: string[];
   initialPageRules: string[];
@@ -61,7 +59,6 @@ interface WidgetSectionProps {
 
 export function WidgetSection({
   workspaceId,
-  workspaceSlug,
   initialPosition,
   initialAllowedOrigins,
   initialPageRules,

@@ -385,7 +385,6 @@ export function IdeaDetail({
       {dupSuggestions.length > 0 && (
         <DuplicateSuggestionAlert
           suggestions={dupSuggestions}
-          currentIdeaTitle={idea.title}
           loadingStates={dupLoadingStates}
           onMerge={handleDupMergeClick}
           onDismiss={handleDupDismiss}

@@ -399,8 +399,7 @@ describe("idea-updates", () => {
 
       expect(updateIdeaEmbedding).toHaveBeenCalledWith(
         updatedIdea.id,
-        updatedIdea.title,
-        updatedIdea.description
+        updatedIdea.title
       );
     });
 
@@ -417,8 +416,7 @@ describe("idea-updates", () => {
 
       expect(updateIdeaEmbedding).toHaveBeenCalledWith(
         updatedIdea.id,
-        updatedIdea.title,
-        updatedIdea.description
+        updatedIdea.title
       );
     });
 
