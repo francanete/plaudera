@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect, useTransition } from "react";
+import { useState, useCallback, useEffect, useTransition, useRef } from "react";
 import { useContributorLogout } from "@/hooks/use-contributor-logout";
 import { toast } from "sonner";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
@@ -58,6 +58,7 @@ export function EmbedBoard({
   const router = useRouter();
   const pathname = usePathname();
 
+  const verifiedParentOriginRef = useRef<string | null>(null);
   const isAuthenticated = contributor !== null;
 
   // Refresh data after auth/actions
@@ -68,6 +69,10 @@ export function EmbedBoard({
       const data = await res.json();
       setIdeas(
         data.ideas
+          .filter(
+            (idea: CompactIdea & { description?: string }) =>
+              !isOnRoadmap(idea.roadmapStatus)
+          )
           .slice(0, 10)
           .map((idea: CompactIdea & { description?: string }) => ({
             id: idea.id,
@@ -88,6 +93,9 @@ export function EmbedBoard({
   }, [workspaceId]);
 
   // Build callback URL with intent params for post-verification redirect
+  // Redirect to public board (/b/{slug}) instead of embed page, because the
+  // verification link opens in a full browser tab — the embed page looks broken
+  // outside the customer's iframe, while the public board is a proper full-page view.
   const getCallbackUrl = useCallback(() => {
     const params = new URLSearchParams();
     if (pendingAction?.type === "vote") {
@@ -97,8 +105,9 @@ export function EmbedBoard({
       params.set("action", "submit");
     }
     const search = params.toString();
-    return search ? `${pathname}?${search}` : pathname;
-  }, [pathname, pendingAction]);
+    const boardPath = `/b/${workspaceSlug}`;
+    return search ? `${boardPath}?${search}` : boardPath;
+  }, [workspaceSlug, pendingAction]);
 
   // Shared vote execution logic
   const executeVote = useCallback(
@@ -270,28 +279,105 @@ export function EmbedBoard({
   };
 
   // Notify parent window
-  // Security: Use document.referrer to determine parent origin instead of wildcard
+  // Security: Prefer server-verified origin, fall back to document.referrer,
+  // and only use '*' for the non-sensitive ready signal as a last resort.
   const notifyParent = useCallback(
     (message: { type: string; [key: string]: unknown }) => {
-      if (window.parent !== window) {
-        // Get parent origin from referrer for secure messaging
-        // This prevents message leakage to potentially malicious parent frames
-        const parentOrigin = document.referrer
-          ? new URL(document.referrer).origin
-          : null;
+      if (window.parent === window) return;
 
-        if (parentOrigin) {
-          window.parent.postMessage(message, parentOrigin);
-        } else {
-          // Fallback: if no referrer (privacy settings), log but don't send to wildcard
-          console.warn(
-            "[Plaudera] Cannot determine parent origin, skipping postMessage"
-          );
-        }
+      // 1. Prefer the server-verified origin (set after a successful identify call)
+      const verified = verifiedParentOriginRef.current;
+      if (verified) {
+        window.parent.postMessage(message, verified);
+        return;
       }
+
+      // 2. Fall back to document.referrer (works when Referrer-Policy allows it)
+      const referrerOrigin = document.referrer
+        ? new URL(document.referrer).origin
+        : null;
+      if (referrerOrigin) {
+        window.parent.postMessage(message, referrerOrigin);
+        return;
+      }
+
+      // 3. For the non-sensitive ready signal only, use '*' so the parent
+      //    can initiate the identify handshake even without a referrer
+      if (message.type === "plaudera:ready") {
+        window.parent.postMessage(message, "*");
+        return;
+      }
+
+      console.warn(
+        "[Plaudera] Cannot determine parent origin, skipping postMessage"
+      );
     },
     []
   );
+
+  // Emit ready signal to parent when mounted
+  useEffect(() => {
+    notifyParent({ type: "plaudera:ready" });
+  }, [notifyParent]);
+
+  // Listen for incoming messages from parent (e.g. identify)
+  // No document.referrer gate — the server validates callerOrigin against the
+  // workspace's allowlist, so we can safely accept messages from any origin.
+  useEffect(() => {
+    const handleParentMessage = async (event: MessageEvent) => {
+      if (!event.data || typeof event.data !== "object") return;
+
+      if (event.data.type === "plaudera:identify") {
+        const { email, name } = event.data.payload || {};
+        if (!email || typeof email !== "string") return;
+
+        // Skip if already authenticated with the same email
+        if (contributor && contributor.email === email.toLowerCase().trim()) {
+          notifyParent({
+            type: "plaudera:identified",
+            payload: { email: contributor.email, id: contributor.id },
+          });
+          return;
+        }
+
+        try {
+          const res = await fetch("/api/contributor/identify", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              email,
+              name: name || undefined,
+              workspaceId,
+              callerOrigin: event.origin,
+            }),
+          });
+
+          if (!res.ok) {
+            console.error("[EmbedBoard] Trusted identify failed:", res.status);
+            return;
+          }
+
+          const data = await res.json();
+          if (data.contributor) {
+            // Server confirmed this origin is in the workspace allowlist —
+            // safe to use for future postMessage targeting
+            verifiedParentOriginRef.current = event.origin;
+            setContributor(data.contributor);
+            await refreshData();
+            notifyParent({
+              type: "plaudera:identified",
+              payload: data.contributor,
+            });
+          }
+        } catch (error) {
+          console.error("[EmbedBoard] Trusted identify error:", error);
+        }
+      }
+    };
+
+    window.addEventListener("message", handleParentMessage);
+    return () => window.removeEventListener("message", handleParentMessage);
+  }, [contributor, workspaceId, notifyParent, refreshData]);
 
   // Logout handler - uses shared hook for proper cross-origin cookie handling
   const { logout: handleLogout, isLoggingOut } = useContributorLogout({

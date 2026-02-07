@@ -142,7 +142,9 @@ export async function verifyToken(
 /**
  * Create and set the contributor authentication cookie.
  */
-async function setContributorCookie(contributor: Contributor): Promise<void> {
+export async function setContributorCookie(
+  contributor: Contributor
+): Promise<void> {
   const token = await new SignJWT({
     sub: contributor.id,
     email: contributor.email,
