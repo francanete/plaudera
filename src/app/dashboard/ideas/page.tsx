@@ -11,12 +11,7 @@ import { Lightbulb, Plus } from "lucide-react";
 import { DashboardPageHeader } from "@/components/dashboard/dashboard-page-header";
 import { Button } from "@/components/ui/button";
 
-export default async function IdeasPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ create?: string }>;
-}) {
-  const resolvedSearchParams = await searchParams;
+export default async function IdeasPage() {
   const session = await auth.api.getSession({
     headers: await headers(),
   });
@@ -84,7 +79,6 @@ export default async function IdeasPage({
       <IdeasList
         initialIdeas={workspaceIdeas}
         ideasWithDuplicates={Array.from(ideasWithDuplicates)}
-        defaultCreating={resolvedSearchParams.create === "true"}
       />
     </div>
   );

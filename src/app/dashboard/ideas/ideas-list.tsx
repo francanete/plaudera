@@ -1,7 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useMemo, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,18 +27,25 @@ type TabValue = "all" | IdeaStatus;
 interface IdeasListProps {
   initialIdeas: Idea[];
   ideasWithDuplicates?: string[];
-  defaultCreating?: boolean;
 }
 
 export function IdeasList({
   initialIdeas,
   ideasWithDuplicates = [],
-  defaultCreating = false,
 }: IdeasListProps) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [ideas, setIdeas] = useState(initialIdeas);
   const duplicateIdeaIds = new Set(ideasWithDuplicates);
-  const [isCreating, setIsCreating] = useState(defaultCreating);
+  const [isCreating, setIsCreating] = useState(
+    searchParams.get("create") === "true"
+  );
+
+  useEffect(() => {
+    if (searchParams.get("create") === "true") {
+      setIsCreating(true);
+    }
+  }, [searchParams]);
   const [newTitle, setNewTitle] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [activeTab, setActiveTab] = useState<TabValue>("all");
