@@ -1,7 +1,7 @@
 "use client";
 
 import { useTransition, useState, useCallback, useEffect, useRef } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
@@ -51,7 +51,7 @@ export function WorkspaceSlugForm({
     defaultValues: { slug: currentSlug },
   });
 
-  const watchedSlug = form.watch("slug");
+  const watchedSlug = useWatch({ control: form.control, name: "slug" });
 
   const checkAvailability = useCallback(
     (slug: string) => {
