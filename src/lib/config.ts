@@ -175,6 +175,7 @@ export const appConfig: AppConfig = {
           highlighted: false,
         },
       },
+      /** No Growth plan at the moment */
       GROWTH: {
         enabled: false,
         prices: { ltd: 0, monthly: 0, annual: 0 },
@@ -195,6 +196,7 @@ export const appConfig: AppConfig = {
           badge: "Popular",
         },
       },
+      /** No Scale plan at the moment */
       SCALE: {
         enabled: false,
         prices: { ltd: 0, monthly: 0, annual: 0 },
