@@ -1,6 +1,13 @@
 "use client";
 
-import { useTransition, useState, useCallback, useEffect, useRef } from "react";
+import {
+  useTransition,
+  useState,
+  useCallback,
+  useEffect,
+  useRef,
+  type ChangeEvent,
+} from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -100,20 +107,33 @@ export function WorkspaceSlugForm({
     [currentSlug]
   );
 
-  useEffect(() => {
-    if (watchedSlug && watchedSlug !== currentSlug) {
-      checkAvailability(watchedSlug);
-    } else {
-      setAvailability("idle");
-      setAvailabilityError("");
-    }
+  const handleSlugChange = useCallback(
+    (
+      e: ChangeEvent<HTMLInputElement>,
+      fieldOnChange: (e: ChangeEvent<HTMLInputElement>) => void
+    ) => {
+      fieldOnChange(e);
+      const slug = e.target.value;
+      if (slug && slug !== currentSlug) {
+        checkAvailability(slug);
+      } else {
+        setAvailability("idle");
+        setAvailabilityError("");
+        if (debounceRef.current) {
+          clearTimeout(debounceRef.current);
+        }
+      }
+    },
+    [currentSlug, checkAvailability]
+  );
 
+  useEffect(() => {
     return () => {
       if (debounceRef.current) {
         clearTimeout(debounceRef.current);
       }
     };
-  }, [watchedSlug, currentSlug, checkAvailability]);
+  }, []);
 
   function onSubmit(data: FormValues) {
     startTransition(async () => {
@@ -155,6 +175,7 @@ export function WorkspaceSlugForm({
                   <Input
                     placeholder="my-brand"
                     {...field}
+                    onChange={(e) => handleSlugChange(e, field.onChange)}
                     className="border-slate-200 pr-10 pl-9 focus:border-indigo-300 focus:ring-indigo-200"
                   />
                   <div className="absolute inset-y-0 right-0 flex items-center pr-3">
