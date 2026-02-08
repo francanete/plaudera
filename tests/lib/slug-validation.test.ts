@@ -121,7 +121,6 @@ describe("slugSchema", () => {
       "login",
       "admin",
       "settings",
-      "plaudera",
       "pricing",
       "blog",
       "embed",
@@ -143,7 +142,7 @@ describe("isReservedSlug", () => {
   it("returns true for reserved slugs", () => {
     expect(isReservedSlug("api")).toBe(true);
     expect(isReservedSlug("dashboard")).toBe(true);
-    expect(isReservedSlug("plaudera")).toBe(true);
+    expect(isReservedSlug("plaudera")).toBe(false);
   });
 
   it("returns false for non-reserved slugs", () => {

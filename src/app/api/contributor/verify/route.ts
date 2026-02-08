@@ -115,7 +115,7 @@ export async function POST(request: NextRequest) {
       request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
       request.headers.get("x-real-ip") ||
       "unknown";
-    const rateLimitResult = checkEmailRateLimit(ip);
+    const rateLimitResult = await checkEmailRateLimit(ip);
 
     if (!rateLimitResult.allowed) {
       throw new RateLimitError(

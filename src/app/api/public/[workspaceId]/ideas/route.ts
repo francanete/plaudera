@@ -146,7 +146,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     }
 
     // Check rate limit for idea submissions
-    const rateLimitResult = checkIdeaRateLimit(contributor.id);
+    const rateLimitResult = await checkIdeaRateLimit(contributor.id);
     if (!rateLimitResult.allowed) {
       throw new RateLimitError(
         "You've submitted too many ideas. Please try again later.",
