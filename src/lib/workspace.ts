@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { db } from "./db";
 import { workspaces, slugChangeHistory, type Workspace } from "./db/schema";
 import { eq, and, gt, count } from "drizzle-orm";
@@ -7,6 +8,16 @@ import {
   MAX_LIFETIME_SLUG_CHANGES,
   type SlugRateLimitResult,
 } from "./slug-validation";
+
+/**
+ * Fetch a workspace by its public slug. Wrapped in React `cache()` so
+ * multiple calls within the same server-render are deduplicated.
+ */
+export const getWorkspaceBySlug = cache(async (slug: string) => {
+  return db.query.workspaces.findFirst({
+    where: eq(workspaces.slug, slug),
+  });
+});
 
 async function checkSlugChangeRateLimit(
   workspaceId: string

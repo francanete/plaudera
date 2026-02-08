@@ -1,21 +1,14 @@
-import { notFound } from "next/navigation";
-import { Suspense, cache } from "react";
-import { db } from "@/lib/db";
-import { votes, workspaces, boardSettings } from "@/lib/db/schema";
+import { Suspense } from "react";
 import { eq, and, inArray } from "drizzle-orm";
+import { db } from "@/lib/db";
+import { votes } from "@/lib/db/schema";
 import { getContributor } from "@/lib/contributor-auth";
-import { queryPublicIdeas, queryPublicRoadmapIdeas } from "@/lib/idea-queries";
-import { PublicIdeaList } from "@/components/board/public-idea-list";
+import { queryPublicIdeas } from "@/lib/idea-queries";
+import { BoardIdeasView } from "@/components/board/board-ideas-view";
+import { getWorkspaceBySlug } from "@/lib/workspace";
 import type { Metadata } from "next";
 
 type PageProps = { params: Promise<{ slug: string }> };
-
-// Cached to avoid duplicate queries between generateMetadata and page render
-const getWorkspaceBySlug = cache(async (slug: string) => {
-  return db.query.workspaces.findFirst({
-    where: eq(workspaces.slug, slug),
-  });
-});
 
 export async function generateMetadata({
   params,
@@ -37,29 +30,17 @@ export async function generateMetadata({
 
 async function BoardContent({ slug }: { slug: string }) {
   const workspace = await getWorkspaceBySlug(slug);
+  if (!workspace) return null;
 
-  if (!workspace) {
-    notFound();
-  }
-
-  // Check if contributor is authenticated
   const contributor = await getContributor();
 
-  const [workspaceIdeas, roadmapIdeas, boardSettingsRow] = await Promise.all([
-    queryPublicIdeas(workspace.id, { contributorId: contributor?.id }),
-    queryPublicRoadmapIdeas(workspace.id),
-    db.query.boardSettings.findFirst({
-      where: eq(boardSettings.workspaceId, workspace.id),
-      columns: { roadmapDefaultListView: true },
-    }),
-  ]);
+  const ideas = await queryPublicIdeas(workspace.id, {
+    contributorId: contributor?.id,
+  });
 
-  const allIdeas = [...workspaceIdeas, ...roadmapIdeas];
-
-  // If authenticated, get their votes
   let votedIdeaIds: Set<string> = new Set();
-  if (contributor && allIdeas.length > 0) {
-    const ideaIds = allIdeas.map((idea) => idea.id);
+  if (contributor && ideas.length > 0) {
+    const ideaIds = ideas.map((idea) => idea.id);
     const contributorVotes = await db
       .select({ ideaId: votes.ideaId })
       .from(votes)
@@ -72,8 +53,7 @@ async function BoardContent({ slug }: { slug: string }) {
     votedIdeaIds = new Set(contributorVotes.map((v) => v.ideaId));
   }
 
-  // Transform ideas for the client component
-  const ideasWithVoteStatus = allIdeas.map((idea) => ({
+  const ideasWithVoteStatus = ideas.map((idea) => ({
     id: idea.id,
     title: idea.title,
     description: idea.description,
@@ -85,22 +65,10 @@ async function BoardContent({ slug }: { slug: string }) {
     voteCount: idea.voteCount,
     hasVoted: votedIdeaIds.has(idea.id),
     createdAt: idea.createdAt,
-    // Mark if this is the contributor's own submission
     isOwn: contributor ? idea.contributorId === contributor.id : false,
   }));
 
-  return (
-    <PublicIdeaList
-      workspaceName={workspace.name}
-      workspaceDescription={workspace.description}
-      workspaceId={workspace.id}
-      initialIdeas={ideasWithVoteStatus}
-      initialContributor={
-        contributor ? { email: contributor.email, id: contributor.id } : null
-      }
-      roadmapDefaultListView={boardSettingsRow?.roadmapDefaultListView ?? false}
-    />
-  );
+  return <BoardIdeasView initialIdeas={ideasWithVoteStatus} />;
 }
 
 export default async function BoardPage({ params }: PageProps) {
@@ -115,18 +83,8 @@ export default async function BoardPage({ params }: PageProps) {
 
 function BoardSkeleton() {
   return (
-    <div className="space-y-6">
-      {/* Header skeleton - compact */}
-      <div className="flex items-center justify-between gap-4 rounded-xl border border-slate-200 bg-white px-4 py-3 dark:border-slate-700 dark:bg-slate-800">
-        <div className="h-6 w-40 animate-pulse rounded bg-slate-200 dark:bg-slate-700" />
-        <div className="flex items-center gap-2">
-          <div className="h-8 w-28 animate-pulse rounded-full bg-slate-200 dark:bg-slate-700" />
-          <div className="h-8 w-20 animate-pulse rounded-md bg-slate-200 dark:bg-slate-700" />
-        </div>
-      </div>
-
-      {/* Idea cards skeleton */}
-      <div className="space-y-3">
+    <div className="space-y-6 pt-6">
+      <div className="mx-auto max-w-4xl space-y-3">
         {[1, 2, 3].map((i) => (
           <div
             key={i}

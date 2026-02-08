@@ -472,7 +472,7 @@ export function EmbedBoard({
           <ExternalLink className="ml-1 h-3 w-3" />
         </a>
         <a
-          href={`${boardUrl}?view=roadmap`}
+          href={`${boardUrl}/roadmap`}
           target="_blank"
           rel="noopener noreferrer"
           className="text-muted-foreground hover:text-foreground inline-flex items-center text-xs transition-colors"
