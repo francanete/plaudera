@@ -158,7 +158,7 @@ export async function setContributorCookie(
   cookieStore.set(COOKIE_NAME, token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
+    sameSite: "none",
     maxAge: COOKIE_EXPIRY_DAYS * 24 * 60 * 60,
     path: "/",
   });
