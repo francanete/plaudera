@@ -433,7 +433,6 @@ export function RoadmapIdeaDetail({
                   hasChanges={featureDetailsChanged}
                   placeholder="Describe the feature specs, scope, and what you're building..."
                   maxLength={2000}
-                  config={TAB_CONFIG["feature-details"]}
                 />
               </div>
             )}
@@ -447,7 +446,6 @@ export function RoadmapIdeaDetail({
                 hasChanges={publicUpdateChanged}
                 placeholder="Share progress or updates with your users..."
                 maxLength={1000}
-                config={TAB_CONFIG["public-update"]}
               />
             )}
 
@@ -459,7 +457,6 @@ export function RoadmapIdeaDetail({
                 isSaving={false}
                 hasChanges={false}
                 placeholder="No description provided by the contributor."
-                config={TAB_CONFIG.description}
                 readOnly
               />
             )}
@@ -585,7 +582,6 @@ interface ContentFieldProps {
   hasChanges: boolean;
   placeholder: string;
   maxLength?: number;
-  config: (typeof TAB_CONFIG)[TabValue];
   readOnly?: boolean;
 }
 
@@ -597,7 +593,6 @@ function ContentField({
   hasChanges,
   placeholder,
   maxLength,
-  config,
   readOnly,
 }: ContentFieldProps) {
   return (

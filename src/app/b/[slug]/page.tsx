@@ -94,7 +94,6 @@ async function BoardContent({ slug }: { slug: string }) {
       workspaceName={workspace.name}
       workspaceDescription={workspace.description}
       workspaceId={workspace.id}
-      workspaceSlug={workspace.slug}
       initialIdeas={ideasWithVoteStatus}
       initialContributor={
         contributor ? { email: contributor.email, id: contributor.id } : null

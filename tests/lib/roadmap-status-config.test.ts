@@ -4,8 +4,6 @@ import {
   ROADMAP_STATUS_CONFIG,
   isOnRoadmap,
 } from "@/lib/roadmap-status-config";
-import type { RoadmapStatus } from "@/lib/db/schema";
-
 describe("ALL_ROADMAP_STATUSES", () => {
   it("contains all four roadmap statuses", () => {
     expect(ALL_ROADMAP_STATUSES).toHaveLength(4);

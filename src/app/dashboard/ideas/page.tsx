@@ -83,7 +83,6 @@ export default async function IdeasPage({
 
       <IdeasList
         initialIdeas={workspaceIdeas}
-        workspaceSlug={workspace.slug}
         ideasWithDuplicates={Array.from(ideasWithDuplicates)}
         defaultCreating={resolvedSearchParams.create === "true"}
       />

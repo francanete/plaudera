@@ -612,7 +612,6 @@
 
     // Check for legacy data-attribute initialization (backwards compat)
     var legacyScripts = document.querySelectorAll('script[data-workspace]');
-    var legacyHandled = false;
     for (var i = 0; i < legacyScripts.length; i++) {
       var scriptEl = legacyScripts[i];
       var ws = scriptEl.dataset.workspace;
@@ -622,7 +621,6 @@
         var hasInitInQueue = queue.some(function(cmd) { return cmd[0] === 'init'; });
         if (!hasInitInQueue) {
           queue.push(['init', { workspace: ws, position: legacyPosition }]);
-          legacyHandled = true;
           break; // Only handle the first one
         }
       }

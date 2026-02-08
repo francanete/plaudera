@@ -178,11 +178,7 @@ export async function updateIdea(
 
   // Regenerate embedding if title or description changed (fire-and-forget)
   if (data.title !== undefined || data.description !== undefined) {
-    updateIdeaEmbedding(
-      updatedIdea.id,
-      updatedIdea.title,
-      updatedIdea.description
-    ).catch((err) =>
+    updateIdeaEmbedding(updatedIdea.id, updatedIdea.title).catch((err) =>
       console.error("Failed to update embedding for idea:", err)
     );
   }

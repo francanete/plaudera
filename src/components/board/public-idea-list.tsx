@@ -18,7 +18,6 @@ interface PublicIdeaListProps {
   workspaceName: string;
   workspaceDescription: string | null;
   workspaceId: string;
-  workspaceSlug: string;
   initialIdeas: IdeaCardData[];
   initialContributor: { email: string; id: string } | null;
   roadmapDefaultListView: boolean;
@@ -33,7 +32,6 @@ export function PublicIdeaList({
   workspaceName,
   workspaceDescription,
   workspaceId,
-  workspaceSlug: _workspaceSlug,
   initialIdeas,
   initialContributor,
   roadmapDefaultListView,

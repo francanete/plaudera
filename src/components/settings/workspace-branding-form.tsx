@@ -1,6 +1,6 @@
 "use client";
 
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useTransition } from "react";
 import { Button } from "@/components/ui/button";
@@ -31,6 +31,12 @@ export function WorkspaceBrandingForm({
     },
   });
 
+  const watchedName = useWatch({ control: form.control, name: "name" });
+  const watchedDescription = useWatch({
+    control: form.control,
+    name: "description",
+  });
+
   const onSubmit = (data: { name: string; description?: string | null }) => {
     startTransition(async () => {
       const result = await updateWorkspaceBrandingAction(data);
@@ -56,7 +62,7 @@ export function WorkspaceBrandingForm({
         />
         <div className="flex justify-end">
           <p className="text-xs text-slate-400">
-            {form.watch("name").length}/40 characters
+            {watchedName.length}/40 characters
           </p>
         </div>
         {form.formState.errors.name && (
@@ -80,7 +86,7 @@ export function WorkspaceBrandingForm({
         />
         <div className="flex justify-end">
           <p className="text-xs text-slate-400">
-            {(form.watch("description") || "").length}/150 characters
+            {(watchedDescription || "").length}/150 characters
           </p>
         </div>
         {form.formState.errors.description && (

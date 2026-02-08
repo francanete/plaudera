@@ -91,8 +91,8 @@ export const POST = protectedApiRouteWrapper(
       .returning();
 
     // Generate embedding for duplicate detection (fire-and-forget, don't block response)
-    updateIdeaEmbedding(newIdea.id, newIdea.title, newIdea.description).catch(
-      (err) => console.error("Failed to generate embedding for idea:", err)
+    updateIdeaEmbedding(newIdea.id, newIdea.title).catch((err) =>
+      console.error("Failed to generate embedding for idea:", err)
     );
 
     return NextResponse.json(

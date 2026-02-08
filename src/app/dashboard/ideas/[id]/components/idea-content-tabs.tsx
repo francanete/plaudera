@@ -135,7 +135,6 @@ export function IdeaContentTabs({
               hasChanges={hasDescriptionChanges}
               placeholder="Add a description of this idea..."
               maxLength={1000}
-              config={TAB_CONFIG.description}
             />
           </div>
         )}
@@ -149,7 +148,6 @@ export function IdeaContentTabs({
             hasChanges={hasPublicUpdateChanges}
             placeholder="Share progress or updates with your users..."
             maxLength={1000}
-            config={TAB_CONFIG["public-update"]}
           />
         )}
       </div>
@@ -165,7 +163,6 @@ interface ContentFieldProps {
   hasChanges: boolean;
   placeholder: string;
   maxLength?: number;
-  config: (typeof TAB_CONFIG)[TabValue];
 }
 
 function ContentField({
@@ -176,7 +173,6 @@ function ContentField({
   hasChanges,
   placeholder,
   maxLength,
-  config,
 }: ContentFieldProps) {
   return (
     <div className="space-y-4">

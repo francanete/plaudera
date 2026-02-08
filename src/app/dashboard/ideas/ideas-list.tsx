@@ -26,14 +26,12 @@ type TabValue = "all" | IdeaStatus;
 
 interface IdeasListProps {
   initialIdeas: Idea[];
-  workspaceSlug: string;
   ideasWithDuplicates?: string[];
   defaultCreating?: boolean;
 }
 
 export function IdeasList({
   initialIdeas,
-  workspaceSlug,
   ideasWithDuplicates = [],
   defaultCreating = false,
 }: IdeasListProps) {
