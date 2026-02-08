@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { AuthStatusPill } from "./auth-status-pill";
 import { Plus, Lightbulb, Map, Mail } from "lucide-react";
@@ -15,7 +16,7 @@ interface BoardHeaderProps {
   onLogout?: () => Promise<void>;
   onLogin?: () => void;
   activeView?: BoardView;
-  onViewChange?: (view: BoardView) => void;
+  slug?: string;
 }
 
 export function BoardHeader({
@@ -26,8 +27,11 @@ export function BoardHeader({
   onLogout,
   onLogin,
   activeView = "ideas",
-  onViewChange,
+  slug,
 }: BoardHeaderProps) {
+  const ideasHref = slug ? `/b/${slug}` : "#";
+  const roadmapHref = slug ? `/b/${slug}/roadmap` : "#";
+
   return (
     <header className="sticky top-0 z-50 w-full bg-white/80 backdrop-blur-md dark:bg-slate-900/80">
       {/* Main Header Row */}
@@ -53,10 +57,11 @@ export function BoardHeader({
           </div>
 
           {/* Center: Navigation Tabs (Desktop only) */}
-          {onViewChange && (
+          {slug && (
             <nav className="hidden items-center rounded-lg border border-slate-200/60 bg-slate-100 p-1 md:flex dark:border-slate-700/50 dark:bg-slate-800/50">
-              <button
-                onClick={() => onViewChange("ideas")}
+              <Link
+                href={ideasHref}
+                prefetch
                 className={cn(
                   "group flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-all duration-150",
                   activeView === "ideas"
@@ -73,9 +78,10 @@ export function BoardHeader({
                   )}
                 />
                 Ideas
-              </button>
-              <button
-                onClick={() => onViewChange("roadmap")}
+              </Link>
+              <Link
+                href={roadmapHref}
+                prefetch
                 className={cn(
                   "group flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-all duration-150",
                   activeView === "roadmap"
@@ -92,7 +98,7 @@ export function BoardHeader({
                   )}
                 />
                 Roadmap
-              </button>
+              </Link>
             </nav>
           )}
 
@@ -144,11 +150,12 @@ export function BoardHeader({
       </div>
 
       {/* Mobile Navigation Tabs */}
-      {onViewChange && (
+      {slug && (
         <div className="border-b border-slate-200 md:hidden dark:border-slate-700">
           <nav className="flex items-center gap-1 p-2">
-            <button
-              onClick={() => onViewChange("ideas")}
+            <Link
+              href={ideasHref}
+              prefetch
               className={cn(
                 "flex flex-1 items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium transition-colors",
                 activeView === "ideas"
@@ -158,9 +165,10 @@ export function BoardHeader({
             >
               <Lightbulb className="h-4 w-4" />
               Ideas
-            </button>
-            <button
-              onClick={() => onViewChange("roadmap")}
+            </Link>
+            <Link
+              href={roadmapHref}
+              prefetch
               className={cn(
                 "flex flex-1 items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium transition-colors",
                 activeView === "roadmap"
@@ -170,7 +178,7 @@ export function BoardHeader({
             >
               <Map className="h-4 w-4" />
               Roadmap
-            </button>
+            </Link>
           </nav>
         </div>
       )}
