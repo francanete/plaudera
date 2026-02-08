@@ -40,14 +40,14 @@ export default function GlobalError({
           <div className="flex gap-3">
             <button
               onClick={reset}
-              className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+              className="bg-primary text-primary-foreground hover:bg-primary/90 rounded-md px-4 py-2 text-sm font-medium"
             >
               Try again
             </button>
             {/* eslint-disable-next-line @next/next/no-html-link-for-pages -- Router may be broken when global error boundary activates */}
             <a
               href="/"
-              className="rounded-md border border-input bg-background px-4 py-2 text-sm font-medium hover:bg-accent hover:text-accent-foreground"
+              className="border-input bg-background hover:bg-accent hover:text-accent-foreground rounded-md border px-4 py-2 text-sm font-medium"
             >
               Go home
             </a>
