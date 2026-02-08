@@ -33,7 +33,7 @@ export async function generateMetadata({
 
   if (!post) {
     return {
-      title: `Post Not Found | ${appConfig.name}`,
+      title: "Post Not Found",
     };
   }
 
@@ -41,7 +41,7 @@ export async function generateMetadata({
   const postUrl = `${baseUrl}/blog/${slug}`;
 
   return {
-    title: `${post.title} | ${appConfig.name}`,
+    title: post.title,
     description: post.description,
     alternates: {
       canonical: postUrl,
