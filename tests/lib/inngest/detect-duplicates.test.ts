@@ -96,24 +96,22 @@ describe("detectDuplicatesHandler", () => {
 
     // First call fetches workspaces, subsequent calls process each
     let callCount = 0;
-    (step.run as ReturnType<typeof vi.fn>).mockImplementation(
-      () => {
-        callCount++;
-        if (callCount === 1) {
-          // Return 2 workspaces
-          return Promise.resolve([
-            { id: "ws-1", ideaCount: 10 },
-            { id: "ws-2", ideaCount: 8 },
-          ]);
-        }
-        if (callCount === 2) {
-          // First workspace throws
-          return Promise.reject(new Error("API rate limit"));
-        }
-        // Second workspace succeeds
-        return Promise.resolve({ synced: 2, created: 1 });
+    (step.run as ReturnType<typeof vi.fn>).mockImplementation(() => {
+      callCount++;
+      if (callCount === 1) {
+        // Return 2 workspaces
+        return Promise.resolve([
+          { id: "ws-1", ideaCount: 10 },
+          { id: "ws-2", ideaCount: 8 },
+        ]);
       }
-    );
+      if (callCount === 2) {
+        // First workspace throws
+        return Promise.reject(new Error("API rate limit"));
+      }
+      // Second workspace succeeds
+      return Promise.resolve({ synced: 2, created: 1 });
+    });
 
     const result = await detectDuplicatesHandler(step);
 
@@ -134,13 +132,11 @@ describe("detectDuplicatesHandler", () => {
     }));
 
     let callCount = 0;
-    (step.run as ReturnType<typeof vi.fn>).mockImplementation(
-      () => {
-        callCount++;
-        if (callCount === 1) return Promise.resolve(workspaces);
-        return Promise.resolve({ synced: 0, created: 0 });
-      }
-    );
+    (step.run as ReturnType<typeof vi.fn>).mockImplementation(() => {
+      callCount++;
+      if (callCount === 1) return Promise.resolve(workspaces);
+      return Promise.resolve({ synced: 0, created: 0 });
+    });
 
     await detectDuplicatesHandler(step);
 
@@ -159,13 +155,11 @@ describe("detectDuplicatesHandler", () => {
     }));
 
     let callCount = 0;
-    (step.run as ReturnType<typeof vi.fn>).mockImplementation(
-      () => {
-        callCount++;
-        if (callCount === 1) return Promise.resolve(workspaces);
-        return Promise.resolve({ synced: 0, created: 0 });
-      }
-    );
+    (step.run as ReturnType<typeof vi.fn>).mockImplementation(() => {
+      callCount++;
+      if (callCount === 1) return Promise.resolve(workspaces);
+      return Promise.resolve({ synced: 0, created: 0 });
+    });
 
     await detectDuplicatesHandler(step);
 
@@ -176,22 +170,20 @@ describe("detectDuplicatesHandler", () => {
     const step = createMockStep();
 
     let callCount = 0;
-    (step.run as ReturnType<typeof vi.fn>).mockImplementation(
-      () => {
-        callCount++;
-        if (callCount === 1) {
-          return Promise.resolve([
-            { id: "ws-1", ideaCount: 10 },
-            { id: "ws-2", ideaCount: 15 },
-            { id: "ws-3", ideaCount: 7 },
-          ]);
-        }
-        // Each workspace returns different counts
-        if (callCount === 2) return Promise.resolve({ synced: 5, created: 2 });
-        if (callCount === 3) return Promise.resolve({ synced: 0, created: 3 });
-        return Promise.resolve({ synced: 1, created: 0 });
+    (step.run as ReturnType<typeof vi.fn>).mockImplementation(() => {
+      callCount++;
+      if (callCount === 1) {
+        return Promise.resolve([
+          { id: "ws-1", ideaCount: 10 },
+          { id: "ws-2", ideaCount: 15 },
+          { id: "ws-3", ideaCount: 7 },
+        ]);
       }
-    );
+      // Each workspace returns different counts
+      if (callCount === 2) return Promise.resolve({ synced: 5, created: 2 });
+      if (callCount === 3) return Promise.resolve({ synced: 0, created: 3 });
+      return Promise.resolve({ synced: 1, created: 0 });
+    });
 
     const result = await detectDuplicatesHandler(step);
 

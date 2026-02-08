@@ -32,7 +32,10 @@ export function WorkspaceBrandingForm({
   });
 
   const watchedName = useWatch({ control: form.control, name: "name" });
-  const watchedDescription = useWatch({ control: form.control, name: "description" });
+  const watchedDescription = useWatch({
+    control: form.control,
+    name: "description",
+  });
 
   const onSubmit = (data: { name: string; description?: string | null }) => {
     startTransition(async () => {
