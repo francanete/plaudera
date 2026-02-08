@@ -94,7 +94,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     }
 
     // Check rate limit for voting
-    const rateLimitResult = checkVoteRateLimit(contributor.id);
+    const rateLimitResult = await checkVoteRateLimit(contributor.id);
     if (!rateLimitResult.allowed) {
       throw new RateLimitError(
         "You're voting too quickly. Please slow down.",

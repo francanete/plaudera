@@ -49,8 +49,7 @@ const RESERVED_SLUGS = new Set([
   "robots",
   "sitemap",
   "favicon",
-  // Brand
-  "plaudera",
+  // Brand (none currently)
 ]);
 
 export const slugSchema = z

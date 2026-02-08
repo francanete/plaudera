@@ -99,12 +99,12 @@ export async function checkAIRateLimit(
     };
   } catch (error) {
     console.error("AI rate limit check failed:", error);
-    // Fail open - allow request if database unavailable
+    // Fail closed - block request if database unavailable
     return {
-      success: true,
-      remaining: 999,
+      success: false,
+      remaining: 0,
       resetAt: getNextDayStart(),
-      limit: 999,
+      limit: 0,
     };
   }
 }

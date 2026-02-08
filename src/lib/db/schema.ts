@@ -817,3 +817,13 @@ export type NewSlugChangeHistory = typeof slugChangeHistory.$inferInsert;
 export type RoadmapStatus = (typeof roadmapStatusEnum.enumValues)[number];
 export type RoadmapStatusChange = typeof roadmapStatusChanges.$inferSelect;
 export type NewRoadmapStatusChange = typeof roadmapStatusChanges.$inferInsert;
+
+// ============ Rate Limiting ============
+export const rateLimits = pgTable("rate_limits", {
+  key: text("key").primaryKey(),
+  count: integer("count").notNull().default(0),
+  windowStart: timestamp("window_start", { withTimezone: true }).notNull(),
+});
+
+export type RateLimit = typeof rateLimits.$inferSelect;
+export type NewRateLimit = typeof rateLimits.$inferInsert;
