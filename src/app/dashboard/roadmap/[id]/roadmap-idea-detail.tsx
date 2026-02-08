@@ -5,6 +5,8 @@ import Link from "next/link";
 import { toast } from "sonner";
 import {
   ArrowLeft,
+  Check,
+  ChevronDown,
   Clock,
   ChevronRight,
   ThumbsUp,
@@ -17,12 +19,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   Collapsible,
   CollapsibleContent,
@@ -71,6 +72,21 @@ const TAB_CONFIG: Record<
     visibilityText: "Board · Roadmap (fallback)",
     helpText:
       "The original idea submitted by the contributor. Read-only reference.",
+  },
+};
+
+const ROADMAP_ICON_COLORS: Record<string, { bg: string; text: string }> = {
+  PLANNED: {
+    bg: "bg-blue-100 dark:bg-blue-900/50",
+    text: "text-blue-600 dark:text-blue-400",
+  },
+  IN_PROGRESS: {
+    bg: "bg-amber-100 dark:bg-amber-900/50",
+    text: "text-amber-600 dark:text-amber-400",
+  },
+  RELEASED: {
+    bg: "bg-green-100 dark:bg-green-900/50",
+    text: "text-green-600 dark:text-green-400",
   },
 };
 
@@ -343,39 +359,55 @@ export function RoadmapIdeaDetail({
         />
 
         {/* Roadmap Status Selector */}
-        <Select
-          value={idea.roadmapStatus}
-          onValueChange={(value) =>
-            handleRoadmapStatusChange(value as RoadmapStatus)
-          }
-        >
-          <SelectTrigger className="w-[200px]">
-            <SelectValue>
-              {(() => {
-                const currentConfig = ROADMAP_STATUS_CONFIG[idea.roadmapStatus];
-                const CurrentIcon = currentConfig.icon;
-                return (
-                  <>
-                    <CurrentIcon className="h-4 w-4" />
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            {(() => {
+              const currentConfig = ROADMAP_STATUS_CONFIG[idea.roadmapStatus];
+              const CurrentIcon = currentConfig.icon;
+              const currentColors =
+                ROADMAP_ICON_COLORS[idea.roadmapStatus] ??
+                ROADMAP_ICON_COLORS.PLANNED;
+              return (
+                <button className="group border-border bg-background hover:border-muted-foreground/30 inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-left transition-all hover:shadow-sm">
+                  <span
+                    className={`flex h-5 w-5 items-center justify-center rounded-full ${currentColors.bg}`}
+                  >
+                    <CurrentIcon className={`h-3 w-3 ${currentColors.text}`} />
+                  </span>
+                  <span className="text-foreground text-sm font-medium">
                     {currentConfig.label}
-                  </>
-                );
-              })()}
-            </SelectValue>
-          </SelectTrigger>
-          <SelectContent>
+                  </span>
+                  <ChevronDown className="text-muted-foreground h-3.5 w-3.5 transition-transform group-data-[state=open]:rotate-180" />
+                </button>
+              );
+            })()}
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start" className="min-w-[180px]">
             {VISIBLE_ROADMAP_STATUSES.map((status) => {
               const config = ROADMAP_STATUS_CONFIG[status];
               const Icon = config.icon;
+              const colors = ROADMAP_ICON_COLORS[status];
+              const isSelected = status === idea.roadmapStatus;
               return (
-                <SelectItem key={status} value={status}>
-                  <Icon className="h-4 w-4" />
-                  {config.label}
-                </SelectItem>
+                <DropdownMenuItem
+                  key={status}
+                  onClick={() => handleRoadmapStatusChange(status)}
+                  className="gap-2"
+                >
+                  <span
+                    className={`flex h-5 w-5 items-center justify-center rounded-full ${colors.bg}`}
+                  >
+                    <Icon className={`h-3 w-3 ${colors.text}`} />
+                  </span>
+                  <span className="flex-1">{config.label}</span>
+                  {isSelected && (
+                    <Check className="text-muted-foreground h-4 w-4" />
+                  )}
+                </DropdownMenuItem>
               );
             })}
-          </SelectContent>
-        </Select>
+          </DropdownMenuContent>
+        </DropdownMenu>
 
         {/* Content Tabs */}
         <div className="w-full">
