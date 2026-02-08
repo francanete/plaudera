@@ -175,6 +175,7 @@ export const appConfig: AppConfig = {
           highlighted: false,
         },
       },
+      /** No Growth plan at the moment */
       GROWTH: {
         enabled: false,
         prices: { ltd: 0, monthly: 0, annual: 0 },
@@ -195,6 +196,7 @@ export const appConfig: AppConfig = {
           badge: "Popular",
         },
       },
+      /** No Scale plan at the moment */
       SCALE: {
         enabled: false,
         prices: { ltd: 0, monthly: 0, annual: 0 },
@@ -290,18 +292,19 @@ export const appConfig: AppConfig = {
   seo: {
     siteUrl: process.env.NEXT_PUBLIC_APP_URL || "https://yourdomain.com",
     title: {
-      default: "Plaudera - Build Your SaaS Faster",
+      default: "Plaudera - Customer Feedback Made Simple",
       template: "%s | Plaudera",
     },
     description:
-      "A modern, production-ready SaaS boilerplate with authentication, payments, AI integration, and everything you need to launch.",
+      "Collect, organize, and prioritize customer feedback with public boards, embeddable widgets, and AI-powered duplicate detection.",
     keywords: [
-      "SaaS boilerplate",
-      "Next.js template",
-      "React SaaS",
-      "authentication",
-      "payments",
-      "AI integration",
+      "customer feedback",
+      "feedback board",
+      "feature requests",
+      "product feedback",
+      "embeddable widget",
+      "duplicate detection",
+      "public roadmap",
     ],
     openGraph: {
       type: "website" as const,
