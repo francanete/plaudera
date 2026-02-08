@@ -1,23 +1,14 @@
 import type { Metadata } from "next";
-import { cache } from "react";
 import { notFound } from "next/navigation";
-import { eq } from "drizzle-orm";
 import { appConfig } from "@/lib/config";
-import { db } from "@/lib/db";
-import { workspaces } from "@/lib/db/schema";
 import { getContributor } from "@/lib/contributor-auth";
+import { getWorkspaceBySlug } from "@/lib/workspace";
 import { BoardLayoutClient } from "./board-layout-client";
 
 type LayoutProps = {
   children: React.ReactNode;
   params: Promise<{ slug: string }>;
 };
-
-export const getWorkspaceBySlug = cache(async (slug: string) => {
-  return db.query.workspaces.findFirst({
-    where: eq(workspaces.slug, slug),
-  });
-});
 
 export const metadata: Metadata = {
   title: {

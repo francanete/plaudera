@@ -5,7 +5,7 @@ import { votes } from "@/lib/db/schema";
 import { getContributor } from "@/lib/contributor-auth";
 import { queryPublicIdeas } from "@/lib/idea-queries";
 import { BoardIdeasView } from "@/components/board/board-ideas-view";
-import { getWorkspaceBySlug } from "./layout";
+import { getWorkspaceBySlug } from "@/lib/workspace";
 import type { Metadata } from "next";
 
 type PageProps = { params: Promise<{ slug: string }> };

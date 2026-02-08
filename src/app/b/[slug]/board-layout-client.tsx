@@ -91,6 +91,7 @@ export function BoardLayoutClient({
     const handleVerificationCallback = async () => {
       if (verified === "true") {
         await refreshData();
+        router.refresh();
 
         if (action === "vote" && ideaId) {
           await handleVoteAfterAuth(ideaId);

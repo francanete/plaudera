@@ -5,7 +5,7 @@ import { boardSettings } from "@/lib/db/schema";
 import { queryPublicRoadmapIdeas } from "@/lib/idea-queries";
 import { RoadmapGroupedView } from "@/components/board/roadmap-grouped-view";
 import { PublicRoadmapListView } from "@/components/board/public-roadmap-list-view";
-import { getWorkspaceBySlug } from "../layout";
+import { getWorkspaceBySlug } from "@/lib/workspace";
 import type { Metadata } from "next";
 
 type PageProps = { params: Promise<{ slug: string }> };
