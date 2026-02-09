@@ -9,6 +9,7 @@ import {
   LayoutPanelLeft,
   Copy,
   Code2,
+  LifeBuoy,
 } from "lucide-react";
 import { PlauderaLogo } from "@/components/plaudera-logo";
 import {
@@ -108,6 +109,20 @@ export function AppSidebar({
       </SidebarContent>
 
       <SidebarFooter>
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton asChild>
+              <a
+                href={`https://tally.so/r/44x8rY?ref=plaudera&email=${encodeURIComponent(user.email)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <LifeBuoy />
+                <span>Support</span>
+              </a>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        </SidebarMenu>
         <NavUser
           user={user}
           plan={plan}
