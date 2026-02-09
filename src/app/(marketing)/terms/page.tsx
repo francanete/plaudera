@@ -97,10 +97,105 @@ export default function TermsPage() {
               <h2 className="mb-4 text-xl font-semibold text-slate-900">
                 Payments
               </h2>
-              <p className="text-slate-600">
+              <p className="mb-3 text-slate-600">
                 Paid plans are billed in advance. You can cancel anytime and
                 retain access until the end of your billing period. Refunds are
                 handled on a case-by-case basis.
+              </p>
+              <p className="text-slate-600">
+                Lifetime Deal plans are one-time payments granting ongoing
+                access as described in the Lifetime Deal Plans section below.
+                All prices are in the currency displayed at checkout and
+                include applicable taxes where required by law.
+              </p>
+            </section>
+
+            {/* Lifetime Deal */}
+            <section>
+              <h2 className="mb-4 text-xl font-semibold text-slate-900">
+                Lifetime Deal Plans
+              </h2>
+              <p className="mb-3 text-slate-600">
+                A &ldquo;Lifetime Deal&rdquo; (&ldquo;LTD&rdquo;) grants you
+                access to the features included in your plan at the time of
+                purchase for the lifetime of the service, with no recurring
+                fees. &ldquo;Lifetime&rdquo; means the operational lifetime of{" "}
+                {name}, not the lifetime of the purchaser.
+              </p>
+              <p className="mb-3 text-slate-600">
+                LTD plans include all updates, improvements, and bug fixes to
+                the features available in your plan tier at the time of
+                purchase. However, we reserve the right to introduce new
+                products, modules, or substantially new features that are
+                beyond the scope of your original plan as separate paid
+                add-ons or higher-tier offerings. We will clearly communicate
+                what is included and what is not.
+              </p>
+              <p className="mb-3 text-slate-600">
+                We may discontinue the {name} service at any time with at
+                least 90 days&apos; prior written notice. In the event of
+                permanent discontinuation, no refund is owed provided you
+                have had access for at least 12 months from the date of
+                purchase.
+              </p>
+              <p className="text-slate-600">
+                LTD plans are non-transferable and limited to one workspace
+                per purchase unless otherwise stated. Resale of LTD access
+                is prohibited.
+              </p>
+            </section>
+
+            {/* Fair Use Policy */}
+            <section>
+              <h2 className="mb-4 text-xl font-semibold text-slate-900">
+                Fair Use Policy
+              </h2>
+              <p className="mb-3 text-slate-600">
+                All plans, including Lifetime Deal plans, are subject to a
+                fair use policy. {name} is designed for normal business use
+                by individuals and teams collecting customer feedback. You
+                agree to use the service in a manner consistent with its
+                intended purpose and within reasonable usage levels.
+              </p>
+              <p className="mb-3 text-slate-600">
+                Fair use limits apply to resources that incur ongoing
+                operational costs to us, including but not limited to: AI
+                feature requests, API calls, storage, and email
+                notifications. Specific limits are described on your plan
+                page and may be updated from time to time with reasonable
+                notice.
+              </p>
+              <p className="mb-3 text-slate-600">
+                Examples of usage that may exceed fair use include, but are
+                not limited to:
+              </p>
+              <ul className="mb-3 list-disc space-y-1 pl-6 text-slate-600">
+                <li>
+                  Automated or programmatic submissions designed to
+                  overwhelm the service
+                </li>
+                <li>
+                  Using the service primarily as a data storage or hosting
+                  platform rather than for its intended feedback collection
+                  purpose
+                </li>
+                <li>
+                  Sharing account credentials with multiple parties beyond
+                  your authorised team
+                </li>
+                <li>
+                  Operating multiple workspaces under separate accounts to
+                  circumvent plan limits
+                </li>
+              </ul>
+              <p className="text-slate-600">
+                If we determine that your usage materially exceeds fair use,
+                we will contact you to discuss your needs. If excessive usage
+                continues after notice, we reserve the right to throttle
+                service access, require an upgrade to a higher plan, or, as
+                a last resort, suspend your account. We will always provide
+                at least 14 days&apos; written notice before taking any
+                restrictive action.
               </p>
             </section>
 

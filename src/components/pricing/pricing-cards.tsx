@@ -219,7 +219,7 @@ function PricingCard({
               isHighlighted ? "text-slate-500" : "text-slate-400"
             )}
           >
-            30-day money-back guarantee
+            14-day money-back guarantee
           </p>
         )}
       </div>
