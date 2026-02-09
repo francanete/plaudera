@@ -5,8 +5,8 @@ export function LtdBanner() {
     <div className="bg-primary text-primary-foreground py-2.5 text-center text-sm">
       <div className="container mx-auto flex items-center justify-center gap-3 px-4">
         <span>
-          <strong>Limited Time Offer:</strong> Get lifetime access to Plaudera
-          — pay once, use forever.
+          <strong>Limited Time Offer:</strong> Get lifetime access to Plaudera —
+          pay once, use forever.
         </span>
         <Link
           href="/pricing"

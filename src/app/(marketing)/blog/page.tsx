@@ -36,8 +36,8 @@ export default function BlogPage() {
             </h1>
 
             <p className="mx-auto mb-6 max-w-2xl text-lg leading-relaxed text-slate-600">
-              Learn how to collect better feedback, prioritize what matters,
-              and build products your customers love.
+              Learn how to collect better feedback, prioritize what matters, and
+              build products your customers love.
             </p>
 
             {/* TODO: Implement category filtering
