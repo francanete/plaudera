@@ -13,7 +13,7 @@ const polarProductIdsByEnv: Record<
 > = {
   sandbox: {
     STARTER: {
-      ltd: "3b0a067d-7bc3-45ae-a321-76e221b8d761",
+      ltd: "4c29a488-12be-417f-945a-a56e11c38da7",
       monthly: "09b7c379-03f4-45de-af9a-79af85d695ac",
       annual: "94dae15a-fb93-449a-bd50-e4aa1cdbcae2",
     },
@@ -22,7 +22,7 @@ const polarProductIdsByEnv: Record<
   },
   production: {
     STARTER: {
-      ltd: "", // TODO: Add production ID
+      ltd: "3b0a067d-7bc3-45ae-a321-76e221b8d761",
       monthly: "ecaed00a-eede-49cb-9354-c6cad0923ba7",
       annual: "c4b18ec4-7889-4c7f-8ad9-37cb8259702f",
     },
