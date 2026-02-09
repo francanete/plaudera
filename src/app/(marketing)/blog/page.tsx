@@ -7,7 +7,7 @@ import { seo } from "@/lib/seo";
 
 export const metadata: Metadata = seo.page({
   title: "Blog",
-  description: `Latest news, tutorials, and updates from ${appConfig.name}.`,
+  description: `Tips, guides, and insights on collecting customer feedback and building better products with ${appConfig.name}.`,
   path: "/blog",
 });
 
@@ -29,15 +29,15 @@ export default function BlogPage() {
         <div className="container mx-auto px-4 md:px-6">
           <div className="mx-auto max-w-4xl text-center">
             <h1 className="mb-4 text-4xl font-extrabold tracking-tight text-slate-900 md:text-5xl lg:text-6xl">
-              Insights, updates, <br className="hidden md:block" />
+              Tips, guides, <br className="hidden md:block" />
               <span className="from-primary to-primary/60 bg-linear-to-r bg-clip-text text-transparent">
-                and stories.
+                and feedback insights.
               </span>
             </h1>
 
             <p className="mx-auto mb-6 max-w-2xl text-lg leading-relaxed text-slate-600">
-              Discover the latest news, tutorials, and engineering deep dives
-              from our team. Stay ahead of the curve with expert insights.
+              Learn how to collect better feedback, prioritize what matters, and
+              build products your customers love.
             </p>
 
             {/* TODO: Implement category filtering

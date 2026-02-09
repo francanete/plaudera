@@ -120,7 +120,7 @@ export function HeroSection({ className }: HeroSectionProps) {
                 className="h-12 rounded-full bg-slate-900 px-8 text-base font-semibold text-white shadow-lg shadow-slate-900/20 transition-all hover:-translate-y-0.5 hover:bg-slate-800 hover:shadow-xl hover:shadow-slate-900/30"
               >
                 <Link href="/signup">
-                  Start free trial
+                  Get lifetime access
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Link>
               </Button>
@@ -147,7 +147,7 @@ export function HeroSection({ className }: HeroSectionProps) {
             >
               <div className="flex items-center gap-2">
                 <CheckCircle2 className="h-4 w-4 text-slate-400" />
-                <span>Start free trial</span>
+                <span>One-time payment</span>
               </div>
               <div className="flex items-center gap-2">
                 <CheckCircle2 className="h-4 w-4 text-slate-400" />

@@ -13,7 +13,7 @@ const polarProductIdsByEnv: Record<
 > = {
   sandbox: {
     STARTER: {
-      ltd: "",
+      ltd: "4c29a488-12be-417f-945a-a56e11c38da7",
       monthly: "09b7c379-03f4-45de-af9a-79af85d695ac",
       annual: "94dae15a-fb93-449a-bd50-e4aa1cdbcae2",
     },
@@ -22,7 +22,7 @@ const polarProductIdsByEnv: Record<
   },
   production: {
     STARTER: {
-      ltd: "", // TODO: Add production ID
+      ltd: "3b0a067d-7bc3-45ae-a321-76e221b8d761",
       monthly: "ecaed00a-eede-49cb-9354-c6cad0923ba7",
       annual: "c4b18ec4-7889-4c7f-8ad9-37cb8259702f",
     },
@@ -149,13 +149,13 @@ export const appConfig: AppConfig = {
     twitterHandle: "@plauderaapp",
   },
   pricing: {
-    mode: "subscription" as const, // "subscription" | "ltd"
+    mode: "ltd" as const, // "subscription" | "ltd"
     allowFreePlan: false, // Show free plan on pricing page & allow FREE users in dashboard
     tiers: {
       STARTER: {
         enabled: true,
-        prices: { ltd: 6700, monthly: 1900, annual: 19000 },
-        originalPrices: { ltd: 9900, monthly: 1900, annual: 22800 },
+        prices: { ltd: 4900, monthly: 1900, annual: 19000 },
+        originalPrices: { ltd: 19900, monthly: 1900, annual: 22800 },
         polarProductIds: polarProductIds.STARTER,
         marketing: {
           name: "Starter",
@@ -163,13 +163,13 @@ export const appConfig: AppConfig = {
             "Everything you need to collect and manage customer feedback",
           features: [
             "Public feedback board with custom URL",
+            "Public roadmap",
             "Embeddable widget for any website",
             "AI-powered duplicate detection",
             "Unlimited idea submissions",
             "Contributor voting system",
             "Dashboard analytics",
             "Widget customization (position, colors, page rules)",
-            "AI insights chat",
           ],
           cta: "GET STARTED",
           highlighted: false,
@@ -191,7 +191,7 @@ export const appConfig: AppConfig = {
             "API access",
             "Dedicated account manager",
           ],
-          cta: "Start Free Trial",
+          cta: "Get Lifetime Access",
           highlighted: true,
           badge: "Popular",
         },
@@ -232,11 +232,7 @@ export const appConfig: AppConfig = {
     } satisfies TierMarketing,
 
     /** Extra features for LTD plans (appended to tier features) */
-    ltdExtraFeatures: [
-      "Lifetime access to all features",
-      "All future updates included",
-      "No recurring fees ever",
-    ],
+    ltdExtraFeatures: ["No recurring fees ever"],
 
     /** Rate limits per plan. null = unlimited */
     rateLimits: {
@@ -287,7 +283,7 @@ export const appConfig: AppConfig = {
       minimumAge: 18,
       jurisdiction: "England and Wales",
     },
-    lastUpdated: "January 2025",
+    lastUpdated: "February 2026",
   },
   seo: {
     siteUrl: process.env.NEXT_PUBLIC_APP_URL || "https://yourdomain.com",
