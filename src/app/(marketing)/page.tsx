@@ -12,6 +12,7 @@ import { HeroSection } from "@/components/hero/hero-section";
 import { BenefitComparison } from "@/components/benefit-comparison/benefit-comparison";
 import { PricingSection } from "@/components/pricing/pricing-section";
 import { HowItWorksSection } from "@/components/how-it-works/how-it-works-section";
+import { LtdBanner } from "@/components/ltd-banner";
 
 export const metadata: Metadata = seo.page({
   title: "Customer Feedback Tool & Feature Request Board",
@@ -26,6 +27,7 @@ export default function HomePage() {
       <OrganizationJsonLd />
       <WebSiteJsonLd />
       <SoftwareApplicationJsonLd />
+      <LtdBanner />
       <div className="flex flex-col">
         {/* Hero */}
         <HeroSection />
