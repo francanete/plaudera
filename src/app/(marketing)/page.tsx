@@ -56,7 +56,7 @@ export default function HomePage() {
               minutes.
             </p>
             <Button size="lg" asChild>
-              <Link href="/signup">Start free trial</Link>
+              <Link href="/signup">Get lifetime access</Link>
             </Button>
           </div>
         </section>

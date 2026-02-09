@@ -355,7 +355,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
             </h2>
             <p className="mx-auto mb-10 max-w-2xl text-lg text-slate-300 md:text-xl">
               Join thousands of teams who use {appConfig.name} to build better
-              products faster. Start your 14-day free trial today.
+              products faster. Get lifetime access today.
             </p>
             <div className="flex flex-col items-center justify-center gap-4 sm:flex-row">
               <Button

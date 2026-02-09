@@ -191,7 +191,7 @@ export const appConfig: AppConfig = {
             "API access",
             "Dedicated account manager",
           ],
-          cta: "Start Free Trial",
+          cta: "Get Lifetime Access",
           highlighted: true,
           badge: "Popular",
         },
