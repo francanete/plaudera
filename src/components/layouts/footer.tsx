@@ -13,6 +13,26 @@ const footerSections = [
     ],
   },
   {
+    title: "Community",
+    links: [
+      {
+        name: "Contact",
+        href: appConfig.legal.company.contactLink,
+        external: true,
+      },
+      {
+        name: "Submit Feature",
+        href: "https://plaudera.com/b/plaudera",
+        external: true,
+      },
+      {
+        name: "Roadmap",
+        href: "https://plaudera.com/b/plaudera/roadmap",
+        external: true,
+      },
+    ],
+  },
+  {
     title: "Legal",
     links: [
       { name: "Privacy Policy", href: "/privacy" },
@@ -25,7 +45,7 @@ export function Footer() {
   return (
     <footer className="border-t border-gray-100 bg-white">
       <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8 lg:py-16">
-        <div className="grid grid-cols-1 gap-12 md:grid-cols-2 lg:grid-cols-4 lg:gap-8">
+        <div className="grid grid-cols-1 gap-12 md:grid-cols-2 lg:grid-cols-5 lg:gap-8">
           {/* Brand Column - Takes up 2 columns on large screens */}
           <div className="space-y-8 lg:col-span-2">
             <div className="flex items-center space-x-2">
@@ -79,12 +99,23 @@ export function Footer() {
               <ul className="space-y-3">
                 {section.links.map((link) => (
                   <li key={link.name}>
-                    <Link
-                      href={link.href}
-                      className="text-sm text-gray-500 transition-colors duration-200 hover:text-blue-600"
-                    >
-                      {link.name}
-                    </Link>
+                    {"external" in link && link.external ? (
+                      <a
+                        href={link.href}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-sm text-gray-500 transition-colors duration-200 hover:text-blue-600"
+                      >
+                        {link.name}
+                      </a>
+                    ) : (
+                      <Link
+                        href={link.href}
+                        className="text-sm text-gray-500 transition-colors duration-200 hover:text-blue-600"
+                      >
+                        {link.name}
+                      </Link>
+                    )}
                   </li>
                 ))}
               </ul>
