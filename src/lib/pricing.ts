@@ -215,8 +215,8 @@ export function getPricingPlans(): PlanDisplay[] {
     };
   });
 
-  // Only include free plan if allowed
-  if (appConfig.pricing.allowFreePlan) {
+  // Only include free plan if paid access is not required
+  if (!appConfig.pricing.requirePaidAccess) {
     return [freePlan, ...paidPlans];
   }
 

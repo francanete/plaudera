@@ -3,7 +3,7 @@ import { headers } from "next/headers";
 import { db, ideas } from "@/lib/db";
 import { eq, sql, desc, and, ne } from "drizzle-orm";
 import { Lightbulb, ChevronUp, Calendar, AlertCircle } from "lucide-react";
-import { getUserWorkspace } from "@/lib/workspace";
+import { getUserWorkspace, getBoardUrl } from "@/lib/workspace";
 import { PublicBoardCard } from "@/components/dashboard/public-board-card";
 import { DashboardPageHeader } from "@/components/dashboard/dashboard-page-header";
 import { StatsCard } from "@/components/dashboard/stats-card";
@@ -160,9 +160,7 @@ export default async function DashboardPage() {
     },
   ];
 
-  const boardUrl = workspace
-    ? `${appConfig.seo.siteUrl}/b/${workspace.slug}`
-    : null;
+  const boardUrl = workspace ? getBoardUrl(workspace.slug) : null;
 
   return (
     <div className="space-y-8">

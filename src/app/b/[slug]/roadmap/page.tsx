@@ -5,7 +5,7 @@ import { boardSettings } from "@/lib/db/schema";
 import { queryPublicRoadmapIdeas } from "@/lib/idea-queries";
 import { RoadmapGroupedView } from "@/components/board/roadmap-grouped-view";
 import { PublicRoadmapListView } from "@/components/board/public-roadmap-list-view";
-import { getWorkspaceBySlug } from "@/lib/workspace";
+import { getWorkspaceBySlug, getBoardUrl } from "@/lib/workspace";
 import type { Metadata } from "next";
 
 type PageProps = { params: Promise<{ slug: string }> };
@@ -23,6 +23,9 @@ export async function generateMetadata({
   return {
     title: `Roadmap - ${workspace.name}`,
     description: `See what's planned, in progress, and completed for ${workspace.name}`,
+    alternates: {
+      canonical: `${getBoardUrl(slug)}/roadmap`,
+    },
   };
 }
 

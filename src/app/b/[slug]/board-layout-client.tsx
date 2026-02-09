@@ -20,6 +20,7 @@ interface BoardLayoutClientProps {
   workspaceName: string;
   workspaceDescription: string | null;
   workspaceId: string;
+  isSubdomain: boolean;
   initialContributor: { email: string; id: string } | null;
   children: React.ReactNode;
 }
@@ -29,6 +30,7 @@ export function BoardLayoutClient({
   workspaceName,
   workspaceDescription,
   workspaceId,
+  isSubdomain,
   initialContributor,
   children,
 }: BoardLayoutClientProps) {
@@ -192,6 +194,7 @@ export function BoardLayoutClient({
           onLogin={handleLogin}
           activeView={activeView}
           slug={slug}
+          isSubdomain={isSubdomain}
         />
       </div>
 
@@ -199,6 +202,7 @@ export function BoardLayoutClient({
         value={{
           contributor,
           workspaceId,
+          isSubdomain,
           requireAuth: handleRequireAuth,
         }}
       >

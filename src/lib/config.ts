@@ -82,7 +82,8 @@ export type AppConfig = {
   };
   pricing: {
     mode: "subscription" | "ltd";
-    allowFreePlan: boolean;
+    /** Whether paid access is required to use the dashboard */
+    requirePaidAccess: boolean;
     tiers: Record<PaidTier, TierConfig>;
     freeMarketing: TierMarketing;
     ltdExtraFeatures: string[];
@@ -150,7 +151,7 @@ export const appConfig: AppConfig = {
   },
   pricing: {
     mode: "ltd" as const, // "subscription" | "ltd"
-    allowFreePlan: false, // Show free plan on pricing page & allow FREE users in dashboard
+    requirePaidAccess: true, // Gate free users from dashboard & hide free plan on pricing page
     tiers: {
       STARTER: {
         enabled: true,

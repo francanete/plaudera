@@ -38,6 +38,12 @@ const RESERVED_SLUGS = new Set([
   "app",
   "www",
   "mail",
+  "ftp",
+  "smtp",
+  "imap",
+  "pop",
+  "ns1",
+  "ns2",
   // Technical
   "static",
   "assets",

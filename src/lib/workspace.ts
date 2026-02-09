@@ -10,6 +10,23 @@ import {
 } from "./slug-validation";
 
 /**
+ * Get the public board URL for a workspace slug.
+ * Returns the subdomain URL (e.g. https://acme.plaudera.com) in production,
+ * or falls back to the /b/ path format.
+ */
+export function getBoardUrl(slug: string): string {
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL;
+  if (!appUrl) return `/b/${slug}`;
+
+  try {
+    const url = new URL(appUrl);
+    return `${url.protocol}//${slug}.${url.host}`;
+  } catch {
+    return `/b/${slug}`;
+  }
+}
+
+/**
  * Fetch a workspace by its public slug. Wrapped in React `cache()` so
  * multiple calls within the same server-render are deduplicated.
  */

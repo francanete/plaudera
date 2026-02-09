@@ -5,6 +5,7 @@ import { createContext, useContext } from "react";
 interface BoardContextValue {
   contributor: { email: string; id: string } | null;
   workspaceId: string;
+  isSubdomain: boolean;
   requireAuth: (
     action: { type: "vote"; ideaId: string } | { type: "submit" }
   ) => void;

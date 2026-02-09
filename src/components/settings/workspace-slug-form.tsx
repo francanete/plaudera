@@ -156,7 +156,14 @@ export function WorkspaceSlugForm({
   const remainingChanges = maxChanges - changesUsed;
   const isUnchanged = watchedSlug === currentSlug;
 
-  const previewUrl = `${appUrl}/b/${watchedSlug || "your-slug"}`;
+  const slugPreview = watchedSlug || "your-slug";
+  let previewUrl: string;
+  try {
+    const parsedUrl = new URL(appUrl);
+    previewUrl = `${parsedUrl.protocol}//${slugPreview}.${parsedUrl.host}`;
+  } catch {
+    previewUrl = `${appUrl}/b/${slugPreview}`;
+  }
 
   return (
     <Form {...form}>
