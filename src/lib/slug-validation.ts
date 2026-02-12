@@ -55,6 +55,27 @@ const RESERVED_SLUGS = new Set([
   "robots",
   "sitemap",
   "favicon",
+  // Infrastructure subdomains
+  "mx",
+  "mx1",
+  "mx2",
+  "cdn",
+  "vpn",
+  "staging",
+  "test",
+  "demo",
+  "autodiscover",
+  "autoconfig",
+  "localhost",
+  "dev",
+  "proxy",
+  "relay",
+  "webmail",
+  "cpanel",
+  "whm",
+  "plesk",
+  "ns3",
+  "ns4",
   // Brand (none currently)
 ]);
 

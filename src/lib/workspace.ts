@@ -11,19 +11,16 @@ import {
 
 /**
  * Get the public board URL for a workspace slug.
- * Returns the subdomain URL (e.g. https://acme.plaudera.com) in production,
- * or falls back to the /b/ path format.
+ * Returns the subdomain URL (e.g. https://acme.plaudera.com).
+ * Throws if NEXT_PUBLIC_APP_URL is not set.
  */
 export function getBoardUrl(slug: string): string {
   const appUrl = process.env.NEXT_PUBLIC_APP_URL;
-  if (!appUrl) return `/b/${slug}`;
-
-  try {
-    const url = new URL(appUrl);
-    return `${url.protocol}//${slug}.${url.host}`;
-  } catch {
-    return `/b/${slug}`;
+  if (!appUrl) {
+    throw new Error("NEXT_PUBLIC_APP_URL is required for subdomain URLs");
   }
+  const url = new URL(appUrl);
+  return `${url.protocol}//${slug}.${url.host}`;
 }
 
 /**

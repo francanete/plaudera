@@ -17,6 +17,9 @@ vi.mock("@/hooks/use-contributor-logout", () => ({
   }),
 }));
 
+// Set required env var for getBoardUrl (used by EmbedBoard internally)
+vi.stubEnv("NEXT_PUBLIC_APP_URL", "https://plaudera.com");
+
 describe("EmbedBoard - Login Button", () => {
   const mockProps = {
     workspaceName: "Test Workspace",

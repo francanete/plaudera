@@ -133,11 +133,6 @@ export async function isWorkspaceOriginAllowed(
     return true;
   }
 
-  // Auto-allow subdomains of the app's root domain
-  if (isAppSubdomain(normalizedOrigin)) {
-    return true;
-  }
-
   // Check workspace-specific allowlist from database
   const settings = await db.query.widgetSettings.findFirst({
     where: eq(widgetSettings.workspaceId, workspaceId),
@@ -164,11 +159,6 @@ export async function isOriginAllowedGlobally(
   // Check base origins first (app's own origin, dev localhost)
   const baseOrigins = getBaseAllowedOrigins();
   if (baseOrigins.includes(normalizedOrigin)) {
-    return true;
-  }
-
-  // Auto-allow subdomains of the app's root domain
-  if (isAppSubdomain(normalizedOrigin)) {
     return true;
   }
 
