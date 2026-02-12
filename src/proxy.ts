@@ -130,8 +130,18 @@ export async function proxy(req: NextRequest) {
     // Query subscription (single DB query per request)
     const subscription = await getSubscriptionStatus(session.user.id);
 
+    // Bypass paid gate for checkout success page:
+    // User just completed payment via Polar redirect but the webhook/sync
+    // may not have arrived yet. The success page itself is harmless (no app
+    // features) and handles sync via a client-side server action call.
+    const isPostCheckout = path === "/checkout/success";
+
     // Check paid access requirement
-    if (REQUIRE_PAID_ACCESS && subscription.plan === "FREE") {
+    if (
+      REQUIRE_PAID_ACCESS &&
+      subscription.plan === "FREE" &&
+      !isPostCheckout
+    ) {
       return NextResponse.redirect(new URL("/gate", req.nextUrl));
     }
 

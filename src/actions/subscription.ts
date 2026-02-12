@@ -1,7 +1,11 @@
 "use server";
 
 import { getCurrentSession } from "@/lib/dal";
-import { syncWithPolar, hasPaidAccess } from "@/lib/subscription";
+import {
+  syncWithPolar,
+  syncWithCustomerToken,
+  hasPaidAccess,
+} from "@/lib/subscription";
 
 export type SyncSubscriptionResult = {
   success: boolean;
@@ -11,9 +15,12 @@ export type SyncSubscriptionResult = {
 
 /**
  * Sync subscription from Polar API and check paid access.
- * Used on checkout success page to immediately update subscription status.
+ * When customerSessionToken is provided, uses the Customer Portal API for instant sync.
+ * Falls back to admin API if token is missing or Customer Portal API fails.
  */
-export async function syncSubscriptionAction(): Promise<SyncSubscriptionResult> {
+export async function syncSubscriptionAction(
+  customerSessionToken?: string
+): Promise<SyncSubscriptionResult> {
   const session = await getCurrentSession();
 
   if (!session?.user) {
@@ -25,6 +32,19 @@ export async function syncSubscriptionAction(): Promise<SyncSubscriptionResult> 
   }
 
   try {
+    if (customerSessionToken) {
+      try {
+        await syncWithCustomerToken(session.user.id, customerSessionToken);
+        const canAccess = await hasPaidAccess(session.user.id);
+        return { success: true, canAccessDashboard: canAccess };
+      } catch (portalError) {
+        console.error(
+          "Customer Portal API error, falling back to admin API:",
+          portalError
+        );
+      }
+    }
+
     await syncWithPolar(session.user.id);
     const canAccess = await hasPaidAccess(session.user.id);
     return { success: true, canAccessDashboard: canAccess };
