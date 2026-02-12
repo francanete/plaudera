@@ -175,7 +175,12 @@ export const auth = betterAuth({
               );
             }
 
-            // Resolve or create user (handles guest checkout)
+            if (!customer.externalId) {
+              console.warn(
+                `Polar webhook: Order ${order.id} missing externalId for customer ${customer.id} (${customer.email}) - falling back to user resolution`
+              );
+            }
+
             const userId = await resolveOrCreateUser({
               id: customer.id,
               externalId: customer.externalId,
@@ -206,7 +211,12 @@ export const auth = betterAuth({
               );
             }
 
-            // Resolve or create user (handles guest checkout)
+            if (!customer.externalId) {
+              console.warn(
+                `Polar webhook: Subscription ${subscription.id} missing externalId for customer ${customer.id} (${customer.email}) - falling back to user resolution`
+              );
+            }
+
             const userId = await resolveOrCreateUser({
               id: customer.id,
               externalId: customer.externalId,
