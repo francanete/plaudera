@@ -16,7 +16,7 @@ import {
   isOnRoadmap,
 } from "@/lib/roadmap-status-config";
 import { appConfig } from "@/lib/config";
-import { getBoardUrl } from "@/lib/workspace";
+import { getBoardUrl } from "@/lib/board-url";
 
 type PendingAction =
   | { type: "vote"; ideaId: string }
