@@ -77,6 +77,7 @@ const RESERVED_SLUGS = new Set([
   "ns3",
   "ns4",
   // Brand (none currently)
+  "plaudera",
 ]);
 
 export const slugSchema = z
