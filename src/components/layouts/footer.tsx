@@ -22,12 +22,12 @@ const footerSections = [
       },
       {
         name: "Submit Feature",
-        href: "https://plaudera.com/b/plaudera",
+        href: "https://feedback.plaudera.com",
         external: true,
       },
       {
         name: "Roadmap",
-        href: "https://plaudera.com/b/plaudera/roadmap",
+        href: "https://feedback.plaudera.com/roadmap",
         external: true,
       },
     ],
