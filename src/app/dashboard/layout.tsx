@@ -23,7 +23,7 @@ import {
 } from "@/components/ui/sidebar";
 import { IdentifyUser } from "@/components/analytics/identify-user";
 
-const REQUIRE_PAID_ACCESS = !appConfig.pricing.allowFreePlan;
+const REQUIRE_PAID_ACCESS = appConfig.pricing.requirePaidAccess;
 
 export default async function DashboardLayout({
   children,

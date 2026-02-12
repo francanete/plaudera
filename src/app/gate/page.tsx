@@ -10,7 +10,7 @@ export const metadata: Metadata = {
   description: "Choose a plan to access your dashboard",
 };
 
-const REQUIRE_PAID_ACCESS = !appConfig.pricing.allowFreePlan;
+const REQUIRE_PAID_ACCESS = appConfig.pricing.requirePaidAccess;
 
 export default async function GatePage() {
   // proxy.ts handles most redirects, these are minimal fallbacks

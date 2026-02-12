@@ -54,6 +54,23 @@ export function validateOrigins(origins: string[]): string[] {
 // ============ Per-Workspace CORS (DB-based) ============
 
 /**
+ * Check if an origin is a subdomain of the app's root domain.
+ * e.g. "https://acme.plaudera.com" is a subdomain of "plaudera.com"
+ */
+export function isAppSubdomain(origin: string): boolean {
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL;
+  if (!appUrl) return false;
+
+  try {
+    const originHost = new URL(origin).hostname;
+    const appHost = new URL(appUrl).hostname;
+    return originHost.endsWith(`.${appHost}`) && originHost !== appHost;
+  } catch {
+    return false;
+  }
+}
+
+/**
  * Get the base allowed origins (app's own origin + dev localhost).
  * These are always allowed regardless of workspace configuration.
  */

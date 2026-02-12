@@ -142,7 +142,7 @@ describe("isReservedSlug", () => {
   it("returns true for reserved slugs", () => {
     expect(isReservedSlug("api")).toBe(true);
     expect(isReservedSlug("dashboard")).toBe(true);
-    expect(isReservedSlug("plaudera")).toBe(false);
+    expect(isReservedSlug("plaudera")).toBe(true);
   });
 
   it("returns false for non-reserved slugs", () => {

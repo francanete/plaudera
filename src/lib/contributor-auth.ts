@@ -155,13 +155,28 @@ export async function setContributorCookie(
     .sign(getJwtSecret());
 
   const cookieStore = await cookies();
-  cookieStore.set(COOKIE_NAME, token, {
+  const cookieOptions: Parameters<typeof cookieStore.set>[2] = {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "none",
     maxAge: COOKIE_EXPIRY_DAYS * 24 * 60 * 60,
     path: "/",
-  });
+  };
+
+  // Set domain to root domain so cookie works across subdomains
+  if (
+    process.env.NODE_ENV === "production" &&
+    process.env.NEXT_PUBLIC_APP_URL
+  ) {
+    try {
+      const rootDomain = new URL(process.env.NEXT_PUBLIC_APP_URL).hostname;
+      cookieOptions.domain = `.${rootDomain}`;
+    } catch {
+      // Fall through without domain if URL is invalid
+    }
+  }
+
+  cookieStore.set(COOKIE_NAME, token, cookieOptions);
 }
 
 /**
@@ -215,5 +230,19 @@ export async function getContributor(): Promise<Contributor | null> {
  */
 export async function clearContributorCookie(): Promise<void> {
   const cookieStore = await cookies();
-  cookieStore.delete(COOKIE_NAME);
+  const deleteOptions: { path: string; domain?: string } = { path: "/" };
+
+  if (
+    process.env.NODE_ENV === "production" &&
+    process.env.NEXT_PUBLIC_APP_URL
+  ) {
+    try {
+      const rootDomain = new URL(process.env.NEXT_PUBLIC_APP_URL).hostname;
+      deleteOptions.domain = `.${rootDomain}`;
+    } catch {
+      // Fall through without domain
+    }
+  }
+
+  cookieStore.delete({ name: COOKIE_NAME, ...deleteOptions });
 }

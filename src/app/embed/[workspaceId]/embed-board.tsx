@@ -16,6 +16,7 @@ import {
   isOnRoadmap,
 } from "@/lib/roadmap-status-config";
 import { appConfig } from "@/lib/config";
+import { getBoardUrl } from "@/lib/workspace";
 
 type PendingAction =
   | { type: "vote"; ideaId: string }
@@ -395,7 +396,7 @@ export function EmbedBoard({
     notifyParent({ type: "plaudera:submitted" });
   };
 
-  const boardUrl = `${appConfig.seo.siteUrl}/b/${workspaceSlug}`;
+  const boardUrl = getBoardUrl(workspaceSlug);
 
   return (
     <div className="flex h-full flex-col">

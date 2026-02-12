@@ -17,6 +17,7 @@ interface BoardHeaderProps {
   onLogin?: () => void;
   activeView?: BoardView;
   slug?: string;
+  isSubdomain?: boolean;
 }
 
 export function BoardHeader({
@@ -28,9 +29,14 @@ export function BoardHeader({
   onLogin,
   activeView = "ideas",
   slug,
+  isSubdomain = false,
 }: BoardHeaderProps) {
-  const ideasHref = slug ? `/b/${slug}` : "#";
-  const roadmapHref = slug ? `/b/${slug}/roadmap` : "#";
+  const ideasHref = slug ? (isSubdomain ? "/" : `/b/${slug}`) : "#";
+  const roadmapHref = slug
+    ? isSubdomain
+      ? "/roadmap"
+      : `/b/${slug}/roadmap`
+    : "#";
 
   return (
     <header className="sticky top-0 z-50 w-full bg-white/80 backdrop-blur-md dark:bg-slate-900/80">

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { headers } from "next/headers";
 import { appConfig } from "@/lib/config";
 import { getContributor } from "@/lib/contributor-auth";
 import { getWorkspaceBySlug } from "@/lib/workspace";
@@ -27,6 +28,8 @@ export default async function BoardLayout({ children, params }: LayoutProps) {
   }
 
   const contributor = await getContributor();
+  const headersList = await headers();
+  const isSubdomain = headersList.get("x-is-subdomain") === "true";
 
   return (
     <div className="flex min-h-screen flex-col bg-slate-50 dark:bg-slate-900">
@@ -36,6 +39,7 @@ export default async function BoardLayout({ children, params }: LayoutProps) {
           workspaceName={workspace.name}
           workspaceDescription={workspace.description}
           workspaceId={workspace.id}
+          isSubdomain={isSubdomain}
           initialContributor={
             contributor
               ? { email: contributor.email, id: contributor.id }
