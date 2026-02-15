@@ -34,7 +34,11 @@ export async function syncSubscriptionAction(
   try {
     if (customerSessionToken) {
       try {
-        await syncWithCustomerToken(session.user.id, customerSessionToken);
+        await syncWithCustomerToken(
+          session.user.id,
+          customerSessionToken,
+          session.user.email
+        );
         const canAccess = await hasPaidAccess(session.user.id);
         return { success: true, canAccessDashboard: canAccess };
       } catch (portalError) {
