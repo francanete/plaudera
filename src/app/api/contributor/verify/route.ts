@@ -4,7 +4,7 @@ import { sendVerificationEmail, verifyToken } from "@/lib/contributor-auth";
 import { handleApiError } from "@/lib/api-utils";
 import { BadRequestError, RateLimitError } from "@/lib/errors";
 import { checkEmailRateLimit } from "@/lib/contributor-rate-limit";
-import { getWorkspaceCorsHeaders } from "@/lib/cors";
+import { getWorkspaceCorsHeaders, isWorkspaceOriginAllowed } from "@/lib/cors";
 
 /**
  * Extract workspace ID from a callback URL like "/embed/{workspaceId}" or "/embed/{workspaceId}?params"
@@ -40,7 +40,24 @@ export async function OPTIONS(request: NextRequest) {
 const sendVerificationSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
   callbackUrl: z.string().min(1, "Callback URL is required"),
+  workspaceId: z.string().min(1, "Workspace ID is required").optional(),
 });
+
+function resolveWorkspaceId(
+  explicitWorkspaceId: string | undefined,
+  callbackUrl: string
+): string {
+  if (explicitWorkspaceId) {
+    return explicitWorkspaceId;
+  }
+
+  const extractedWorkspaceId = extractWorkspaceId(callbackUrl);
+  if (!extractedWorkspaceId) {
+    throw new BadRequestError("Workspace ID is required");
+  }
+
+  return extractedWorkspaceId;
+}
 
 /**
  * Validate that a callback URL is safe (same-origin or relative path).
@@ -126,41 +143,35 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { email, callbackUrl } = sendVerificationSchema.parse(body);
+    const {
+      email,
+      callbackUrl,
+      workspaceId: explicitWorkspaceId,
+    } = sendVerificationSchema.parse(body);
+    const workspaceId = resolveWorkspaceId(explicitWorkspaceId, callbackUrl);
 
-    // Extract workspace ID from callbackUrl for CORS validation
-    const workspaceId = extractWorkspaceId(callbackUrl);
+    const corsHeaders = await getWorkspaceCorsHeaders(
+      origin,
+      workspaceId,
+      "GET, POST, OPTIONS"
+    );
 
-    // If we can identify the workspace, use workspace-aware CORS
-    let corsHeaders: Record<string, string>;
-    if (workspaceId) {
-      corsHeaders = await getWorkspaceCorsHeaders(
-        origin,
-        workspaceId,
-        "GET, POST, OPTIONS"
+    const originAllowed = await isWorkspaceOriginAllowed(origin, workspaceId);
+    if (!originAllowed) {
+      return NextResponse.json(
+        { success: false, error: "Origin not allowed for this workspace" },
+        { status: 403, headers: corsHeaders }
       );
-    } else {
-      // Fallback: allow app's own origin only (for direct access from our app)
-      const appOrigin = process.env.NEXT_PUBLIC_APP_URL
-        ? new URL(process.env.NEXT_PUBLIC_APP_URL).origin
-        : null;
-      const isAllowed =
-        origin === appOrigin ||
-        (process.env.NODE_ENV === "development" &&
-          origin?.startsWith("http://localhost"));
-
-      corsHeaders = {
-        "Access-Control-Allow-Origin": isAllowed && origin ? origin : "null",
-        "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-        "Access-Control-Allow-Headers": "Content-Type",
-        Vary: "Origin",
-      };
     }
 
     // Sanitize callback URL before use
     const safeCallbackUrl = sanitizeCallbackUrl(callbackUrl);
 
-    const result = await sendVerificationEmail(email, safeCallbackUrl);
+    const result = await sendVerificationEmail(
+      email,
+      safeCallbackUrl,
+      workspaceId
+    );
     return NextResponse.json(result, { headers: corsHeaders });
   } catch (error) {
     // For errors, try to extract workspace from body if possible

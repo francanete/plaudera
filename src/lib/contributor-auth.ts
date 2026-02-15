@@ -1,5 +1,10 @@
 import { db } from "./db";
-import { contributors, contributorTokens, type Contributor } from "./db/schema";
+import {
+  contributors,
+  contributorTokens,
+  contributorWorkspaceMemberships,
+  type Contributor,
+} from "./db/schema";
 import { eq, and, gt } from "drizzle-orm";
 import { cookies } from "next/headers";
 import { SignJWT, jwtVerify } from "jose";
@@ -27,20 +32,26 @@ function generateToken(): string {
   return createId() + createId(); // 48 chars, cryptographically random
 }
 
+function normalizeEmail(email: string): string {
+  return email.toLowerCase().trim();
+}
+
 /**
  * Send a verification email to a contributor.
  * Creates a token in the database and sends an email with the verification link.
  */
 export async function sendVerificationEmail(
   email: string,
-  callbackUrl: string
+  callbackUrl: string,
+  workspaceId: string
 ): Promise<{ success: boolean; message: string }> {
-  const normalizedEmail = email.toLowerCase().trim();
+  const normalizedEmail = normalizeEmail(email);
   const token = generateToken();
   const expiresAt = new Date(Date.now() + TOKEN_EXPIRY_MINUTES * 60 * 1000);
 
   // Store the token in the database
   await db.insert(contributorTokens).values({
+    workspaceId,
     email: normalizedEmail,
     token,
     expiresAt,
@@ -115,7 +126,7 @@ export async function verifyToken(
     return null;
   }
 
-  const normalizedEmail = tokenRecord.email.toLowerCase().trim();
+  const normalizedEmail = normalizeEmail(tokenRecord.email);
 
   // Create or find the contributor
   let contributor = await db.query.contributors.findFirst({
@@ -132,6 +143,12 @@ export async function verifyToken(
 
   // Delete the used token
   await db.delete(contributorTokens).where(eq(contributorTokens.token, token));
+
+  // Grant contributor access to this workspace
+  await ensureContributorWorkspaceMembership(
+    contributor.id,
+    tokenRecord.workspaceId
+  );
 
   // Set the authentication cookie
   await setContributorCookie(contributor);
@@ -223,6 +240,30 @@ export async function getContributor(): Promise<Contributor | null> {
   });
 
   return contributor || null;
+}
+
+export async function ensureContributorWorkspaceMembership(
+  contributorId: string,
+  workspaceId: string
+): Promise<void> {
+  await db
+    .insert(contributorWorkspaceMemberships)
+    .values({ contributorId, workspaceId })
+    .onConflictDoNothing();
+}
+
+export async function hasContributorWorkspaceMembership(
+  contributorId: string,
+  workspaceId: string
+): Promise<boolean> {
+  const membership = await db.query.contributorWorkspaceMemberships.findFirst({
+    where: and(
+      eq(contributorWorkspaceMemberships.contributorId, contributorId),
+      eq(contributorWorkspaceMemberships.workspaceId, workspaceId)
+    ),
+  });
+
+  return !!membership;
 }
 
 /**

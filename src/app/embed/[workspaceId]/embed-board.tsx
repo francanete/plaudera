@@ -491,6 +491,7 @@ export function EmbedBoard({
           if (!open) setPendingAction(null);
         }}
         callbackUrl={getCallbackUrl()}
+        workspaceId={workspaceId}
       />
 
       <IdeaSubmissionDialog

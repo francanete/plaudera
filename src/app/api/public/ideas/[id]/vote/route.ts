@@ -2,7 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { ideas, votes } from "@/lib/db/schema";
 import { eq, and, sql } from "drizzle-orm";
-import { getContributor } from "@/lib/contributor-auth";
+import {
+  getContributor,
+  hasContributorWorkspaceMembership,
+} from "@/lib/contributor-auth";
 import { handleApiError } from "@/lib/api-utils";
 import { NotFoundError, UnauthorizedError, RateLimitError, ForbiddenError } from "@/lib/errors";
 import { validateRequestOrigin } from "@/lib/csrf";
@@ -91,6 +94,15 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     const contributor = await getContributor();
     if (!contributor) {
       throw new UnauthorizedError("Please verify your email to vote");
+    }
+
+    const hasWorkspaceMembership = await hasContributorWorkspaceMembership(
+      contributor.id,
+      idea.workspaceId
+    );
+
+    if (!hasWorkspaceMembership) {
+      throw new ForbiddenError("Please verify your email for this workspace");
     }
 
     // Check rate limit for voting

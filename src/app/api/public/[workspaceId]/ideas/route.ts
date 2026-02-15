@@ -4,7 +4,10 @@ import { db } from "@/lib/db";
 import { ideas, votes, workspaces } from "@/lib/db/schema";
 import { eq, and, inArray } from "drizzle-orm";
 import { queryPublicIdeas, queryPublicRoadmapIdeas } from "@/lib/idea-queries";
-import { getContributor } from "@/lib/contributor-auth";
+import {
+  getContributor,
+  hasContributorWorkspaceMembership,
+} from "@/lib/contributor-auth";
 import { handleApiError } from "@/lib/api-utils";
 import { NotFoundError, UnauthorizedError, RateLimitError, ForbiddenError } from "@/lib/errors";
 import { validateRequestOrigin } from "@/lib/csrf";
@@ -143,6 +146,15 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       throw new UnauthorizedError(
         "Please verify your email to submit an idea"
       );
+    }
+
+    const hasWorkspaceMembership = await hasContributorWorkspaceMembership(
+      contributor.id,
+      workspaceId
+    );
+
+    if (!hasWorkspaceMembership) {
+      throw new ForbiddenError("Please verify your email for this workspace");
     }
 
     // Check rate limit for idea submissions

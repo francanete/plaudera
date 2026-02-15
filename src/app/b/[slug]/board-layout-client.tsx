@@ -216,6 +216,7 @@ export function BoardLayoutClient({
           if (!open) setPendingAction(null);
         }}
         callbackUrl={getCallbackUrl()}
+        workspaceId={workspaceId}
         title="Verify your email"
         description="We need to verify your email to record your vote."
       />

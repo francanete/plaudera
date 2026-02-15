@@ -3,12 +3,15 @@ import { z } from "zod";
 import { db } from "@/lib/db";
 import { contributors } from "@/lib/db/schema";
 import { sql } from "drizzle-orm";
-import { setContributorCookie } from "@/lib/contributor-auth";
+import {
+  ensureContributorWorkspaceMembership,
+  setContributorCookie,
+} from "@/lib/contributor-auth";
 import { handleApiError } from "@/lib/api-utils";
 import { RateLimitError } from "@/lib/errors";
 import { checkIdentifyRateLimit } from "@/lib/contributor-rate-limit";
 import {
-  isWorkspaceOriginAllowed,
+  isWorkspaceConfiguredOriginAllowed,
   getWorkspaceCorsHeaders,
   getBaseAllowedOrigins,
 } from "@/lib/cors";
@@ -91,7 +94,10 @@ export async function POST(request: NextRequest) {
     workspaceId = validatedWsId;
 
     // Validate that the requesting origin is in this workspace's allowlist
-    const originAllowed = await isWorkspaceOriginAllowed(origin, validatedWsId);
+    const originAllowed = await isWorkspaceConfiguredOriginAllowed(
+      origin,
+      validatedWsId
+    );
     if (!originAllowed) {
       const corsHeaders = await getWorkspaceCorsHeaders(
         origin,
@@ -106,7 +112,7 @@ export async function POST(request: NextRequest) {
 
     // Validate callerOrigin against workspace allowlist if provided
     if (callerOrigin) {
-      const callerAllowed = await isWorkspaceOriginAllowed(
+      const callerAllowed = await isWorkspaceConfiguredOriginAllowed(
         callerOrigin,
         validatedWsId
       );
@@ -145,6 +151,7 @@ export async function POST(request: NextRequest) {
       .returning();
 
     // Set the auth cookie
+    await ensureContributorWorkspaceMembership(contributor.id, validatedWsId);
     await setContributorCookie(contributor);
 
     const corsHeaders = await getWorkspaceCorsHeaders(
