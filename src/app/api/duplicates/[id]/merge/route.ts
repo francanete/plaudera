@@ -113,15 +113,19 @@ export const POST = protectedApiRouteWrapper<{ id: string }>(
         .set({
           status: "MERGED",
           mergedIntoId: keepIdeaId,
+          voteCount: 0,
         })
         .where(eq(ideas.id, mergeIdeaId));
 
-      // 4. Delete embedding of merged idea (no longer needed for comparison)
+      // 4. Remove obsolete votes from merged idea
+      await tx.delete(votes).where(eq(votes.ideaId, mergeIdeaId));
+
+      // 5. Delete embedding of merged idea (no longer needed for comparison)
       await tx
         .delete(ideaEmbeddings)
         .where(eq(ideaEmbeddings.ideaId, mergeIdeaId));
 
-      // 5. Mark this suggestion as MERGED
+      // 6. Mark this suggestion as MERGED
       await tx
         .update(duplicateSuggestions)
         .set({
@@ -130,7 +134,7 @@ export const POST = protectedApiRouteWrapper<{ id: string }>(
         })
         .where(eq(duplicateSuggestions.id, params.id));
 
-      // 6. Auto-dismiss other PENDING suggestions involving the merged idea
+      // 7. Auto-dismiss other PENDING suggestions involving the merged idea
       await tx
         .update(duplicateSuggestions)
         .set({
