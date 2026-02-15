@@ -227,7 +227,7 @@ describe("/api/contributor/logout", () => {
       );
     });
 
-    it("clears cookie even when CORS check fails", async () => {
+    it("returns 403 and does not clear cookie when CORS check fails", async () => {
       vi.stubEnv("NEXT_PUBLIC_APP_URL", "https://plaudera.com");
       mockIsOriginAllowedGlobally.mockResolvedValue(false);
 
@@ -244,12 +244,14 @@ describe("/api/contributor/logout", () => {
 
       const response = await POST(request);
 
-      // Cookie should be cleared regardless of CORS
-      expect(mockClearContributorCookie).toHaveBeenCalled();
-      expect(response.status).toBe(200);
+      expect(mockClearContributorCookie).not.toHaveBeenCalled();
+      expect(response.status).toBe(403);
 
       const body = await response.json();
-      expect(body.success).toBe(true);
+      expect(body).toEqual({
+        success: false,
+        error: "Origin not allowed",
+      });
     });
 
     it("does not set CORS headers for disallowed origin", async () => {
@@ -269,6 +271,7 @@ describe("/api/contributor/logout", () => {
 
       const response = await POST(request);
 
+      expect(response.status).toBe(403);
       // Should not include Access-Control-Allow-Origin for disallowed origin
       expect(response.headers.get("Access-Control-Allow-Origin")).toBeNull();
       // But should include Vary header
@@ -314,8 +317,8 @@ describe("/api/contributor/logout", () => {
 
       const response = await POST(request);
 
-      expect(mockClearContributorCookie).toHaveBeenCalled();
-      expect(response.status).toBe(200);
+      expect(mockClearContributorCookie).not.toHaveBeenCalled();
+      expect(response.status).toBe(403);
       expect(response.headers.get("Access-Control-Allow-Origin")).toBeNull();
     });
 
@@ -361,6 +364,8 @@ describe("/api/contributor/logout", () => {
 
       // Should check global allowlist when app origin not configured
       expect(mockIsOriginAllowedGlobally).toHaveBeenCalled();
+      expect(response.status).toBe(403);
+      expect(mockClearContributorCookie).not.toHaveBeenCalled();
       expect(response.headers.get("Access-Control-Allow-Origin")).toBeNull();
     });
   });
