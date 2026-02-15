@@ -144,6 +144,29 @@ export async function isWorkspaceOriginAllowed(
 }
 
 /**
+ * Check if an origin is explicitly configured in a workspace allowlist.
+ * Unlike isWorkspaceOriginAllowed, this does NOT allow base origins.
+ * Use for trusted endpoints that must only be callable from customer domains.
+ */
+export async function isWorkspaceConfiguredOriginAllowed(
+  origin: string | null,
+  workspaceId: string
+): Promise<boolean> {
+  if (!origin) return false;
+
+  const normalizedOrigin = normalizeOrigin(origin);
+  if (!normalizedOrigin) return false;
+
+  const settings = await db.query.widgetSettings.findFirst({
+    where: eq(widgetSettings.workspaceId, workspaceId),
+    columns: { allowedOrigins: true },
+  });
+
+  const allowedOrigins = settings?.allowedOrigins ?? [];
+  return allowedOrigins.includes(normalizedOrigin);
+}
+
+/**
  * Check if an origin is allowed globally (in any workspace's allowlist).
  * Used for endpoints that don't have workspace context (e.g., logout).
  * Checks base origins first, then queries all widget settings.

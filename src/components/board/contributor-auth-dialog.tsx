@@ -16,6 +16,7 @@ interface ContributorAuthDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   callbackUrl: string;
+  workspaceId: string;
   title?: string;
   description?: string;
 }
@@ -26,6 +27,7 @@ export function ContributorAuthDialog({
   open,
   onOpenChange,
   callbackUrl,
+  workspaceId,
   title = "Verify your email",
   description = "We'll send you a magic link to verify your email address.",
 }: ContributorAuthDialogProps) {
@@ -46,7 +48,11 @@ export function ContributorAuthDialog({
       const res = await fetch("/api/contributor/verify", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: email.trim(), callbackUrl }),
+        body: JSON.stringify({
+          email: email.trim(),
+          callbackUrl,
+          workspaceId,
+        }),
       });
 
       if (res.ok) {

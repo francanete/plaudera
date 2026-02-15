@@ -21,6 +21,12 @@ export type SubscriptionStatus = {
   plan: Plan;
 };
 
+type CustomerPortalCustomer = {
+  id: string;
+  externalId?: string | null;
+  email?: string | null;
+};
+
 // Plan tier hierarchy for comparison (higher tier wins)
 const PLAN_HIERARCHY = appConfig.plans.hierarchy;
 
@@ -120,6 +126,33 @@ export function mapPolarStatus(polarStatus: string): SubscriptionStatusType {
   }
 }
 
+function normalizeEmail(email: string): string {
+  return email.trim().toLowerCase();
+}
+
+/**
+ * Validate that a customer-portal token resolves to the authenticated user.
+ *
+ * Priority:
+ * 1. externalId must match userId when present (authoritative mapping)
+ * 2. fallback to email match only when externalId is absent
+ */
+export function isCustomerOwnedByUser(
+  customer: CustomerPortalCustomer,
+  userId: string,
+  userEmail?: string | null
+): boolean {
+  if (customer.externalId) {
+    return customer.externalId === userId;
+  }
+
+  if (customer.email && userEmail) {
+    return normalizeEmail(customer.email) === normalizeEmail(userEmail);
+  }
+
+  return false;
+}
+
 // ============ Sync with Polar API ============
 
 /**
@@ -129,12 +162,19 @@ export function mapPolarStatus(polarStatus: string): SubscriptionStatusType {
  */
 export async function syncWithCustomerToken(
   userId: string,
-  customerSessionToken: string
+  customerSessionToken: string,
+  userEmail?: string | null
 ): Promise<void> {
   const security = { customerSession: customerSessionToken };
 
   // Get customer ID and fetch subscriptions + orders in parallel
   const customer = await polarClient.customerPortal.customers.get(security);
+
+  if (!isCustomerOwnedByUser(customer, userId, userEmail)) {
+    throw new Error(
+      `Customer session token ownership mismatch for customer ${customer.id}`
+    );
+  }
 
   const [subsResult, ordersResult] = await Promise.all([
     polarClient.customerPortal.subscriptions.list(security, { active: true }),

@@ -362,6 +362,9 @@ export const contributorTokens = pgTable(
     id: text("id")
       .primaryKey()
       .$defaultFn(() => createId()),
+    workspaceId: text("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
     email: text("email").notNull(),
     token: text("token").notNull().unique(),
     expiresAt: timestamp("expires_at").notNull(),
@@ -369,7 +372,10 @@ export const contributorTokens = pgTable(
   },
   (table) => [
     uniqueIndex("contributor_tokens_token_idx").on(table.token),
-    index("contributor_tokens_email_idx").on(table.email),
+    index("contributor_tokens_workspace_email_idx").on(
+      table.workspaceId,
+      table.email
+    ),
   ]
 );
 
@@ -401,6 +407,35 @@ export const workspaces = pgTable(
   (table) => [
     uniqueIndex("workspaces_slug_idx").on(table.slug),
     uniqueIndex("workspaces_owner_id_idx").on(table.ownerId),
+  ]
+);
+
+// ============ Contributor Workspace Memberships ============
+export const contributorWorkspaceMemberships = pgTable(
+  "contributor_workspace_memberships",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => createId()),
+    contributorId: text("contributor_id")
+      .notNull()
+      .references(() => contributors.id, { onDelete: "cascade" }),
+    workspaceId: text("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex("contributor_workspace_memberships_unique_idx").on(
+      table.contributorId,
+      table.workspaceId
+    ),
+    index("contributor_workspace_memberships_workspace_idx").on(
+      table.workspaceId
+    ),
+    index("contributor_workspace_memberships_contributor_idx").on(
+      table.contributorId
+    ),
   ]
 );
 
@@ -659,6 +694,7 @@ export const workspacesRelations = relations(workspaces, ({ one, many }) => ({
   boardSettings: one(boardSettings),
   duplicateSuggestions: many(duplicateSuggestions),
   slugChangeHistory: many(slugChangeHistory),
+  contributorMemberships: many(contributorWorkspaceMemberships),
 }));
 
 // ============ Slug Change History Relations ============
@@ -743,7 +779,23 @@ export const votesRelations = relations(votes, ({ one }) => ({
 export const contributorsRelations = relations(contributors, ({ many }) => ({
   ideas: many(ideas),
   votes: many(votes),
+  workspaceMemberships: many(contributorWorkspaceMemberships),
 }));
+
+// ============ Contributor Workspace Membership Relations ============
+export const contributorWorkspaceMembershipsRelations = relations(
+  contributorWorkspaceMemberships,
+  ({ one }) => ({
+    contributor: one(contributors, {
+      fields: [contributorWorkspaceMemberships.contributorId],
+      references: [contributors.id],
+    }),
+    workspace: one(workspaces, {
+      fields: [contributorWorkspaceMemberships.workspaceId],
+      references: [workspaces.id],
+    }),
+  })
+);
 
 // ============ Idea Embeddings Relations ============
 export const ideaEmbeddingsRelations = relations(ideaEmbeddings, ({ one }) => ({
@@ -797,6 +849,10 @@ export type Vote = typeof votes.$inferSelect;
 export type NewVote = typeof votes.$inferInsert;
 export type Contributor = typeof contributors.$inferSelect;
 export type NewContributor = typeof contributors.$inferInsert;
+export type ContributorWorkspaceMembership =
+  typeof contributorWorkspaceMemberships.$inferSelect;
+export type NewContributorWorkspaceMembership =
+  typeof contributorWorkspaceMemberships.$inferInsert;
 export type ContributorToken = typeof contributorTokens.$inferSelect;
 export type NewContributorToken = typeof contributorTokens.$inferInsert;
 export type WidgetSettings = typeof widgetSettings.$inferSelect;

@@ -18,7 +18,15 @@ vi.mock("@/lib/db", () => ({
 
 vi.mock("@/lib/db/schema", () => ({
   contributors: { id: "id", email: "email" },
-  contributorTokens: { token: "token", email: "email" },
+  contributorTokens: {
+    token: "token",
+    email: "email",
+    workspaceId: "workspaceId",
+  },
+  contributorWorkspaceMemberships: {
+    contributorId: "contributorId",
+    workspaceId: "workspaceId",
+  },
 }));
 
 const mockJwtVerify = vi.fn();
@@ -75,6 +83,12 @@ describe("contributor-auth", () => {
     vi.clearAllMocks();
     vi.stubEnv("CONTRIBUTOR_JWT_SECRET", "test-secret-key-32-chars-long!!");
     vi.stubEnv("NEXT_PUBLIC_APP_URL", "https://test.example.com");
+
+    mockInsert.mockReturnValue({
+      values: vi.fn().mockReturnValue({
+        onConflictDoNothing: vi.fn().mockResolvedValue(undefined),
+      }),
+    });
   });
 
   describe("getContributor", () => {
@@ -186,6 +200,7 @@ describe("contributor-auth", () => {
     it("creates contributor if not exists", async () => {
       const mockTokenRecord = {
         email: "new@example.com",
+        workspaceId: "ws-1",
         token: "valid-token",
         expiresAt: new Date(Date.now() + 10 * 60 * 1000),
       };
@@ -203,11 +218,16 @@ describe("contributor-auth", () => {
         .mockResolvedValueOnce(undefined); // Contributor lookup
 
       // Mock insert for creating new contributor
-      mockInsert.mockReturnValue({
-        values: vi.fn().mockReturnValue({
+      const valuesMock = vi
+        .fn()
+        .mockReturnValueOnce({
           returning: vi.fn().mockResolvedValue([mockNewContributor]),
-        }),
-      });
+        })
+        .mockReturnValueOnce({
+          onConflictDoNothing: vi.fn().mockResolvedValue(undefined),
+        });
+
+      mockInsert.mockReturnValue({ values: valuesMock });
 
       // Mock delete for removing used token
       mockDelete.mockReturnValue({
@@ -225,6 +245,7 @@ describe("contributor-auth", () => {
     it("deletes token after successful verification", async () => {
       const mockTokenRecord = {
         email: "existing@example.com",
+        workspaceId: "ws-1",
         token: "valid-token",
         expiresAt: new Date(Date.now() + 10 * 60 * 1000),
       };
@@ -254,12 +275,18 @@ describe("contributor-auth", () => {
   describe("sendVerificationEmail", () => {
     it("stores token in database", async () => {
       mockInsert.mockReturnValue({
-        values: vi.fn().mockResolvedValue(undefined),
+        values: vi.fn().mockReturnValue({
+          onConflictDoNothing: vi.fn().mockResolvedValue(undefined),
+        }),
       });
 
       vi.resetModules();
       const { sendVerificationEmail } = await import("@/lib/contributor-auth");
-      const result = await sendVerificationEmail("test@example.com", "/board");
+      const result = await sendVerificationEmail(
+        "test@example.com",
+        "/board",
+        "ws-1"
+      );
 
       expect(mockInsert).toHaveBeenCalled();
       expect(result.success).toBe(true);
@@ -267,12 +294,14 @@ describe("contributor-auth", () => {
 
     it("normalizes email to lowercase", async () => {
       mockInsert.mockReturnValue({
-        values: vi.fn().mockResolvedValue(undefined),
+        values: vi.fn().mockReturnValue({
+          onConflictDoNothing: vi.fn().mockResolvedValue(undefined),
+        }),
       });
 
       vi.resetModules();
       const { sendVerificationEmail } = await import("@/lib/contributor-auth");
-      await sendVerificationEmail("TEST@EXAMPLE.COM", "/board");
+      await sendVerificationEmail("TEST@EXAMPLE.COM", "/board", "ws-1");
 
       expect(mockInsert).toHaveBeenCalled();
       // The first call to values() should contain lowercase email
@@ -280,13 +309,16 @@ describe("contributor-auth", () => {
       expect(valuesCall).toHaveBeenCalledWith(
         expect.objectContaining({
           email: "test@example.com",
+          workspaceId: "ws-1",
         })
       );
     });
 
     it("returns failure message when email sending fails", async () => {
       mockInsert.mockReturnValue({
-        values: vi.fn().mockResolvedValue(undefined),
+        values: vi.fn().mockReturnValue({
+          onConflictDoNothing: vi.fn().mockResolvedValue(undefined),
+        }),
       });
 
       mockDelete.mockReturnValue({
@@ -300,7 +332,11 @@ describe("contributor-auth", () => {
 
       vi.resetModules();
       const { sendVerificationEmail } = await import("@/lib/contributor-auth");
-      const result = await sendVerificationEmail("test@example.com", "/board");
+      const result = await sendVerificationEmail(
+        "test@example.com",
+        "/board",
+        "ws-1"
+      );
 
       expect(result.success).toBe(false);
       expect(result.message).toContain("Unable to send verification email");

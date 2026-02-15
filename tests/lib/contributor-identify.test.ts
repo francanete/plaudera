@@ -3,10 +3,11 @@ import { vi, describe, it, expect, beforeEach } from "vitest";
 // Mock dependencies using vi.hoisted to avoid TDZ issues
 const mocks = vi.hoisted(() => ({
   mockInsert: vi.fn(),
-  mockIsWorkspaceOriginAllowed: vi.fn(),
+  mockIsWorkspaceConfiguredOriginAllowed: vi.fn(),
   mockGetWorkspaceCorsHeaders: vi.fn(),
   mockGetBaseAllowedOrigins: vi.fn(),
   mockSetContributorCookie: vi.fn(),
+  mockEnsureContributorWorkspaceMembership: vi.fn(),
   mockCheckIdentifyRateLimit: vi.fn(),
 }));
 
@@ -34,10 +35,13 @@ vi.mock("drizzle-orm", () => ({
 
 vi.mock("@/lib/contributor-auth", () => ({
   setContributorCookie: mocks.mockSetContributorCookie,
+  ensureContributorWorkspaceMembership:
+    mocks.mockEnsureContributorWorkspaceMembership,
 }));
 
 vi.mock("@/lib/cors", () => ({
-  isWorkspaceOriginAllowed: mocks.mockIsWorkspaceOriginAllowed,
+  isWorkspaceConfiguredOriginAllowed:
+    mocks.mockIsWorkspaceConfiguredOriginAllowed,
   getWorkspaceCorsHeaders: mocks.mockGetWorkspaceCorsHeaders,
   getBaseAllowedOrigins: mocks.mockGetBaseAllowedOrigins,
 }));
@@ -91,10 +95,11 @@ describe("POST /api/contributor/identify", () => {
     ]);
 
     // Default: origin allowed
-    mocks.mockIsWorkspaceOriginAllowed.mockResolvedValue(true);
+    mocks.mockIsWorkspaceConfiguredOriginAllowed.mockResolvedValue(true);
 
     // Default: cookie set succeeds
     mocks.mockSetContributorCookie.mockResolvedValue(undefined);
+    mocks.mockEnsureContributorWorkspaceMembership.mockResolvedValue(undefined);
 
     // Default: env
     process.env.NEXT_PUBLIC_APP_URL = "https://app.plaudera.com";
@@ -151,6 +156,10 @@ describe("POST /api/contributor/identify", () => {
       email: "test@example.com",
       name: null,
     });
+    expect(mocks.mockEnsureContributorWorkspaceMembership).toHaveBeenCalledWith(
+      "c1",
+      "ws-1"
+    );
     expect(mocks.mockSetContributorCookie).toHaveBeenCalledWith(newContributor);
   });
 
@@ -197,7 +206,7 @@ describe("POST /api/contributor/identify", () => {
   });
 
   it("rejects requests from non-allowed origins", async () => {
-    mocks.mockIsWorkspaceOriginAllowed.mockResolvedValue(false);
+    mocks.mockIsWorkspaceConfiguredOriginAllowed.mockResolvedValue(false);
 
     const response = await callIdentify(
       {
@@ -308,8 +317,8 @@ describe("POST /api/contributor/identify", () => {
       });
 
       expect(response.status).toBe(200);
-      // isWorkspaceOriginAllowed called twice: once for HTTP Origin, once for callerOrigin
-      expect(mocks.mockIsWorkspaceOriginAllowed).toHaveBeenCalledWith(
+      // Origin check called twice: HTTP Origin and callerOrigin
+      expect(mocks.mockIsWorkspaceConfiguredOriginAllowed).toHaveBeenCalledWith(
         "https://customer-site.com",
         "ws-1"
       );
@@ -317,7 +326,7 @@ describe("POST /api/contributor/identify", () => {
 
     it("rejects callerOrigin not in workspace allowlist", async () => {
       // Allow the HTTP Origin but reject the callerOrigin
-      mocks.mockIsWorkspaceOriginAllowed
+      mocks.mockIsWorkspaceConfiguredOriginAllowed
         .mockResolvedValueOnce(true) // HTTP Origin check passes
         .mockResolvedValueOnce(false); // callerOrigin check fails
 
@@ -347,8 +356,10 @@ describe("POST /api/contributor/identify", () => {
       });
 
       expect(response.status).toBe(200);
-      // isWorkspaceOriginAllowed called only once (for HTTP Origin)
-      expect(mocks.mockIsWorkspaceOriginAllowed).toHaveBeenCalledTimes(1);
+      // Origin check called only once (HTTP Origin)
+      expect(
+        mocks.mockIsWorkspaceConfiguredOriginAllowed
+      ).toHaveBeenCalledTimes(1);
     });
   });
 });
