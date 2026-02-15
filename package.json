@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "concurrently -n next,inngest,ngrok -c blue,magenta,green \"npm:dev:next\" \"npm:dev:inngest\" \"npm:dev:ngrok\"",
+    "dev:full": "npm run db:dev:up && npm run dev",
     "dev:ngrok": "ngrok http --domain=peevish-uncontoured-joi.ngrok-free.dev 3000",
     "dev:next": "next dev",
     "dev:inngest": "npx inngest-cli@latest dev -u http://localhost:3000/api/inngest",
