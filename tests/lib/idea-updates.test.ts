@@ -57,6 +57,7 @@ vi.mock("@/lib/roadmap-status-config", () => ({
 
 import {
   getIdeaWithOwnerCheck,
+  createIdea,
   updateIdea,
   deleteIdea,
 } from "@/lib/idea-updates";
@@ -126,6 +127,26 @@ function setupDefaultTransaction() {
   );
 }
 
+/** Set up the db.insert chain (used by createIdea non-roadmap path) */
+function setupDbInsert(returnedIdea: Record<string, unknown>) {
+  const returningFn = vi.fn().mockResolvedValue([returnedIdea]);
+  const valuesFn = vi.fn().mockReturnValue({ returning: returningFn });
+  mockInsert.mockReturnValue({ values: valuesFn });
+  return { valuesFn, returningFn };
+}
+
+/** Set up the tx.insert chain to return from .returning() (used by createIdea roadmap path) */
+function setupTxInsertReturning(returnedIdea: Record<string, unknown>) {
+  const returningFn = vi.fn().mockResolvedValue([returnedIdea]);
+  const valuesFn = vi.fn().mockReturnValue({ returning: returningFn });
+  // First call returns with returning (idea insert), second call returns without (audit log)
+  const auditValuesFn = vi.fn().mockResolvedValue(undefined);
+  mockTxInsert
+    .mockReturnValueOnce({ values: valuesFn })
+    .mockReturnValueOnce({ values: auditValuesFn });
+  return { valuesFn, returningFn, auditValuesFn };
+}
+
 // ── Tests ───────────────────────────────────────────────────────────────────
 
 describe("idea-updates", () => {
@@ -162,6 +183,89 @@ describe("idea-updates", () => {
       const result = await getIdeaWithOwnerCheck("idea-1", "user-1");
 
       expect(result).toBe(idea);
+    });
+  });
+
+  // ── createIdea ───────────────────────────────────────────────────────
+
+  describe("createIdea", () => {
+    it("creates a regular idea without transaction when no roadmapStatus", async () => {
+      const createdIdea = makeIdea({ id: "new-1", title: "My idea" });
+      setupDbInsert(createdIdea);
+
+      const result = await createIdea("ws-1", "user-1", {
+        title: "My idea",
+      });
+
+      expect(result).toEqual(createdIdea);
+      expect(mockInsert).toHaveBeenCalled();
+      expect(mockTransaction).not.toHaveBeenCalled();
+    });
+
+    it("uses a transaction and inserts audit log when roadmapStatus is provided", async () => {
+      const createdIdea = makeIdea({
+        id: "new-2",
+        title: "Roadmap feature",
+        roadmapStatus: "PLANNED",
+      });
+      const { auditValuesFn } = setupTxInsertReturning(createdIdea);
+
+      const result = await createIdea("ws-1", "user-1", {
+        title: "Roadmap feature",
+        roadmapStatus: "PLANNED",
+      });
+
+      expect(result).toEqual(createdIdea);
+      expect(mockTransaction).toHaveBeenCalled();
+      expect(auditValuesFn).toHaveBeenCalledWith(
+        expect.objectContaining({
+          fromStatus: "NONE",
+          toStatus: "PLANNED",
+          changedBy: "user-1",
+        })
+      );
+    });
+
+    it("sets featureDetails when provided for roadmap idea", async () => {
+      const createdIdea = makeIdea({
+        id: "new-3",
+        roadmapStatus: "IN_PROGRESS",
+        featureDetails: "Some specs",
+      });
+      const { valuesFn } = setupTxInsertReturning(createdIdea);
+
+      await createIdea("ws-1", "user-1", {
+        title: "Feature",
+        roadmapStatus: "IN_PROGRESS",
+        featureDetails: "Some specs",
+      });
+
+      expect(valuesFn).toHaveBeenCalledWith(
+        expect.objectContaining({
+          featureDetails: "Some specs",
+          roadmapStatus: "IN_PROGRESS",
+        })
+      );
+    });
+
+    it("always sets status to PUBLISHED", async () => {
+      const createdIdea = makeIdea({ id: "new-4", status: "PUBLISHED" });
+      const { valuesFn } = setupDbInsert(createdIdea);
+
+      await createIdea("ws-1", "user-1", { title: "Test" });
+
+      expect(valuesFn).toHaveBeenCalledWith(
+        expect.objectContaining({ status: "PUBLISHED" })
+      );
+    });
+
+    it("fires embedding generation (fire-and-forget)", async () => {
+      const createdIdea = makeIdea({ id: "new-5", title: "Embed me" });
+      setupDbInsert(createdIdea);
+
+      await createIdea("ws-1", "user-1", { title: "Embed me" });
+
+      expect(updateIdeaEmbedding).toHaveBeenCalledWith("new-5", "Embed me");
     });
   });
 

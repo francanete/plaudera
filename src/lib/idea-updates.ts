@@ -13,6 +13,74 @@ import { ALL_IDEA_STATUSES } from "@/lib/idea-status-config";
 import { ALL_ROADMAP_STATUSES } from "@/lib/roadmap-status-config";
 import { updateIdeaEmbedding } from "@/lib/ai/embeddings";
 
+export const createIdeaSchema = z.object({
+  title: z.string().min(1, "Title is required").max(200, "Title too long"),
+  description: z.string().max(5000, "Description too long").optional(),
+  roadmapStatus: z.enum(["PLANNED", "IN_PROGRESS", "RELEASED"]).optional(),
+  featureDetails: z.string().max(2000, "Feature details too long").optional(),
+});
+
+export type CreateIdeaInput = z.infer<typeof createIdeaSchema>;
+
+/**
+ * Create a new idea, optionally placing it directly on the roadmap.
+ * When roadmapStatus is provided, uses a transaction to atomically
+ * insert the idea and its audit log entry.
+ */
+export async function createIdea(
+  workspaceId: string,
+  userId: string,
+  data: CreateIdeaInput
+) {
+  const isRoadmapIdea = !!data.roadmapStatus;
+
+  let newIdea;
+
+  if (isRoadmapIdea) {
+    newIdea = await db.transaction(async (tx) => {
+      const [idea] = await tx
+        .insert(ideas)
+        .values({
+          workspaceId,
+          title: data.title,
+          description: data.description || null,
+          status: "PUBLISHED",
+          roadmapStatus: data.roadmapStatus!,
+          featureDetails: data.featureDetails || null,
+          voteCount: 0,
+        })
+        .returning();
+
+      await tx.insert(roadmapStatusChanges).values({
+        ideaId: idea.id,
+        fromStatus: "NONE",
+        toStatus: data.roadmapStatus!,
+        changedBy: userId,
+      });
+
+      return idea;
+    });
+  } else {
+    [newIdea] = await db
+      .insert(ideas)
+      .values({
+        workspaceId,
+        title: data.title,
+        description: data.description || null,
+        status: "PUBLISHED",
+        voteCount: 0,
+      })
+      .returning();
+  }
+
+  // Generate embedding for duplicate detection (fire-and-forget)
+  updateIdeaEmbedding(newIdea.id, newIdea.title).catch((err) =>
+    console.error("Failed to generate embedding for idea:", err)
+  );
+
+  return newIdea;
+}
+
 export const updateIdeaSchema = z.object({
   title: z.string().min(1).max(200).optional(),
   description: z.string().max(5000).optional().nullable(),
