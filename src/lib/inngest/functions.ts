@@ -51,7 +51,7 @@ function delay(ms: number): Promise<void> {
 
 // ============ Jobs ============
 
-// Welcome sequence: instant email + day 3 follow-up
+// Welcome sequence: instant email + day 1 getting started + day 3 activation
 export const welcomeSequenceJob = inngest.createFunction(
   { id: "welcome-sequence" },
   { event: "user/created" },
@@ -103,7 +103,7 @@ export const welcomeSequenceJob = inngest.createFunction(
     });
 
     // Step 3: Send instant welcome email
-    const result1 = await step.run("send-welcome-instant", async () => {
+    const welcomeResult = await step.run("send-welcome-instant", async () => {
       return sendSequenceEmail({
         userId,
         email,
@@ -112,22 +112,36 @@ export const welcomeSequenceJob = inngest.createFunction(
       });
     });
 
-    // Step 4: Wait 3 days
-    await step.sleep("wait-day-3", "3d");
+    // Step 4: Wait 1 day
+    await step.sleep("wait-day-1", "1d");
 
-    // Step 5: Send day 3 follow-up email
-    const result2 = await step.run("send-welcome-day3", async () => {
+    // Step 5: Send day 1 getting started email
+    const day1Result = await step.run("send-getting-started-day1", async () => {
       return sendSequenceEmail({
         userId,
         email,
         name: user?.name || null,
-        emailKey: "welcome_day3",
+        emailKey: "getting_started_day1",
+      });
+    });
+
+    // Step 6: Wait 2 more days (day 3 total)
+    await step.sleep("wait-day-3", "2d");
+
+    // Step 7: Send day 3 activation email
+    const day3Result = await step.run("send-activation-day3", async () => {
+      return sendSequenceEmail({
+        userId,
+        email,
+        name: user?.name || null,
+        emailKey: "activation_day3",
       });
     });
 
     return {
-      email1: result1,
-      email2: result2,
+      welcome: welcomeResult,
+      day1: day1Result,
+      day3: day3Result,
     };
   }
 );
