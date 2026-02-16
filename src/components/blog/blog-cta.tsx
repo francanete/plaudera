@@ -2,8 +2,6 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { appConfig } from "@/lib/config";
 
-const isLtd = appConfig.pricing.mode === "ltd";
-
 export function BlogCta() {
   return (
     <section className="bg-slate-900 py-24 text-white">
@@ -13,10 +11,7 @@ export function BlogCta() {
         </h2>
         <p className="mx-auto mb-10 max-w-2xl text-lg text-slate-300 md:text-xl">
           {appConfig.name} helps you capture, organize, and prioritize feature
-          requests{" "}
-          {isLtd
-            ? "— with lifetime access and no recurring fees."
-            : "— start your free trial today, no credit card required."}
+          requests — start your free trial today, cancel anytime.
         </p>
         <div className="flex flex-col items-center justify-center gap-4 sm:flex-row">
           <Button
@@ -24,9 +19,7 @@ export function BlogCta() {
             className="h-12 w-full bg-white px-8 font-semibold text-slate-900 hover:bg-slate-100 sm:w-auto"
             asChild
           >
-            <Link href="/pricing">
-              {isLtd ? "Get Lifetime Access" : "Start Free Trial"}
-            </Link>
+            <Link href="/pricing">Start Free Trial</Link>
           </Button>
           <Button
             size="lg"
