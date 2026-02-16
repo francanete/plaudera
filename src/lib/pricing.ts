@@ -252,6 +252,8 @@ export type TierPricingDisplay = {
   monthlySlug: string;
   annualSlug: string;
   ltdSlug: string;
+  // Trial
+  trialDays: number;
 };
 
 /**
@@ -308,6 +310,7 @@ export function getTierPricing(): TierPricingDisplay[] {
       monthlySlug: generateSlug(tier, "monthly"),
       annualSlug: generateSlug(tier, "annual"),
       ltdSlug: generateSlug(tier, "ltd"),
+      trialDays: appConfig.pricing.trialDays ?? 0,
     };
   });
 }

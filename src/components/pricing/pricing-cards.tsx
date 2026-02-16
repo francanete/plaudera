@@ -73,6 +73,7 @@ interface PricingCardProps {
   isInView: boolean;
   delay?: number;
   isLtd?: boolean;
+  trialDays?: number;
 }
 
 function PricingCard({
@@ -88,6 +89,7 @@ function PricingCard({
   isInView,
   delay = 0,
   isLtd = false,
+  trialDays = 0,
 }: PricingCardProps) {
   return (
     <article
@@ -210,16 +212,14 @@ function PricingCard({
             )}
           />
         </button>
-
-        {/* Guarantee text */}
-        {isLtd && (
+        {trialDays > 0 && (
           <p
             className={cn(
-              "mt-4 text-center text-xs font-medium",
-              isHighlighted ? "text-slate-500" : "text-slate-400"
+              "mt-3 text-center text-xs",
+              isHighlighted ? "text-slate-400" : "text-slate-500"
             )}
           >
-            14-day money-back guarantee
+            {trialDays}-day free trial · Cancel anytime
           </p>
         )}
       </div>
@@ -406,6 +406,7 @@ export function PricingCards({ tiers, mode }: PricingCardsProps) {
                     onCheckout={handleCheckout}
                     isInView={isInView}
                     delay={400 + tierIndex * 200}
+                    trialDays={tier.trialDays}
                   />
 
                   {/* Annual card - highlighted */}
@@ -425,6 +426,7 @@ export function PricingCards({ tiers, mode }: PricingCardsProps) {
                     onCheckout={handleCheckout}
                     isInView={isInView}
                     delay={500 + tierIndex * 200}
+                    trialDays={tier.trialDays}
                   />
                 </>
               )}

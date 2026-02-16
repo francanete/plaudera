@@ -128,7 +128,7 @@ export function WaitlistHero({ className }: WaitlistHeroProps) {
               </div>
               <div className="flex items-center gap-2">
                 <Users className="h-4 w-4 text-slate-400" />
-                <span>No credit card required</span>
+                <span>Cancel anytime</span>
               </div>
             </div>
           </div>

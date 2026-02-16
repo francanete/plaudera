@@ -87,6 +87,8 @@ export type AppConfig = {
     tiers: Record<PaidTier, TierConfig>;
     freeMarketing: TierMarketing;
     ltdExtraFeatures: string[];
+    /** Number of free trial days for subscription plans. Omit or set to 0 to disable. */
+    trialDays?: number;
     /** Rate limits per plan per feature. null = unlimited */
     rateLimits: Record<Plan, PlanRateLimits>;
   };
@@ -150,13 +152,14 @@ export const appConfig: AppConfig = {
     twitterHandle: "@plauderaapp",
   },
   pricing: {
-    mode: "ltd" as const, // "subscription" | "ltd"
+    mode: "subscription" as const, // "subscription" | "ltd"
+    trialDays: 5,
     requirePaidAccess: true, // Gate free users from dashboard & hide free plan on pricing page
     tiers: {
       STARTER: {
         enabled: true,
-        prices: { ltd: 4900, monthly: 1900, annual: 19000 },
-        originalPrices: { ltd: 19900, monthly: 1900, annual: 22800 },
+        prices: { ltd: 7900, monthly: 1900, annual: 19000 },
+        originalPrices: { ltd: 38000, monthly: 1900, annual: 22800 },
         polarProductIds: polarProductIds.STARTER,
         marketing: {
           name: "Starter",
