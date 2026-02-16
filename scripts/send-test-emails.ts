@@ -5,7 +5,14 @@
 import { emailTemplates } from "../src/lib/email-templates/sequence-templates";
 import { Resend } from "resend";
 
-const TO = "francanete@proton.me";
+const TO = process.argv[process.argv.length - 1]?.includes("@")
+  ? process.argv[process.argv.length - 1]
+  : (() => {
+      console.error(
+        "Usage: npx tsx scripts/send-test-emails.ts [template] <email>"
+      );
+      process.exit(1);
+    })();
 
 async function main() {
   const apiKey = process.env.RESEND_API_KEY;
