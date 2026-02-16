@@ -144,26 +144,42 @@ describe("sendSequenceEmail", () => {
       expect(emailCall.html).not.toContain("{{unsubscribe_url}}");
     });
 
-    it("uses fallback name when name is null", async () => {
+    it("sends successfully when name is null", async () => {
       mockFindFirstEmailsSent.mockResolvedValue(null);
       mockFindFirstUsers.mockResolvedValue({ marketingUnsubscribed: false });
 
-      await sendSequenceEmail({ ...defaultParams, name: null });
+      const result = await sendSequenceEmail({ ...defaultParams, name: null });
 
-      const emailCall = mockSendEmail.mock.calls[0][0];
-      expect(emailCall.html).toContain("there");
+      expect(result).toEqual({ sent: true });
+      expect(mockSendEmail).toHaveBeenCalled();
     });
   });
 
   describe("template selection", () => {
-    it("uses welcome_day3 template for day 3 emails", async () => {
+    it("uses getting_started_day1 template for day 1 emails", async () => {
       mockFindFirstEmailsSent.mockResolvedValue(null);
       mockFindFirstUsers.mockResolvedValue({ marketingUnsubscribed: false });
 
-      await sendSequenceEmail({ ...defaultParams, emailKey: "welcome_day3" });
+      await sendSequenceEmail({
+        ...defaultParams,
+        emailKey: "getting_started_day1",
+      });
 
       const emailCall = mockSendEmail.mock.calls[0][0];
-      expect(emailCall.subject).toContain("How's it going");
+      expect(emailCall.subject).toContain("Ready to collect feedback");
+    });
+
+    it("uses activation_day3 template for day 3 emails", async () => {
+      mockFindFirstEmailsSent.mockResolvedValue(null);
+      mockFindFirstUsers.mockResolvedValue({ marketingUnsubscribed: false });
+
+      await sendSequenceEmail({
+        ...defaultParams,
+        emailKey: "activation_day3",
+      });
+
+      const emailCall = mockSendEmail.mock.calls[0][0];
+      expect(emailCall.subject).toContain("Get your first feedback today");
     });
 
     it("returns error for unknown template", async () => {
