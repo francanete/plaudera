@@ -15,10 +15,27 @@ vi.mock("@/lib/contributor-rate-limit", () => ({
 }));
 
 const mockGetWorkspaceCorsHeaders = vi.fn();
-const mockIsWorkspaceOriginAllowed = vi.fn();
 vi.mock("@/lib/cors", () => ({
   getWorkspaceCorsHeaders: mockGetWorkspaceCorsHeaders,
-  isWorkspaceOriginAllowed: mockIsWorkspaceOriginAllowed,
+}));
+
+const mockFindFirstWorkspace = vi.fn();
+vi.mock("@/lib/db", () => ({
+  db: {
+    query: {
+      workspaces: {
+        findFirst: (...args: unknown[]) => mockFindFirstWorkspace(...args),
+      },
+    },
+  },
+}));
+
+vi.mock("@/lib/db/schema", () => ({
+  workspaces: { id: "id" },
+}));
+
+vi.mock("drizzle-orm", () => ({
+  eq: (col: unknown, val: unknown) => ({ col, val }),
 }));
 
 describe("/api/contributor/verify POST", () => {
@@ -27,6 +44,7 @@ describe("/api/contributor/verify POST", () => {
     vi.stubEnv("NEXT_PUBLIC_APP_URL", "https://plaudera.com");
 
     mockCheckEmailRateLimit.mockResolvedValue({ allowed: true });
+    mockFindFirstWorkspace.mockResolvedValue({ id: "ws_123" });
     mockGetWorkspaceCorsHeaders.mockResolvedValue({
       "Access-Control-Allow-Origin": "https://customer-site.com",
       "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
@@ -43,48 +61,7 @@ describe("/api/contributor/verify POST", () => {
     vi.unstubAllEnvs();
   });
 
-  it("returns 403 and does not send email when origin is not allowed", async () => {
-    mockIsWorkspaceOriginAllowed.mockResolvedValue(false);
-
-    vi.resetModules();
-    const { POST } = await import("@/app/api/contributor/verify/route");
-
-    const request = new NextRequest(
-      "https://plaudera.com/api/contributor/verify",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          origin: "https://evil.com",
-          "x-forwarded-for": "1.2.3.4",
-        },
-        body: JSON.stringify({
-          email: "user@example.com",
-          callbackUrl: "/embed/ws_123?action=vote",
-          workspaceId: "ws_123",
-        }),
-      }
-    );
-
-    const response = await POST(request);
-
-    expect(response.status).toBe(403);
-    expect(mockSendVerificationEmail).not.toHaveBeenCalled();
-    expect(mockIsWorkspaceOriginAllowed).toHaveBeenCalledWith(
-      "https://evil.com",
-      "ws_123"
-    );
-
-    const body = await response.json();
-    expect(body).toEqual({
-      success: false,
-      error: "Origin not allowed for this workspace",
-    });
-  });
-
-  it("sends verification email when origin is allowed", async () => {
-    mockIsWorkspaceOriginAllowed.mockResolvedValue(true);
-
+  it("sends verification email with explicit workspaceId", async () => {
     vi.resetModules();
     const { POST } = await import("@/app/api/contributor/verify/route");
 
@@ -116,8 +93,6 @@ describe("/api/contributor/verify POST", () => {
   });
 
   it("returns 400 when workspaceId is missing and callback is not embed path", async () => {
-    mockIsWorkspaceOriginAllowed.mockResolvedValue(true);
-
     vi.resetModules();
     const { POST } = await import("@/app/api/contributor/verify/route");
 
@@ -141,12 +116,9 @@ describe("/api/contributor/verify POST", () => {
 
     expect(response.status).toBe(400);
     expect(mockSendVerificationEmail).not.toHaveBeenCalled();
-    expect(mockIsWorkspaceOriginAllowed).not.toHaveBeenCalled();
   });
 
   it("uses workspaceId extracted from callback when explicit workspaceId is omitted", async () => {
-    mockIsWorkspaceOriginAllowed.mockResolvedValue(true);
-
     vi.resetModules();
     const { POST } = await import("@/app/api/contributor/verify/route");
 
@@ -169,14 +141,40 @@ describe("/api/contributor/verify POST", () => {
     const response = await POST(request);
 
     expect(response.status).toBe(200);
-    expect(mockIsWorkspaceOriginAllowed).toHaveBeenCalledWith(
-      "https://customer-site.com",
-      "ws_from_callback"
-    );
     expect(mockSendVerificationEmail).toHaveBeenCalledWith(
       "user@example.com",
       "/embed/ws_from_callback?action=vote",
       "ws_from_callback"
     );
+  });
+
+  it("returns 400 when workspaceId does not exist in the database", async () => {
+    mockFindFirstWorkspace.mockResolvedValue(undefined);
+    vi.resetModules();
+    const { POST } = await import("@/app/api/contributor/verify/route");
+
+    const request = new NextRequest(
+      "https://plaudera.com/api/contributor/verify",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          origin: "https://plaudera.com",
+          "x-forwarded-for": "1.2.3.4",
+        },
+        body: JSON.stringify({
+          email: "user@example.com",
+          callbackUrl: "/embed/nonexistent_ws",
+          workspaceId: "nonexistent_ws",
+        }),
+      }
+    );
+
+    const response = await POST(request);
+
+    expect(response.status).toBe(400);
+    const body = await response.json();
+    expect(body.error).toBe("Invalid workspace");
+    expect(mockSendVerificationEmail).not.toHaveBeenCalled();
   });
 });

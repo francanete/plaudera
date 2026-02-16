@@ -172,10 +172,11 @@ export async function setContributorCookie(
     .sign(getJwtSecret());
 
   const cookieStore = await cookies();
+  const isProduction = process.env.NODE_ENV === "production";
   const cookieOptions: Parameters<typeof cookieStore.set>[2] = {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "none",
+    secure: isProduction,
+    sameSite: isProduction ? "none" : "lax",
     maxAge: COOKIE_EXPIRY_DAYS * 24 * 60 * 60,
     path: "/",
   };

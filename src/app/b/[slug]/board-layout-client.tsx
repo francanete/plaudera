@@ -179,7 +179,10 @@ export function BoardLayoutClient({
       params.set("action", "submit");
     }
     const search = params.toString();
-    return search ? `${pathname}?${search}` : pathname;
+    // Use canonical /b/{slug} path instead of pathname — on subdomain routing
+    // pathname is "/" which fails callback URL validation
+    const boardPath = `/b/${slug}`;
+    return search ? `${boardPath}?${search}` : boardPath;
   };
 
   return (

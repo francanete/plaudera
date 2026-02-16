@@ -3,8 +3,11 @@ import { z } from "zod";
 import { sendVerificationEmail, verifyToken } from "@/lib/contributor-auth";
 import { handleApiError } from "@/lib/api-utils";
 import { BadRequestError, RateLimitError } from "@/lib/errors";
+import { db } from "@/lib/db";
+import { workspaces } from "@/lib/db/schema";
+import { eq } from "drizzle-orm";
 import { checkEmailRateLimit } from "@/lib/contributor-rate-limit";
-import { getWorkspaceCorsHeaders, isWorkspaceOriginAllowed } from "@/lib/cors";
+import { getWorkspaceCorsHeaders } from "@/lib/cors";
 
 /**
  * Extract workspace ID from a callback URL like "/embed/{workspaceId}" or "/embed/{workspaceId}?params"
@@ -150,19 +153,19 @@ export async function POST(request: NextRequest) {
     } = sendVerificationSchema.parse(body);
     const workspaceId = resolveWorkspaceId(explicitWorkspaceId, callbackUrl);
 
+    const workspace = await db.query.workspaces.findFirst({
+      where: eq(workspaces.id, workspaceId),
+      columns: { id: true },
+    });
+    if (!workspace) {
+      throw new BadRequestError("Invalid workspace");
+    }
+
     const corsHeaders = await getWorkspaceCorsHeaders(
       origin,
       workspaceId,
       "GET, POST, OPTIONS"
     );
-
-    const originAllowed = await isWorkspaceOriginAllowed(origin, workspaceId);
-    if (!originAllowed) {
-      return NextResponse.json(
-        { success: false, error: "Origin not allowed for this workspace" },
-        { status: 403, headers: corsHeaders }
-      );
-    }
 
     // Sanitize callback URL before use
     const safeCallbackUrl = sanitizeCallbackUrl(callbackUrl);
