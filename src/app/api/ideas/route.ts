@@ -7,7 +7,6 @@ import { getUserWorkspace } from "@/lib/workspace";
 import { NotFoundError } from "@/lib/errors";
 import { toDashboardIdea } from "@/lib/api-utils";
 import { ALL_IDEA_STATUSES } from "@/lib/idea-status-config";
-import { VISIBLE_ROADMAP_STATUSES } from "@/lib/roadmap-status-config";
 import { updateIdeaEmbedding } from "@/lib/ai/embeddings";
 
 const createIdeaSchema = z.object({
@@ -82,9 +81,7 @@ export const POST = protectedApiRouteWrapper(
     const body = await request.json();
     const data = createIdeaSchema.parse(body);
 
-    const isRoadmapIdea =
-      data.roadmapStatus &&
-      VISIBLE_ROADMAP_STATUSES.includes(data.roadmapStatus);
+    const isRoadmapIdea = !!data.roadmapStatus;
 
     let newIdea;
 

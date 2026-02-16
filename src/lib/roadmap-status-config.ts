@@ -77,6 +77,32 @@ export const ROADMAP_STATUS_CONFIG: Record<
 };
 
 /**
+ * Icon background/text color pairs for roadmap status selector UI.
+ * Used in the status dropdown across roadmap create and detail pages.
+ */
+export const ROADMAP_ICON_COLORS: Record<
+  RoadmapStatus,
+  { bg: string; text: string }
+> = {
+  NONE: {
+    bg: "bg-slate-100 dark:bg-slate-900/50",
+    text: "text-slate-600 dark:text-slate-400",
+  },
+  PLANNED: {
+    bg: "bg-blue-100 dark:bg-blue-900/50",
+    text: "text-blue-600 dark:text-blue-400",
+  },
+  IN_PROGRESS: {
+    bg: "bg-amber-100 dark:bg-amber-900/50",
+    text: "text-amber-600 dark:text-amber-400",
+  },
+  RELEASED: {
+    bg: "bg-green-100 dark:bg-green-900/50",
+    text: "text-green-600 dark:text-green-400",
+  },
+};
+
+/**
  * Check if a roadmap status is visible (on the roadmap).
  */
 export function isOnRoadmap(status: RoadmapStatus): boolean {

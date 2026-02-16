@@ -18,23 +18,9 @@ import type { RoadmapStatus } from "@/lib/db/schema";
 import {
   VISIBLE_ROADMAP_STATUSES,
   ROADMAP_STATUS_CONFIG,
+  ROADMAP_ICON_COLORS,
 } from "@/lib/roadmap-status-config";
 import { RoadmapIdeaCard } from "@/components/board/roadmap-idea-card";
-
-const ICON_COLORS: Record<string, { bg: string; text: string }> = {
-  PLANNED: {
-    bg: "bg-blue-100 dark:bg-blue-900/50",
-    text: "text-blue-600 dark:text-blue-400",
-  },
-  IN_PROGRESS: {
-    bg: "bg-amber-100 dark:bg-amber-900/50",
-    text: "text-amber-600 dark:text-amber-400",
-  },
-  RELEASED: {
-    bg: "bg-green-100 dark:bg-green-900/50",
-    text: "text-green-600 dark:text-green-400",
-  },
-};
 
 export function RoadmapIdeaForm() {
   const router = useRouter();
@@ -79,7 +65,7 @@ export function RoadmapIdeaForm() {
 
   const currentConfig = ROADMAP_STATUS_CONFIG[roadmapStatus];
   const CurrentIcon = currentConfig.icon;
-  const currentColors = ICON_COLORS[roadmapStatus];
+  const currentColors = ROADMAP_ICON_COLORS[roadmapStatus];
 
   return (
     <div className="xl:grid xl:grid-cols-[1fr_360px] xl:gap-8">
@@ -121,11 +107,11 @@ export function RoadmapIdeaForm() {
                 <ChevronDown className="text-muted-foreground h-3.5 w-3.5 transition-transform group-data-[state=open]:rotate-180" />
               </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="min-w-[180px]">
+            <DropdownMenuContent align="start" className="min-w-45">
               {VISIBLE_ROADMAP_STATUSES.map((status) => {
                 const config = ROADMAP_STATUS_CONFIG[status];
                 const Icon = config.icon;
-                const colors = ICON_COLORS[status];
+                const colors = ROADMAP_ICON_COLORS[status];
                 const isSelected = status === roadmapStatus;
                 return (
                   <DropdownMenuItem
@@ -161,7 +147,7 @@ export function RoadmapIdeaForm() {
             onChange={(e) => setFeatureDetails(e.target.value)}
             placeholder="Describe the feature specs, scope, and what you're building..."
             maxLength={2000}
-            className="min-h-[100px] resize-none"
+            className="min-h-25 resize-none"
           />
           <p className="text-muted-foreground font-mono text-xs tabular-nums">
             {featureDetails.length}/2000
