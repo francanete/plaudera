@@ -33,6 +33,7 @@ import type { Idea, RoadmapStatus } from "@/lib/db/schema";
 import {
   VISIBLE_ROADMAP_STATUSES,
   ROADMAP_STATUS_CONFIG,
+  ROADMAP_ICON_COLORS,
 } from "@/lib/roadmap-status-config";
 import { RoadmapIdeaCard } from "@/components/board/roadmap-idea-card";
 import { IdeaInternalNote } from "@/app/dashboard/ideas/[id]/components/idea-internal-note";
@@ -72,21 +73,6 @@ const TAB_CONFIG: Record<
     visibilityText: "Board · Roadmap (fallback)",
     helpText:
       "The original idea submitted by the contributor. Read-only reference.",
-  },
-};
-
-const ROADMAP_ICON_COLORS: Record<string, { bg: string; text: string }> = {
-  PLANNED: {
-    bg: "bg-blue-100 dark:bg-blue-900/50",
-    text: "text-blue-600 dark:text-blue-400",
-  },
-  IN_PROGRESS: {
-    bg: "bg-amber-100 dark:bg-amber-900/50",
-    text: "text-amber-600 dark:text-amber-400",
-  },
-  RELEASED: {
-    bg: "bg-green-100 dark:bg-green-900/50",
-    text: "text-green-600 dark:text-green-400",
   },
 };
 
@@ -364,9 +350,7 @@ export function RoadmapIdeaDetail({
             {(() => {
               const currentConfig = ROADMAP_STATUS_CONFIG[idea.roadmapStatus];
               const CurrentIcon = currentConfig.icon;
-              const currentColors =
-                ROADMAP_ICON_COLORS[idea.roadmapStatus] ??
-                ROADMAP_ICON_COLORS.PLANNED;
+              const currentColors = ROADMAP_ICON_COLORS[idea.roadmapStatus];
               return (
                 <button className="group border-border bg-background hover:border-muted-foreground/30 inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-left transition-all hover:shadow-sm">
                   <span
@@ -382,7 +366,7 @@ export function RoadmapIdeaDetail({
               );
             })()}
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="start" className="min-w-[180px]">
+          <DropdownMenuContent align="start" className="min-w-45">
             {VISIBLE_ROADMAP_STATUSES.map((status) => {
               const config = ROADMAP_STATUS_CONFIG[status];
               const Icon = config.icon;
@@ -556,7 +540,7 @@ export function RoadmapIdeaDetail({
                       key={change.id}
                       className="relative flex items-center gap-3 py-2"
                     >
-                      <div className="bg-border absolute -left-[17px] h-2 w-2 rounded-full" />
+                      <div className="bg-border absolute -left-4.25 h-2 w-2 rounded-full" />
                       <span
                         className={`text-sm font-medium ${ROADMAP_STATUS_CONFIG[change.toStatus].textColor}`}
                       >
@@ -633,7 +617,7 @@ function ContentField({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className={`placeholder:text-muted-foreground/50 min-h-[140px] resize-none border-0 bg-transparent px-0 shadow-none focus:ring-0 focus-visible:ring-0 ${
+        className={`placeholder:text-muted-foreground/50 min-h-35 resize-none border-0 bg-transparent px-0 shadow-none focus:ring-0 focus-visible:ring-0 ${
           readOnly ? "opacity-60" : ""
         }`}
         maxLength={maxLength}

@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { z } from "zod";
 import { eq, desc, asc, ne } from "drizzle-orm";
 import { db, ideas, type IdeaStatus } from "@/lib/db";
 import { protectedApiRouteWrapper } from "@/lib/dal";
@@ -7,12 +6,7 @@ import { getUserWorkspace } from "@/lib/workspace";
 import { NotFoundError } from "@/lib/errors";
 import { toDashboardIdea } from "@/lib/api-utils";
 import { ALL_IDEA_STATUSES } from "@/lib/idea-status-config";
-import { updateIdeaEmbedding } from "@/lib/ai/embeddings";
-
-const createIdeaSchema = z.object({
-  title: z.string().min(1, "Title is required").max(200, "Title too long"),
-  description: z.string().max(5000, "Description too long").optional(),
-});
+import { createIdea, createIdeaSchema } from "@/lib/idea-updates";
 
 type SortOption = "newest" | "oldest" | "votes";
 
@@ -79,21 +73,7 @@ export const POST = protectedApiRouteWrapper(
     const body = await request.json();
     const data = createIdeaSchema.parse(body);
 
-    const [newIdea] = await db
-      .insert(ideas)
-      .values({
-        workspaceId: workspace.id,
-        title: data.title,
-        description: data.description || null,
-        status: "PUBLISHED",
-        voteCount: 0,
-      })
-      .returning();
-
-    // Generate embedding for duplicate detection (fire-and-forget, don't block response)
-    updateIdeaEmbedding(newIdea.id, newIdea.title).catch((err) =>
-      console.error("Failed to generate embedding for idea:", err)
-    );
+    const newIdea = await createIdea(workspace.id, session.user.id, data);
 
     return NextResponse.json(
       { idea: toDashboardIdea(newIdea) },
