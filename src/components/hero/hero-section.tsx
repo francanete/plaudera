@@ -76,18 +76,8 @@ export function HeroSection({ className }: HeroSectionProps) {
 
             {/* Headline */}
             <h1 className="mb-4 text-4xl font-bold tracking-tight text-slate-900 sm:text-5xl lg:text-6xl">
-              Stop guessing.
-              <br />
-              <span className="text-slate-400">
-                Start building what users actually want.
-              </span>
+              Collect customer feedback and turn it into a clear roadmap
             </h1>
-
-            {/* Keyword-rich clarifier */}
-            <p className="mb-8 text-base font-medium text-slate-500 md:text-lg">
-              Plaudera is a customer feedback tool with a public feature request
-              board, voting, and an embeddable widget.
-            </p>
 
             {/* Subheadline */}
             <p
@@ -99,9 +89,8 @@ export function HeroSection({ className }: HeroSectionProps) {
                   : "translate-y-8 opacity-0"
               )}
             >
-              Collect customer feedback and feature requests in one place. Let
-              users vote on priorities. Ship the ideas that matter most — with
-              AI handling the duplicates.
+              Plaudera helps SaaS teams capture feature requests, spot patterns,
+              and prioritize what to build next — without enterprise bloat.
             </p>
 
             {/* CTAs */}
@@ -120,7 +109,7 @@ export function HeroSection({ className }: HeroSectionProps) {
                 className="h-12 rounded-full bg-slate-900 px-8 text-base font-semibold text-white shadow-lg shadow-slate-900/20 transition-all hover:-translate-y-0.5 hover:bg-slate-800 hover:shadow-xl hover:shadow-slate-900/30"
               >
                 <Link href="/signup">
-                  Get started
+                  Start free
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Link>
               </Button>
@@ -131,32 +120,53 @@ export function HeroSection({ className }: HeroSectionProps) {
                 asChild
                 className="h-12 rounded-full px-8 text-base font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-900"
               >
-                <Link href="/pricing">See Pricing</Link>
+                <Link href="https://feedback.plaudera.com" target="_blank">
+                  See live board
+                </Link>
               </Button>
+            </div>
+
+            {/* Product Hunt Badge */}
+            <div
+              className={cn(
+                "mt-8",
+                "transition-all delay-400 duration-700",
+                isInView
+                  ? "translate-y-0 opacity-100"
+                  : "translate-y-8 opacity-0"
+              )}
+            >
+              <a
+                href="https://www.producthunt.com/products/plaudera?embed=true&utm_source=badge-featured&utm_medium=badge&utm_campaign=badge-plaudera"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  alt="Plaudera - Customer feedback + feature request board for SaaS teams | Product Hunt"
+                  width="250"
+                  height="54"
+                  src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1080194&theme=dark&t=1771352833938"
+                />
+              </a>
             </div>
 
             {/* Trust Indicators */}
             <div
               className={cn(
-                "mt-12 flex flex-wrap items-center gap-6 text-sm font-medium text-slate-500",
+                "mt-6 flex flex-wrap items-center gap-6 text-sm font-medium text-slate-500",
                 "transition-all delay-500 duration-700",
                 isInView
                   ? "translate-y-0 opacity-100"
                   : "translate-y-8 opacity-0"
               )}
             >
-              <div className="flex items-center gap-2">
-                <CheckCircle2 className="h-4 w-4 text-slate-400" />
-                <span>Cancel anytime</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <CheckCircle2 className="h-4 w-4 text-slate-400" />
-                <span>Setup in 5 minutes</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <CheckCircle2 className="h-4 w-4 text-slate-400" />
-                <span>No code needed</span>
-              </div>
+              <p className="text-sm text-slate-500">
+                Built for indie founders and small SaaS teams.
+              </p>
+              <p className="text-sm text-slate-400">
+                Actively built with user feedback.
+              </p>
             </div>
           </div>
 

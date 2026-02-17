@@ -4,11 +4,9 @@ import { redirect } from "next/navigation";
 import { db, ideas } from "@/lib/db";
 import { eq, ne, and, desc } from "drizzle-orm";
 import { getUserWorkspace, createUserWorkspace } from "@/lib/workspace";
-import Link from "next/link";
 import { RoadmapList } from "./roadmap-list";
 import { Map, Plus } from "lucide-react";
 import { DashboardPageHeader } from "@/components/dashboard/dashboard-page-header";
-import { Button } from "@/components/ui/button";
 
 export default async function RoadmapPage() {
   const session = await auth.api.getSession({
@@ -44,14 +42,11 @@ export default async function RoadmapPage() {
         subtitle="Track the progress of ideas you've committed to building."
         icon={Map}
         iconClassName="bg-indigo-100 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-400"
-        action={
-          <Button asChild>
-            <Link href="/dashboard/roadmap/create">
-              <Plus className="mr-2 h-4 w-4" />
-              Add Idea
-            </Link>
-          </Button>
-        }
+        action={{
+          label: "New idea",
+          href: "/dashboard/roadmap/create",
+          icon: Plus,
+        }}
       />
 
       <RoadmapList ideas={roadmapIdeas} />
