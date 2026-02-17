@@ -1,14 +1,36 @@
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
+import { Button } from "@/components/ui/button";
+
+export const headerActionClassName =
+  "bg-foreground text-background hover:bg-foreground/90 gap-2";
+
+interface ActionConfig {
+  label: string;
+  href: string;
+  icon?: React.ComponentType<{ className?: string }>;
+  external?: boolean;
+}
 
 interface DashboardPageHeaderProps {
   title: string;
   subtitle?: string;
   icon?: React.ComponentType<{ className?: string }>;
   iconClassName?: string;
-  action?: React.ReactNode;
+  action?: React.ReactNode | ActionConfig;
   backHref?: string;
   backLabel?: string;
+}
+
+function isActionConfig(
+  action: React.ReactNode | ActionConfig
+): action is ActionConfig {
+  return (
+    action !== null &&
+    typeof action === "object" &&
+    "label" in action &&
+    "href" in action
+  );
 }
 
 export function DashboardPageHeader({
@@ -20,6 +42,24 @@ export function DashboardPageHeader({
   backHref,
   backLabel = "Back",
 }: DashboardPageHeaderProps) {
+  const renderedAction = action ? (
+    isActionConfig(action) ? (
+      <Button asChild className={headerActionClassName}>
+        <Link
+          href={action.href}
+          {...(action.external
+            ? { target: "_blank", rel: "noopener noreferrer" }
+            : {})}
+        >
+          {action.icon && <action.icon className="h-4 w-4" />}
+          {action.label}
+        </Link>
+      </Button>
+    ) : (
+      action
+    )
+  ) : null;
+
   return (
     <header>
       {backHref && (
@@ -49,7 +89,9 @@ export function DashboardPageHeader({
           )}
         </div>
 
-        {action && <div className="w-full shrink-0 sm:w-auto">{action}</div>}
+        {renderedAction && (
+          <div className="w-full shrink-0 sm:w-auto">{renderedAction}</div>
+        )}
       </div>
     </header>
   );

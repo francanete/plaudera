@@ -1,7 +1,6 @@
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
-import Link from "next/link";
 import { db, duplicateSuggestions } from "@/lib/db";
 import { eq, and } from "drizzle-orm";
 import { queryDashboardIdeas } from "@/lib/idea-queries";
@@ -9,7 +8,6 @@ import { getUserWorkspace, createUserWorkspace } from "@/lib/workspace";
 import { IdeasList } from "./ideas-list";
 import { Lightbulb, Plus } from "lucide-react";
 import { DashboardPageHeader } from "@/components/dashboard/dashboard-page-header";
-import { Button } from "@/components/ui/button";
 
 export default async function IdeasPage() {
   const session = await auth.api.getSession({
@@ -63,17 +61,11 @@ export default async function IdeasPage() {
         subtitle="Collect and manage feature requests from your users."
         icon={Lightbulb}
         iconClassName="bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400"
-        action={
-          <Button
-            asChild
-            className="bg-foreground text-background hover:bg-foreground/90 gap-2"
-          >
-            <Link href="/dashboard/ideas?create=true">
-              <Plus className="h-4 w-4" />
-              New idea
-            </Link>
-          </Button>
-        }
+        action={{
+          label: "New idea",
+          href: "/dashboard/ideas?create=true",
+          icon: Plus,
+        }}
       />
 
       <IdeasList

@@ -8,13 +8,11 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { WidgetSection } from "@/components/settings/widget-section";
 import { getUserWorkspace } from "@/lib/workspace";
 import { db, widgetSettings } from "@/lib/db";
 import type { WidgetPosition } from "@/lib/db/schema";
 import { DashboardPageHeader } from "@/components/dashboard/dashboard-page-header";
-import Link from "next/link";
 import { ExternalLink } from "lucide-react";
 
 export default async function WidgetPage() {
@@ -45,17 +43,12 @@ export default async function WidgetPage() {
       <DashboardPageHeader
         title="Widget"
         subtitle="Configure your embeddable feedback widget."
-        action={
-          <Button
-            asChild
-            className="bg-foreground text-background hover:bg-foreground/90 gap-2"
-          >
-            <Link href="/preview" target="_blank" rel="noopener noreferrer">
-              <ExternalLink className="h-4 w-4" />
-              Preview Widget
-            </Link>
-          </Button>
-        }
+        action={{
+          label: "Preview widget",
+          href: "/preview",
+          icon: ExternalLink,
+          external: true,
+        }}
       />
 
       {workspace ? (
