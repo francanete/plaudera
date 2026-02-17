@@ -99,7 +99,7 @@ export function Navbar() {
               {/* Desktop Auth */}
               <div className="hidden items-center gap-4 md:flex">
                 {isPending ? null : session ? (
-                  <DropdownMenu>
+                  <DropdownMenu modal={false}>
                     <DropdownMenuTrigger asChild>
                       <button className="flex items-center gap-2 rounded-full border border-slate-200 bg-white py-1 pr-3 pl-1 transition-all hover:border-slate-300 focus:ring-2 focus:ring-indigo-500/20 focus:outline-none">
                         <Avatar className="h-8 w-8">
