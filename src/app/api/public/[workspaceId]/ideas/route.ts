@@ -18,13 +18,17 @@ import {
   applyWorkspaceCorsHeaders,
 } from "@/lib/cors";
 
-// Extend the shared schema to require problemStatement for public submissions
-const publicCreateIdeaSchema = createIdeaSchema.extend({
-  problemStatement: z
-    .string()
-    .min(1, "Problem statement is required")
-    .max(2000, "Problem statement is too long"),
-});
+// Extend the shared schema for public submissions:
+// - Require problemStatement
+// - Strip owner-only fields (roadmapStatus, featureDetails)
+const publicCreateIdeaSchema = createIdeaSchema
+  .omit({ roadmapStatus: true, featureDetails: true })
+  .extend({
+    problemStatement: z
+      .string()
+      .min(1, "Problem statement is required")
+      .max(2000, "Problem statement is too long"),
+  });
 
 type RouteParams = { params: Promise<{ workspaceId: string }> };
 

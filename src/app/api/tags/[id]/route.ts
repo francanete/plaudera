@@ -4,15 +4,19 @@ import { eq, and } from "drizzle-orm";
 import { db, strategicTags } from "@/lib/db";
 import { protectedApiRouteWrapper } from "@/lib/dal";
 import { getUserWorkspace } from "@/lib/workspace";
-import { NotFoundError } from "@/lib/errors";
+import { NotFoundError, ConflictError, BadRequestError } from "@/lib/errors";
 
-const updateTagSchema = z.object({
-  name: z.string().min(1).max(50).optional(),
-  color: z
-    .string()
-    .regex(/^#[0-9a-fA-F]{6}$/)
-    .optional(),
-});
+const updateTagSchema = z
+  .object({
+    name: z.string().min(1).max(50).optional(),
+    color: z
+      .string()
+      .regex(/^#[0-9a-fA-F]{6}$/)
+      .optional(),
+  })
+  .refine((data) => data.name !== undefined || data.color !== undefined, {
+    message: "At least one field (name or color) is required",
+  });
 
 type Params = { id: string };
 
@@ -25,20 +29,31 @@ export const PATCH = protectedApiRouteWrapper<Params>(
     const body = await request.json();
     const data = updateTagSchema.parse(body);
 
-    const [updated] = await db
-      .update(strategicTags)
-      .set(data)
-      .where(
-        and(
-          eq(strategicTags.id, id),
-          eq(strategicTags.workspaceId, workspace.id)
+    try {
+      const [updated] = await db
+        .update(strategicTags)
+        .set(data)
+        .where(
+          and(
+            eq(strategicTags.id, id),
+            eq(strategicTags.workspaceId, workspace.id)
+          )
         )
-      )
-      .returning();
+        .returning();
 
-    if (!updated) throw new NotFoundError("Tag not found");
+      if (!updated) throw new NotFoundError("Tag not found");
 
-    return NextResponse.json({ tag: updated });
+      return NextResponse.json({ tag: updated });
+    } catch (error: unknown) {
+      if (
+        error instanceof Error &&
+        "code" in error &&
+        (error as { code: string }).code === "23505"
+      ) {
+        throw new ConflictError("A tag with this name already exists");
+      }
+      throw error;
+    }
   },
   { requirePaid: false }
 );
