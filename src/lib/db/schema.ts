@@ -57,6 +57,13 @@ export const workflowStageEnum = pgEnum("workflow_stage", [
   "integrations",
   "other",
 ]);
+export const decisionTypeEnum = pgEnum("decision_type", [
+  "prioritized",
+  "deprioritized",
+  "declined",
+  "status_progression",
+  "status_reversal",
+]);
 
 // ============ Auth Tables (Better Auth) ============
 // Note: Better Auth expects specific table names. We use pluralized names
@@ -568,6 +575,7 @@ export const ideas = pgTable(
     frequencyTag: frequencyTagEnum("frequency_tag"),
     workflowImpact: workflowImpactEnum("workflow_impact"),
     workflowStage: workflowStageEnum("workflow_stage"),
+    wontBuildReason: text("wont_build_reason"),
     mergedIntoId: text("merged_into_id"),
     authorEmail: text("author_email"),
     authorName: text("author_name"),
@@ -707,9 +715,35 @@ export const roadmapStatusChanges = pgTable(
     changedBy: text("changed_by").references(() => users.id, {
       onDelete: "set null",
     }),
+    rationale: text("rationale"),
+    isPublic: boolean("is_public").default(false).notNull(),
+    decisionType: decisionTypeEnum("decision_type"),
     changedAt: timestamp("changed_at").defaultNow().notNull(),
   },
   (table) => [index("roadmap_changes_idea_idx").on(table.ideaId)]
+);
+
+// ============ Idea Status Changes (Audit Log) ============
+export const ideaStatusChanges = pgTable(
+  "idea_status_changes",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => createId()),
+    ideaId: text("idea_id")
+      .notNull()
+      .references(() => ideas.id, { onDelete: "cascade" }),
+    userId: text("user_id").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    fromStatus: ideaStatusEnum("from_status").notNull(),
+    toStatus: ideaStatusEnum("to_status").notNull(),
+    rationale: text("rationale"),
+    isPublic: boolean("is_public").default(false).notNull(),
+    decisionType: decisionTypeEnum("decision_type"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => [index("idea_status_changes_idea_idx").on(table.ideaId)]
 );
 
 // ============ Strategic Tags ============
@@ -816,6 +850,7 @@ export const ideasRelations = relations(ideas, ({ one, many }) => ({
     references: [ideaEmbeddings.ideaId],
   }),
   roadmapStatusChanges: many(roadmapStatusChanges),
+  ideaStatusChanges: many(ideaStatusChanges),
   strategicTags: many(ideaStrategicTags),
 }));
 
@@ -829,6 +864,21 @@ export const roadmapStatusChangesRelations = relations(
     }),
     changedByUser: one(users, {
       fields: [roadmapStatusChanges.changedBy],
+      references: [users.id],
+    }),
+  })
+);
+
+// ============ Idea Status Changes Relations ============
+export const ideaStatusChangesRelations = relations(
+  ideaStatusChanges,
+  ({ one }) => ({
+    idea: one(ideas, {
+      fields: [ideaStatusChanges.ideaId],
+      references: [ideas.id],
+    }),
+    user: one(users, {
+      fields: [ideaStatusChanges.userId],
       references: [users.id],
     }),
   })
@@ -975,6 +1025,9 @@ export type NewStrategicTag = typeof strategicTags.$inferInsert;
 export type IdeaStrategicTag = typeof ideaStrategicTags.$inferSelect;
 export type NewIdeaStrategicTag = typeof ideaStrategicTags.$inferInsert;
 export type FrequencyTag = (typeof frequencyTagEnum.enumValues)[number];
+export type DecisionType = (typeof decisionTypeEnum.enumValues)[number];
+export type IdeaStatusChange = typeof ideaStatusChanges.$inferSelect;
+export type NewIdeaStatusChange = typeof ideaStatusChanges.$inferInsert;
 export type WorkflowImpact = (typeof workflowImpactEnum.enumValues)[number];
 export type WorkflowStage = (typeof workflowStageEnum.enumValues)[number];
 

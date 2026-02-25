@@ -8,7 +8,6 @@ import {
   IdeaHeader,
   IdeaInternalNote,
   IdeaMeta,
-  IdeaDeleteDialog,
   IdeaMergeDialog,
   IdeaMergedChildren,
   IdeaStatusSection,
@@ -16,9 +15,13 @@ import {
   IdeaDangerZone,
   MoveToRoadmapForm,
   DuplicateSuggestionAlert,
+  RationaleDialog,
+  DecisionTimeline,
 } from "./components";
 import type { DuplicateSuggestionForView } from "./components";
 import type { ConfidenceResult } from "@/lib/confidence";
+import type { DecisionTimelineEntry } from "@/lib/idea-queries";
+import type { DecisionType } from "@/lib/db/schema";
 import { ConfidenceBadge, OutlierWarning } from "../components";
 import { IdeaClassification } from "./components/idea-classification";
 import { isOnRoadmap } from "@/lib/roadmap-status-config";
@@ -39,6 +42,7 @@ interface IdeaDetailProps {
   publishedIdeas?: PublishedIdea[];
   duplicateSuggestions?: DuplicateSuggestionForView[];
   confidence?: ConfidenceResult;
+  decisionTimeline?: DecisionTimelineEntry[];
 }
 
 export function IdeaDetail({
@@ -47,6 +51,7 @@ export function IdeaDetail({
   publishedIdeas = [],
   duplicateSuggestions: initialDupSuggestions = [],
   confidence,
+  decisionTimeline: initialTimeline = [],
 }: IdeaDetailProps) {
   const router = useRouter();
   const [idea, setIdea] = useState(initialIdea);
@@ -54,8 +59,22 @@ export function IdeaDetail({
   const [description, setDescription] = useState(idea.description || "");
   const [isSavingTitle, setIsSavingTitle] = useState(false);
   const [isSavingDescription, setIsSavingDescription] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
-  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  // Rationale dialog state (for governed transitions)
+  const [rationaleDialog, setRationaleDialog] = useState<{
+    open: boolean;
+    decisionType: DecisionType;
+    transitionLabel: string;
+    pendingStatus?: IdeaStatus;
+    showWontBuildReason?: boolean;
+  }>({
+    open: false,
+    decisionType: "declined",
+    transitionLabel: "",
+  });
+  const [isSubmittingRationale, setIsSubmittingRationale] = useState(false);
+
+  // Decision timeline state
+  const [timeline, setTimeline] = useState(initialTimeline);
 
   // Duplicate suggestion state
   const [dupSuggestions, setDupSuggestions] = useState(initialDupSuggestions);
@@ -185,8 +204,19 @@ export function IdeaDetail({
   };
 
   const handleStatusChange = async (newStatus: IdeaStatus) => {
-    const previousStatus = idea.status;
+    // Intercept DECLINED — requires rationale dialog
+    if (newStatus === "DECLINED") {
+      setRationaleDialog({
+        open: true,
+        decisionType: "declined",
+        transitionLabel: "Decline Idea",
+        pendingStatus: "DECLINED",
+        showWontBuildReason: true,
+      });
+      return;
+    }
 
+    const previousStatus = idea.status;
     setIdea((prev) => ({ ...prev, status: newStatus }));
 
     try {
@@ -205,13 +235,76 @@ export function IdeaDetail({
     }
   };
 
+  const handleRationaleConfirm = async (
+    rationale: string,
+    isPublic: boolean,
+    wontBuildReason?: string
+  ) => {
+    setIsSubmittingRationale(true);
+
+    const body: Record<string, unknown> = {
+      rationale,
+      isPublicRationale: isPublic,
+    };
+
+    if (rationaleDialog.pendingStatus) {
+      body.status = rationaleDialog.pendingStatus;
+    }
+
+    if (wontBuildReason) {
+      body.wontBuildReason = wontBuildReason;
+    }
+
+    try {
+      const res = await fetch(`/api/ideas/${idea.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "Failed to update");
+      }
+
+      const { idea: updatedIdea } = await res.json();
+
+      if (rationaleDialog.pendingStatus === "DECLINED") {
+        toast.success("Idea declined");
+        router.push("/dashboard/ideas");
+        return;
+      }
+
+      setIdea((prev) => ({ ...prev, ...updatedIdea }));
+
+      // Refresh timeline
+      const timelineRes = await fetch(
+        `/api/ideas/${idea.id}/decision-timeline`
+      );
+      if (timelineRes.ok) {
+        const data = await timelineRes.json();
+        setTimeline(data.entries);
+      }
+
+      toast.success("Decision recorded");
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Failed to save decision"
+      );
+    } finally {
+      setIsSubmittingRationale(false);
+      setRationaleDialog((prev) => ({ ...prev, open: false }));
+    }
+  };
+
   const handleMoveToRoadmap = async (
     roadmapStatus: RoadmapStatus,
-    featureDetails: string
+    featureDetails: string,
+    rationale: string
   ) => {
     setIsMovingToRoadmap(true);
     try {
-      const body: Record<string, string> = { roadmapStatus };
+      const body: Record<string, string> = { roadmapStatus, rationale };
       if (featureDetails) {
         body.featureDetails = featureDetails;
       }
@@ -272,22 +365,14 @@ export function IdeaDetail({
     }
   };
 
-  const handleDeleteConfirm = async () => {
-    setIsDeleting(true);
-    try {
-      const res = await fetch(`/api/ideas/${idea.id}`, {
-        method: "DELETE",
-      });
-
-      if (!res.ok) throw new Error();
-
-      toast.success("Idea deleted");
-      router.push("/dashboard/ideas");
-    } catch {
-      toast.error("Failed to delete idea");
-      setIsDeleting(false);
-      setShowDeleteDialog(false);
-    }
+  const handleDeclineClick = () => {
+    setRationaleDialog({
+      open: true,
+      decisionType: "declined",
+      transitionLabel: "Decline Idea",
+      pendingStatus: "DECLINED",
+      showWontBuildReason: true,
+    });
   };
 
   const handleMergeConfirm = async () => {
@@ -507,7 +592,10 @@ export function IdeaDetail({
       {/* Meta: Created date & Author - horizontal strip */}
       <IdeaMeta createdAt={idea.createdAt} authorEmail={idea.authorEmail} />
 
-      {/* Advanced Actions: Collapsible section for merge/delete */}
+      {/* Decision Timeline */}
+      {timeline.length > 0 && <DecisionTimeline entries={timeline} />}
+
+      {/* Advanced Actions: Collapsible section for merge/decline */}
       <IdeaDangerZone
         isMerged={idea.status === "MERGED"}
         isOnRoadmap={idea.roadmapStatus !== "NONE"}
@@ -515,16 +603,20 @@ export function IdeaDetail({
         selectedParentId={selectedParentId}
         onParentSelect={setSelectedParentId}
         onMergeClick={() => setShowMergeDialog(true)}
-        onDeleteClick={() => setShowDeleteDialog(true)}
+        onDeclineClick={handleDeclineClick}
       />
 
       {/* Dialogs */}
-      <IdeaDeleteDialog
-        open={showDeleteDialog}
-        onOpenChange={setShowDeleteDialog}
-        ideaTitle={idea.title}
-        onConfirm={handleDeleteConfirm}
-        isDeleting={isDeleting}
+      <RationaleDialog
+        open={rationaleDialog.open}
+        onOpenChange={(open) =>
+          setRationaleDialog((prev) => ({ ...prev, open }))
+        }
+        decisionType={rationaleDialog.decisionType}
+        transitionLabel={rationaleDialog.transitionLabel}
+        onConfirm={handleRationaleConfirm}
+        isSubmitting={isSubmittingRationale}
+        showWontBuildReason={rationaleDialog.showWontBuildReason}
       />
 
       <IdeaMergeDialog

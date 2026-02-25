@@ -98,6 +98,7 @@ describe("toDashboardIdea", () => {
     workflowImpact: "minor" as const,
     workflowStage: "daily_workflow" as const,
     featureDetails: "Toggle in settings",
+    wontBuildReason: null,
     mergedIntoId: null,
     authorEmail: "user@example.com",
     authorName: "Jane",

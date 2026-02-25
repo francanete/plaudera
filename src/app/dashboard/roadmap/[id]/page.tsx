@@ -4,6 +4,7 @@ import { headers } from "next/headers";
 import { db } from "@/lib/db";
 import { ideas } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
+import { queryDecisionTimeline } from "@/lib/idea-queries";
 import { RoadmapIdeaDetail } from "./roadmap-idea-detail";
 
 type PageProps = {
@@ -37,5 +38,7 @@ export default async function RoadmapDetailPage({ params }: PageProps) {
     redirect(`/dashboard/ideas/${idea.id}`);
   }
 
-  return <RoadmapIdeaDetail idea={idea} />;
+  const decisionTimeline = await queryDecisionTimeline(id);
+
+  return <RoadmapIdeaDetail idea={idea} decisionTimeline={decisionTimeline} />;
 }

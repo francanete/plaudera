@@ -4,13 +4,18 @@ import {
   db,
   ideas,
   roadmapStatusChanges,
+  ideaStatusChanges,
   duplicateSuggestions,
   type IdeaStatus,
   type RoadmapStatus,
+  type DecisionType,
 } from "@/lib/db";
 import { NotFoundError, ForbiddenError, BadRequestError } from "@/lib/errors";
 import { ALL_IDEA_STATUSES } from "@/lib/idea-status-config";
-import { ALL_ROADMAP_STATUSES } from "@/lib/roadmap-status-config";
+import {
+  ALL_ROADMAP_STATUSES,
+  ROADMAP_STATUS_ORDER,
+} from "@/lib/roadmap-status-config";
 import { updateIdeaEmbedding } from "@/lib/ai/embeddings";
 
 export const createIdeaSchema = z.object({
@@ -160,6 +165,9 @@ export const updateIdeaSchema = z.object({
   publicUpdate: z.string().max(1000).optional().nullable(),
   featureDetails: z.string().max(2000).optional().nullable(),
   showPublicUpdateOnRoadmap: z.boolean().optional(),
+  rationale: z.string().max(2000).optional(),
+  wontBuildReason: z.string().max(2000).optional().nullable(),
+  isPublicRationale: z.boolean().optional(),
 });
 
 export type UpdateIdeaInput = z.infer<typeof updateIdeaSchema>;
@@ -187,11 +195,57 @@ export async function getIdeaWithOwnerCheck(ideaId: string, userId: string) {
   return idea;
 }
 
+// ============ Decision Type Classification ============
+
+/**
+ * Determine the decision type for a roadmap status change.
+ */
+export function classifyRoadmapDecision(
+  from: RoadmapStatus,
+  to: RoadmapStatus
+): DecisionType {
+  if (from === "NONE" && to !== "NONE") return "prioritized";
+  if (ROADMAP_STATUS_ORDER[to] < ROADMAP_STATUS_ORDER[from])
+    return "deprioritized";
+  return "status_progression";
+}
+
+/**
+ * Determine the decision type for an idea status change.
+ */
+export function classifyIdeaStatusDecision(
+  from: IdeaStatus,
+  to: IdeaStatus
+): DecisionType {
+  if (to === "DECLINED") return "declined";
+  // UNDER_REVIEW → PUBLISHED is forward progression
+  if (from === "UNDER_REVIEW" && to === "PUBLISHED")
+    return "status_progression";
+  // PUBLISHED → UNDER_REVIEW is a reversal
+  if (from === "PUBLISHED" && to === "UNDER_REVIEW") return "status_reversal";
+  return "status_progression";
+}
+
+/**
+ * Check if a roadmap transition is "governed" (requires rationale).
+ * - First entry to roadmap (NONE → anything)
+ * - Roadmap regression (higher → lower, e.g. IN_PROGRESS → PLANNED)
+ */
+function isGovernedRoadmapTransition(
+  from: RoadmapStatus,
+  to: RoadmapStatus
+): boolean {
+  if (from === to) return false;
+  if (from === "NONE" && to !== "NONE") return true; // prioritized
+  return ROADMAP_STATUS_ORDER[to] < ROADMAP_STATUS_ORDER[from]; // deprioritized
+}
+
 /**
  * Update an idea with full business rule enforcement:
  * - Irreversibility guard (cannot remove from roadmap)
  * - Auto-publish (UNDER_REVIEW -> PUBLISHED when moving to roadmap)
- * - Audit logging for roadmap status changes
+ * - Audit logging for roadmap and idea status changes
+ * - Rationale enforcement for governed transitions
  * - Auto-dismiss pending duplicate suggestions when moving to roadmap
  * - Embedding regeneration on title/description change
  */
@@ -232,6 +286,7 @@ export async function updateIdea(
     publicUpdate: string | null;
     featureDetails: string | null;
     showPublicUpdateOnRoadmap: boolean;
+    wontBuildReason: string | null;
     mergedIntoId: string | null;
     updatedAt: Date;
   }> = {
@@ -270,6 +325,17 @@ export async function updateIdea(
     updateData.roadmapStatus = data.roadmapStatus;
     roadmapStatusChanged = data.roadmapStatus !== idea.roadmapStatus;
 
+    // Rationale enforcement for governed roadmap transitions
+    if (
+      roadmapStatusChanged &&
+      isGovernedRoadmapTransition(idea.roadmapStatus, data.roadmapStatus) &&
+      !data.rationale
+    ) {
+      throw new BadRequestError(
+        "Rationale is required for this roadmap status change"
+      );
+    }
+
     // Auto-publish: when moving to roadmap, publish if still under review
     if (
       roadmapStatusChanged &&
@@ -281,6 +347,11 @@ export async function updateIdea(
     }
   }
 
+  // Track idea status changes (including auto-publish)
+  let ideaStatusChanged =
+    updateData.status !== undefined && updateData.status !== idea.status;
+  const previousIdeaStatus = idea.status;
+
   if (data.status !== undefined) {
     // Block declining ideas that are on the roadmap
     const effectiveRoadmapStatus = data.roadmapStatus ?? idea.roadmapStatus;
@@ -290,7 +361,18 @@ export async function updateIdea(
       );
     }
 
+    // Rationale enforcement: DECLINED requires rationale
+    if (data.status === "DECLINED" && !data.rationale) {
+      throw new BadRequestError("Rationale is required when declining an idea");
+    }
+
+    // Set wontBuildReason when declining with a reason
+    if (data.status === "DECLINED") {
+      updateData.wontBuildReason = data.wontBuildReason ?? null;
+    }
+
     updateData.status = data.status;
+    ideaStatusChanged = ideaStatusChanged || data.status !== idea.status;
   }
 
   const updatedIdea = await db.transaction(async (tx) => {
@@ -305,11 +387,35 @@ export async function updateIdea(
       roadmapStatusChanged &&
       result.roadmapStatus !== previousRoadmapStatus
     ) {
+      const decisionType = classifyRoadmapDecision(
+        previousRoadmapStatus,
+        result.roadmapStatus
+      );
       await tx.insert(roadmapStatusChanges).values({
         ideaId: idea.id,
         fromStatus: previousRoadmapStatus,
         toStatus: result.roadmapStatus,
         changedBy: userId,
+        rationale: data.rationale ?? null,
+        isPublic: data.isPublicRationale ?? false,
+        decisionType,
+      });
+    }
+
+    // Log idea status change to audit table
+    if (ideaStatusChanged && result.status !== previousIdeaStatus) {
+      const decisionType = classifyIdeaStatusDecision(
+        previousIdeaStatus,
+        result.status
+      );
+      await tx.insert(ideaStatusChanges).values({
+        ideaId: idea.id,
+        userId,
+        fromStatus: previousIdeaStatus,
+        toStatus: result.status,
+        rationale: data.rationale ?? null,
+        isPublic: data.isPublicRationale ?? false,
+        decisionType,
       });
     }
 
@@ -351,21 +457,11 @@ export async function updateIdea(
 }
 
 /**
- * Soft-delete an idea (set status to DECLINED).
- * Blocks deletion of ideas that are on the roadmap.
+ * @deprecated Use updateIdea() with status: "DECLINED" and rationale instead.
+ * Kept only for backward compatibility — throws a descriptive error.
  */
-export async function deleteIdea(ideaId: string, userId: string) {
-  const idea = await getIdeaWithOwnerCheck(ideaId, userId);
-
-  if (idea.roadmapStatus !== "NONE") {
-    throw new BadRequestError("Cannot delete an idea that is on the roadmap");
-  }
-
-  await db
-    .update(ideas)
-    .set({
-      status: "DECLINED",
-      updatedAt: new Date(),
-    })
-    .where(eq(ideas.id, ideaId));
+export function deleteIdea(): never {
+  throw new BadRequestError(
+    "DELETE is retired. Use PATCH with status: DECLINED and rationale."
+  );
 }
