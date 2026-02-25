@@ -10,7 +10,10 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import type { Idea, IdeaStatus } from "@/lib/db/schema";
+import type { ConfidenceResult } from "@/lib/confidence";
 import { StatusBadge } from "./status-badge";
+import { ConfidenceBadge } from "./confidence-badge";
+import { OutlierWarning } from "./outlier-warning";
 import {
   ROADMAP_STATUS_CONFIG,
   isOnRoadmap,
@@ -21,6 +24,7 @@ export interface IdeaCardProps {
   hasDuplicate: boolean;
   onStatusChange: (ideaId: string, status: IdeaStatus) => void;
   tags?: { id: string; name: string; color: string }[];
+  confidence?: ConfidenceResult;
 }
 
 export function IdeaCard({
@@ -28,6 +32,7 @@ export function IdeaCard({
   hasDuplicate,
   onStatusChange,
   tags,
+  confidence,
 }: IdeaCardProps) {
   return (
     <Link
@@ -59,6 +64,17 @@ export function IdeaCard({
             <h3 className="text-foreground truncate text-base font-semibold">
               {idea.title}
             </h3>
+            {confidence && (
+              <ConfidenceBadge
+                label={confidence.label}
+                intraScore={confidence.intraScore}
+                signalBreakdown={confidence.signalBreakdown}
+                size="sm"
+              />
+            )}
+            {confidence?.concentrationWarning && (
+              <OutlierWarning warning={confidence.concentrationWarning} />
+            )}
             {hasDuplicate && (
               <TooltipProvider>
                 <Tooltip>

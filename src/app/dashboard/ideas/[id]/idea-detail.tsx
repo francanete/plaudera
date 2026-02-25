@@ -18,6 +18,8 @@ import {
   DuplicateSuggestionAlert,
 } from "./components";
 import type { DuplicateSuggestionForView } from "./components";
+import type { ConfidenceResult } from "@/lib/confidence";
+import { ConfidenceBadge, OutlierWarning } from "../components";
 import { IdeaClassification } from "./components/idea-classification";
 import { isOnRoadmap } from "@/lib/roadmap-status-config";
 
@@ -36,6 +38,7 @@ interface IdeaDetailProps {
   mergedChildren?: MergedChild[];
   publishedIdeas?: PublishedIdea[];
   duplicateSuggestions?: DuplicateSuggestionForView[];
+  confidence?: ConfidenceResult;
 }
 
 export function IdeaDetail({
@@ -43,6 +46,7 @@ export function IdeaDetail({
   mergedChildren = [],
   publishedIdeas = [],
   duplicateSuggestions: initialDupSuggestions = [],
+  confidence,
 }: IdeaDetailProps) {
   const router = useRouter();
   const [idea, setIdea] = useState(initialIdea);
@@ -422,6 +426,21 @@ export function IdeaDetail({
         roadmapStatus={idea.roadmapStatus}
         onMoveToRoadmap={() => setShowMoveToRoadmapForm(true)}
       />
+
+      {/* Confidence Score */}
+      {confidence && (
+        <div className="flex items-center gap-2">
+          <ConfidenceBadge
+            label={confidence.label}
+            intraScore={confidence.intraScore}
+            signalBreakdown={confidence.signalBreakdown}
+            size="md"
+          />
+          {confidence.concentrationWarning && (
+            <OutlierWarning warning={confidence.concentrationWarning} />
+          )}
+        </div>
+      )}
 
       {/* Status & Visibility Row */}
       <IdeaStatusSection

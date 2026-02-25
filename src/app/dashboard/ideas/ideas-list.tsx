@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/select";
 import { Plus, Lightbulb } from "lucide-react";
 import type { Idea, IdeaStatus } from "@/lib/db/schema";
+import type { ConfidenceResult } from "@/lib/confidence";
 import type { queryDashboardIdeas } from "@/lib/idea-queries";
 import {
   ALL_IDEA_STATUSES,
@@ -25,9 +26,18 @@ import type { SortOption } from "./components";
 
 type TabValue = "all" | IdeaStatus;
 type DashboardIdea = Awaited<ReturnType<typeof queryDashboardIdeas>>[number];
+type IdeaWithConfidence = DashboardIdea & {
+  confidence?: ConfidenceResult;
+};
+
+const LABEL_TIER: Record<string, number> = {
+  strong: 2,
+  emerging: 1,
+  anecdotal: 0,
+};
 
 interface IdeasListProps {
-  initialIdeas: DashboardIdea[];
+  initialIdeas: IdeaWithConfidence[];
   ideasWithDuplicates?: string[];
 }
 
@@ -90,6 +100,18 @@ export function IdeasList({
           return (
             new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
           );
+        if (sortBy === "confidence") {
+          const tierA = a.confidence
+            ? (LABEL_TIER[a.confidence.label] ?? -1)
+            : -1;
+          const tierB = b.confidence
+            ? (LABEL_TIER[b.confidence.label] ?? -1)
+            : -1;
+          if (tierA !== tierB) return tierB - tierA;
+          return (
+            (b.confidence?.intraScore ?? -1) - (a.confidence?.intraScore ?? -1)
+          );
+        }
         // Default: most votes
         return b.voteCount - a.voteCount;
       });
@@ -358,6 +380,7 @@ export function IdeasList({
                 hasDuplicate={duplicateIdeaIds.has(idea.id)}
                 onStatusChange={handleStatusChange}
                 tags={idea.strategicTags?.map((st) => st.tag)}
+                confidence={idea.confidence}
               />
             ))}
       </div>
