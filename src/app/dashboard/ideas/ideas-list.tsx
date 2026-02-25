@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/select";
 import { Plus, Lightbulb } from "lucide-react";
 import type { Idea, IdeaStatus } from "@/lib/db/schema";
+import type { queryDashboardIdeas } from "@/lib/idea-queries";
 import {
   ALL_IDEA_STATUSES,
   IDEA_STATUS_CONFIG,
@@ -23,9 +24,10 @@ import { IdeaCard, IdeasStatsBar, IdeasToolbar } from "./components";
 import type { SortOption } from "./components";
 
 type TabValue = "all" | IdeaStatus;
+type DashboardIdea = Awaited<ReturnType<typeof queryDashboardIdeas>>[number];
 
 interface IdeasListProps {
-  initialIdeas: Idea[];
+  initialIdeas: DashboardIdea[];
   ideasWithDuplicates?: string[];
 }
 
@@ -355,6 +357,7 @@ export function IdeasList({
                 idea={idea}
                 hasDuplicate={duplicateIdeaIds.has(idea.id)}
                 onStatusChange={handleStatusChange}
+                tags={idea.strategicTags?.map((st) => st.tag)}
               />
             ))}
       </div>

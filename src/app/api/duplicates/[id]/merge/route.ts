@@ -85,12 +85,13 @@ export const POST = protectedApiRouteWrapper<{ id: string }>(
 
       // 1. Transfer votes from merged idea to kept idea in bulk (preserve original timestamps, skip duplicates)
       await tx.execute(sql`
-        INSERT INTO votes (id, idea_id, contributor_id, created_at)
+        INSERT INTO votes (id, idea_id, contributor_id, created_at, is_inherited)
         SELECT
           'vote_' || gen_random_uuid()::text,
           ${keepIdeaId},
           contributor_id,
-          created_at
+          created_at,
+          true
         FROM votes
         WHERE idea_id = ${mergeIdeaId}
         ON CONFLICT (idea_id, contributor_id) DO NOTHING

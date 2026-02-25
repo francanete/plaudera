@@ -15,7 +15,26 @@ import { updateIdeaEmbedding } from "@/lib/ai/embeddings";
 
 export const createIdeaSchema = z.object({
   title: z.string().min(1, "Title is required").max(200, "Title too long"),
-  description: z.string().max(5000, "Description too long").optional(),
+  description: z.string().max(2000, "Description too long").optional(),
+  problemStatement: z
+    .string()
+    .max(2000, "Problem statement too long")
+    .optional(),
+  frequencyTag: z.enum(["daily", "weekly", "monthly", "rarely"]).optional(),
+  workflowImpact: z
+    .enum(["blocker", "major", "minor", "nice_to_have"])
+    .optional(),
+  workflowStage: z
+    .enum([
+      "onboarding",
+      "setup",
+      "daily_workflow",
+      "billing",
+      "reporting",
+      "integrations",
+      "other",
+    ])
+    .optional(),
   roadmapStatus: z.enum(["PLANNED", "IN_PROGRESS", "RELEASED"]).optional(),
   featureDetails: z.string().max(2000, "Feature details too long").optional(),
 });
@@ -23,16 +42,46 @@ export const createIdeaSchema = z.object({
 export type CreateIdeaInput = z.infer<typeof createIdeaSchema>;
 
 /**
+ * Options for public/contributor submissions that don't go through
+ * the dashboard auth flow.
+ */
+export interface PublicSubmissionOptions {
+  contributorId: string;
+  authorEmail: string;
+  /** Public submissions default to UNDER_REVIEW instead of PUBLISHED */
+  defaultStatus?: "UNDER_REVIEW" | "PUBLISHED";
+}
+
+/**
  * Create a new idea, optionally placing it directly on the roadmap.
  * When roadmapStatus is provided, uses a transaction to atomically
  * insert the idea and its audit log entry.
+ *
+ * Pass `publicSubmission` for contributor-submitted ideas (public board/widget).
  */
 export async function createIdea(
   workspaceId: string,
-  userId: string,
-  data: CreateIdeaInput
+  userId: string | null,
+  data: CreateIdeaInput,
+  publicSubmission?: PublicSubmissionOptions
 ) {
   const isRoadmapIdea = !!data.roadmapStatus;
+  const defaultStatus = publicSubmission?.defaultStatus ?? "PUBLISHED";
+
+  const baseValues = {
+    workspaceId,
+    title: data.title,
+    description: data.description || null,
+    problemStatement: data.problemStatement || null,
+    frequencyTag: data.frequencyTag || null,
+    workflowImpact: data.workflowImpact || null,
+    workflowStage: data.workflowStage || null,
+    voteCount: 0,
+    ...(publicSubmission && {
+      contributorId: publicSubmission.contributorId,
+      authorEmail: publicSubmission.authorEmail,
+    }),
+  };
 
   let newIdea;
 
@@ -41,13 +90,10 @@ export async function createIdea(
       const [idea] = await tx
         .insert(ideas)
         .values({
-          workspaceId,
-          title: data.title,
-          description: data.description || null,
+          ...baseValues,
           status: "PUBLISHED",
           roadmapStatus: data.roadmapStatus!,
           featureDetails: data.featureDetails || null,
-          voteCount: 0,
         })
         .returning();
 
@@ -64,17 +110,18 @@ export async function createIdea(
     [newIdea] = await db
       .insert(ideas)
       .values({
-        workspaceId,
-        title: data.title,
-        description: data.description || null,
-        status: "PUBLISHED",
-        voteCount: 0,
+        ...baseValues,
+        status: defaultStatus,
       })
       .returning();
   }
 
   // Generate embedding for duplicate detection (fire-and-forget)
-  updateIdeaEmbedding(newIdea.id, newIdea.title).catch((err) =>
+  updateIdeaEmbedding(
+    newIdea.id,
+    newIdea.title,
+    newIdea.problemStatement
+  ).catch((err) =>
     console.error("Failed to generate embedding for idea:", err)
   );
 
@@ -83,7 +130,28 @@ export async function createIdea(
 
 export const updateIdeaSchema = z.object({
   title: z.string().min(1).max(200).optional(),
-  description: z.string().max(5000).optional().nullable(),
+  description: z.string().max(2000).optional().nullable(),
+  problemStatement: z.string().max(2000).optional().nullable(),
+  frequencyTag: z
+    .enum(["daily", "weekly", "monthly", "rarely"])
+    .optional()
+    .nullable(),
+  workflowImpact: z
+    .enum(["blocker", "major", "minor", "nice_to_have"])
+    .optional()
+    .nullable(),
+  workflowStage: z
+    .enum([
+      "onboarding",
+      "setup",
+      "daily_workflow",
+      "billing",
+      "reporting",
+      "integrations",
+      "other",
+    ])
+    .optional()
+    .nullable(),
   status: z.enum(ALL_IDEA_STATUSES as [IdeaStatus, ...IdeaStatus[]]).optional(),
   roadmapStatus: z
     .enum(ALL_ROADMAP_STATUSES as [RoadmapStatus, ...RoadmapStatus[]])
@@ -146,6 +214,18 @@ export async function updateIdea(
   const updateData: Partial<{
     title: string;
     description: string | null;
+    problemStatement: string | null;
+    frequencyTag: "daily" | "weekly" | "monthly" | "rarely" | null;
+    workflowImpact: "blocker" | "major" | "minor" | "nice_to_have" | null;
+    workflowStage:
+      | "onboarding"
+      | "setup"
+      | "daily_workflow"
+      | "billing"
+      | "reporting"
+      | "integrations"
+      | "other"
+      | null;
     status: IdeaStatus;
     roadmapStatus: RoadmapStatus;
     internalNote: string | null;
@@ -160,6 +240,14 @@ export async function updateIdea(
 
   if (data.title !== undefined) updateData.title = data.title;
   if (data.description !== undefined) updateData.description = data.description;
+  if (data.problemStatement !== undefined)
+    updateData.problemStatement = data.problemStatement;
+  if (data.frequencyTag !== undefined)
+    updateData.frequencyTag = data.frequencyTag;
+  if (data.workflowImpact !== undefined)
+    updateData.workflowImpact = data.workflowImpact;
+  if (data.workflowStage !== undefined)
+    updateData.workflowStage = data.workflowStage;
   if (data.internalNote !== undefined)
     updateData.internalNote = data.internalNote;
   if (data.publicUpdate !== undefined)
@@ -244,9 +332,17 @@ export async function updateIdea(
     return result;
   });
 
-  // Regenerate embedding if title or description changed (fire-and-forget)
-  if (data.title !== undefined || data.description !== undefined) {
-    updateIdeaEmbedding(updatedIdea.id, updatedIdea.title).catch((err) =>
+  // Regenerate embedding if title, description, or problem statement changed (fire-and-forget)
+  if (
+    data.title !== undefined ||
+    data.description !== undefined ||
+    data.problemStatement !== undefined
+  ) {
+    updateIdeaEmbedding(
+      updatedIdea.id,
+      updatedIdea.title,
+      updatedIdea.problemStatement
+    ).catch((err) =>
       console.error("Failed to update embedding for idea:", err)
     );
   }

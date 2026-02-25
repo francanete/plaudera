@@ -20,12 +20,14 @@ export interface IdeaCardProps {
   idea: Idea;
   hasDuplicate: boolean;
   onStatusChange: (ideaId: string, status: IdeaStatus) => void;
+  tags?: { id: string; name: string; color: string }[];
 }
 
 export function IdeaCard({
   idea,
   hasDuplicate,
   onStatusChange,
+  tags,
 }: IdeaCardProps) {
   return (
     <Link
@@ -101,6 +103,26 @@ export function IdeaCard({
                 })()}
                 {ROADMAP_STATUS_CONFIG[idea.roadmapStatus].shortLabel}
               </Badge>
+            )}
+            {tags && tags.length > 0 && (
+              <div className="flex flex-wrap gap-1.5">
+                {tags.map((tag) => (
+                  <span
+                    key={tag.id}
+                    className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium"
+                    style={{
+                      backgroundColor: `${tag.color}20`,
+                      color: tag.color,
+                    }}
+                  >
+                    <span
+                      className="h-1.5 w-1.5 rounded-full"
+                      style={{ backgroundColor: tag.color }}
+                    />
+                    {tag.name}
+                  </span>
+                ))}
+              </div>
             )}
             <time
               dateTime={idea.createdAt.toISOString()}

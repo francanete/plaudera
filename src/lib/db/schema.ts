@@ -10,6 +10,8 @@ import {
   vector,
   check,
   foreignKey,
+  jsonb,
+  primaryKey,
 } from "drizzle-orm/pg-core";
 import { relations, sql } from "drizzle-orm";
 import { createId } from "@paralleldrive/cuid2";
@@ -33,6 +35,27 @@ export const roadmapStatusEnum = pgEnum("roadmap_status", [
   "PLANNED",
   "IN_PROGRESS",
   "RELEASED",
+]);
+export const frequencyTagEnum = pgEnum("frequency_tag", [
+  "daily",
+  "weekly",
+  "monthly",
+  "rarely",
+]);
+export const workflowImpactEnum = pgEnum("workflow_impact", [
+  "blocker",
+  "major",
+  "minor",
+  "nice_to_have",
+]);
+export const workflowStageEnum = pgEnum("workflow_stage", [
+  "onboarding",
+  "setup",
+  "daily_workflow",
+  "billing",
+  "reporting",
+  "integrations",
+  "other",
 ]);
 
 // ============ Auth Tables (Better Auth) ============
@@ -398,6 +421,7 @@ export const workspaces = pgTable(
     ownerId: text("owner_id")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
+    featureFlags: jsonb("feature_flags").default("{}"),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at")
       .defaultNow()
@@ -540,6 +564,10 @@ export const ideas = pgTable(
       .default(false)
       .notNull(),
     featureDetails: text("feature_details"),
+    problemStatement: text("problem_statement"),
+    frequencyTag: frequencyTagEnum("frequency_tag"),
+    workflowImpact: workflowImpactEnum("workflow_impact"),
+    workflowStage: workflowStageEnum("workflow_stage"),
     mergedIntoId: text("merged_into_id"),
     authorEmail: text("author_email"),
     authorName: text("author_name"),
@@ -583,6 +611,7 @@ export const votes = pgTable(
       .notNull()
       .references(() => contributors.id, { onDelete: "cascade" }),
     createdAt: timestamp("created_at").defaultNow().notNull(),
+    isInherited: boolean("is_inherited").default(false).notNull(),
   },
   (table) => [
     uniqueIndex("votes_idea_contributor_idx").on(
@@ -683,6 +712,46 @@ export const roadmapStatusChanges = pgTable(
   (table) => [index("roadmap_changes_idea_idx").on(table.ideaId)]
 );
 
+// ============ Strategic Tags ============
+export const strategicTags = pgTable(
+  "strategic_tags",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => createId()),
+    workspaceId: text("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    color: text("color").notNull().default("#6B7280"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex("strategic_tags_workspace_name_idx").on(
+      table.workspaceId,
+      table.name
+    ),
+    index("strategic_tags_workspace_id_idx").on(table.workspaceId),
+  ]
+);
+
+export const ideaStrategicTags = pgTable(
+  "idea_strategic_tags",
+  {
+    ideaId: text("idea_id")
+      .notNull()
+      .references(() => ideas.id, { onDelete: "cascade" }),
+    tagId: text("tag_id")
+      .notNull()
+      .references(() => strategicTags.id, { onDelete: "cascade" }),
+  },
+  (table) => [
+    primaryKey({ columns: [table.ideaId, table.tagId] }),
+    index("idea_strategic_tags_idea_id_idx").on(table.ideaId),
+    index("idea_strategic_tags_tag_id_idx").on(table.tagId),
+  ]
+);
+
 // ============ Workspaces Relations ============
 export const workspacesRelations = relations(workspaces, ({ one, many }) => ({
   owner: one(users, {
@@ -695,6 +764,7 @@ export const workspacesRelations = relations(workspaces, ({ one, many }) => ({
   duplicateSuggestions: many(duplicateSuggestions),
   slugChangeHistory: many(slugChangeHistory),
   contributorMemberships: many(contributorWorkspaceMemberships),
+  strategicTags: many(strategicTags),
 }));
 
 // ============ Slug Change History Relations ============
@@ -746,6 +816,7 @@ export const ideasRelations = relations(ideas, ({ one, many }) => ({
     references: [ideaEmbeddings.ideaId],
   }),
   roadmapStatusChanges: many(roadmapStatusChanges),
+  strategicTags: many(ideaStrategicTags),
 }));
 
 // ============ Roadmap Status Changes Relations ============
@@ -826,6 +897,32 @@ export const duplicateSuggestionsRelations = relations(
   })
 );
 
+// ============ Strategic Tags Relations ============
+export const strategicTagsRelations = relations(
+  strategicTags,
+  ({ one, many }) => ({
+    workspace: one(workspaces, {
+      fields: [strategicTags.workspaceId],
+      references: [workspaces.id],
+    }),
+    ideaTags: many(ideaStrategicTags),
+  })
+);
+
+export const ideaStrategicTagsRelations = relations(
+  ideaStrategicTags,
+  ({ one }) => ({
+    idea: one(ideas, {
+      fields: [ideaStrategicTags.ideaId],
+      references: [ideas.id],
+    }),
+    tag: one(strategicTags, {
+      fields: [ideaStrategicTags.tagId],
+      references: [strategicTags.id],
+    }),
+  })
+);
+
 // ============ Type Exports ============
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
@@ -873,6 +970,13 @@ export type NewSlugChangeHistory = typeof slugChangeHistory.$inferInsert;
 export type RoadmapStatus = (typeof roadmapStatusEnum.enumValues)[number];
 export type RoadmapStatusChange = typeof roadmapStatusChanges.$inferSelect;
 export type NewRoadmapStatusChange = typeof roadmapStatusChanges.$inferInsert;
+export type StrategicTag = typeof strategicTags.$inferSelect;
+export type NewStrategicTag = typeof strategicTags.$inferInsert;
+export type IdeaStrategicTag = typeof ideaStrategicTags.$inferSelect;
+export type NewIdeaStrategicTag = typeof ideaStrategicTags.$inferInsert;
+export type FrequencyTag = (typeof frequencyTagEnum.enumValues)[number];
+export type WorkflowImpact = (typeof workflowImpactEnum.enumValues)[number];
+export type WorkflowStage = (typeof workflowStageEnum.enumValues)[number];
 
 // ============ Rate Limiting ============
 export const rateLimits = pgTable("rate_limits", {

@@ -64,5 +64,10 @@ export async function queryDashboardIdeas(workspaceId: string) {
       eq(ideas.roadmapStatus, "NONE")
     ),
     orderBy: [desc(ideas.createdAt)],
+    with: {
+      strategicTags: {
+        with: { tag: true },
+      },
+    },
   });
 }

@@ -24,10 +24,14 @@ export async function generateEmbedding(text: string): Promise<number[]> {
  */
 export async function updateIdeaEmbedding(
   ideaId: string,
-  title: string
+  title: string,
+  problemStatement?: string | null
 ): Promise<void> {
-  // Title-only embedding for consistent apples-to-apples comparison
-  const embedding = await generateEmbedding(title);
+  // Combine title with problem statement for richer embedding when available
+  const textToEmbed = problemStatement
+    ? `${title}\n\n${problemStatement}`
+    : title;
+  const embedding = await generateEmbedding(textToEmbed);
 
   // Upsert the embedding
   await db
@@ -67,6 +71,7 @@ export async function syncWorkspaceEmbeddings(
       id: ideas.id,
       title: ideas.title,
       description: ideas.description,
+      problemStatement: ideas.problemStatement,
     })
     .from(ideas)
     .leftJoin(ideaEmbeddings, eq(ideas.id, ideaEmbeddings.ideaId))
@@ -82,7 +87,7 @@ export async function syncWorkspaceEmbeddings(
 
   for (const idea of ideasWithoutEmbeddings) {
     try {
-      await updateIdeaEmbedding(idea.id, idea.title);
+      await updateIdeaEmbedding(idea.id, idea.title, idea.problemStatement);
       created++;
     } catch (error) {
       console.error(`Failed to create embedding for idea ${idea.id}:`, error);

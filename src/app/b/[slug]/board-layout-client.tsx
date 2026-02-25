@@ -154,16 +154,23 @@ export function BoardLayoutClient({
     onSuccess: () => setContributor(null),
   });
 
-  const handleIdeaSubmit = async (title: string, description?: string) => {
+  const handleIdeaSubmit = async (data: {
+    title: string;
+    problemStatement: string;
+    description?: string;
+    frequencyTag?: string;
+    workflowImpact?: string;
+    workflowStage?: string;
+  }) => {
     const res = await fetch(`/api/public/${workspaceId}/ideas`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ title, description }),
+      body: JSON.stringify(data),
     });
 
     if (!res.ok) {
-      const data = await res.json().catch(() => ({}));
-      throw new Error(data.error || "Failed to submit idea");
+      const errorData = await res.json().catch(() => ({}));
+      throw new Error(errorData.error || "Failed to submit idea");
     }
 
     toast.success("Idea submitted successfully!");

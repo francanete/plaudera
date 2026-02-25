@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/db";
-import { ideas, votes, workspaces } from "@/lib/db/schema";
+import { votes, workspaces } from "@/lib/db/schema";
 import { eq, and, inArray } from "drizzle-orm";
 import { queryPublicIdeas, queryPublicRoadmapIdeas } from "@/lib/idea-queries";
 import {
@@ -9,6 +9,7 @@ import {
   hasContributorWorkspaceMembership,
 } from "@/lib/contributor-auth";
 import { handleApiError } from "@/lib/api-utils";
+import { createIdea, createIdeaSchema } from "@/lib/idea-updates";
 import { NotFoundError, UnauthorizedError, RateLimitError, ForbiddenError } from "@/lib/errors";
 import { validateRequestOrigin } from "@/lib/csrf";
 import { checkIdeaRateLimit } from "@/lib/contributor-rate-limit";
@@ -17,10 +18,17 @@ import {
   applyWorkspaceCorsHeaders,
 } from "@/lib/cors";
 
-const createIdeaSchema = z.object({
-  title: z.string().min(1, "Title is required").max(200, "Title is too long"),
-  description: z.string().max(2000, "Description is too long").optional(),
-});
+// Extend the shared schema for public submissions:
+// - Require problemStatement
+// - Strip owner-only fields (roadmapStatus, featureDetails)
+const publicCreateIdeaSchema = createIdeaSchema
+  .omit({ roadmapStatus: true, featureDetails: true })
+  .extend({
+    problemStatement: z
+      .string()
+      .min(1, "Problem statement is required")
+      .max(2000, "Problem statement is too long"),
+  });
 
 type RouteParams = { params: Promise<{ workspaceId: string }> };
 
@@ -90,6 +98,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       id: idea.id,
       title: idea.title,
       description: idea.description,
+      problemStatement: idea.problemStatement,
       status: idea.status,
       roadmapStatus: idea.roadmapStatus,
       publicUpdate: idea.publicUpdate,
@@ -177,21 +186,14 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
     // Validate request body
     const body = await request.json();
-    const { title, description } = createIdeaSchema.parse(body);
+    const data = publicCreateIdeaSchema.parse(body);
 
-    // Create the idea (defaults to PENDING status for admin review)
-    const [newIdea] = await db
-      .insert(ideas)
-      .values({
-        workspaceId: workspace.id,
-        contributorId: contributor.id,
-        title,
-        description: description || null,
-        // status defaults to PENDING from schema
-        voteCount: 0,
-        authorEmail: contributor.email,
-      })
-      .returning();
+    // Create the idea via shared createIdea (handles embedding generation)
+    const newIdea = await createIdea(workspace.id, null, data, {
+      contributorId: contributor.id,
+      authorEmail: contributor.email,
+      defaultStatus: "UNDER_REVIEW",
+    });
 
     const origin = request.headers.get("origin");
     const corsHeaders = await getWorkspaceCorsHeaders(origin, workspaceId, "GET, POST, OPTIONS");
@@ -201,6 +203,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
           id: newIdea.id,
           title: newIdea.title,
           description: newIdea.description,
+          problemStatement: newIdea.problemStatement,
           status: newIdea.status,
           roadmapStatus: newIdea.roadmapStatus,
           publicUpdate: newIdea.publicUpdate,

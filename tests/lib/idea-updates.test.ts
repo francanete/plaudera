@@ -79,6 +79,10 @@ function makeIdea(overrides: Record<string, unknown> = {}) {
     publicUpdate: null,
     showPublicUpdateOnRoadmap: false,
     featureDetails: null,
+    problemStatement: null,
+    frequencyTag: null,
+    workflowImpact: null,
+    workflowStage: null,
     mergedIntoId: null,
     authorEmail: "author@test.com",
     authorName: "Author",
@@ -265,7 +269,11 @@ describe("idea-updates", () => {
 
       await createIdea("ws-1", "user-1", { title: "Embed me" });
 
-      expect(updateIdeaEmbedding).toHaveBeenCalledWith("new-5", "Embed me");
+      expect(updateIdeaEmbedding).toHaveBeenCalledWith(
+        "new-5",
+        "Embed me",
+        null
+      );
     });
   });
 
@@ -503,7 +511,8 @@ describe("idea-updates", () => {
 
       expect(updateIdeaEmbedding).toHaveBeenCalledWith(
         updatedIdea.id,
-        updatedIdea.title
+        updatedIdea.title,
+        updatedIdea.problemStatement
       );
     });
 
@@ -520,7 +529,8 @@ describe("idea-updates", () => {
 
       expect(updateIdeaEmbedding).toHaveBeenCalledWith(
         updatedIdea.id,
-        updatedIdea.title
+        updatedIdea.title,
+        updatedIdea.problemStatement
       );
     });
 
