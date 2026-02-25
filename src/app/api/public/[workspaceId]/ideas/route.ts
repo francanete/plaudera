@@ -9,6 +9,7 @@ import {
   hasContributorWorkspaceMembership,
 } from "@/lib/contributor-auth";
 import { handleApiError } from "@/lib/api-utils";
+import { updateIdeaEmbedding } from "@/lib/ai/embeddings";
 import { NotFoundError, UnauthorizedError, RateLimitError, ForbiddenError } from "@/lib/errors";
 import { validateRequestOrigin } from "@/lib/csrf";
 import { checkIdeaRateLimit } from "@/lib/contributor-rate-limit";
@@ -20,6 +21,25 @@ import {
 const createIdeaSchema = z.object({
   title: z.string().min(1, "Title is required").max(200, "Title is too long"),
   description: z.string().max(2000, "Description is too long").optional(),
+  problemStatement: z
+    .string()
+    .min(1, "Problem statement is required")
+    .max(2000, "Problem statement is too long"),
+  frequencyTag: z.enum(["daily", "weekly", "monthly", "rarely"]).optional(),
+  workflowImpact: z
+    .enum(["blocker", "major", "minor", "nice_to_have"])
+    .optional(),
+  workflowStage: z
+    .enum([
+      "onboarding",
+      "setup",
+      "daily_workflow",
+      "billing",
+      "reporting",
+      "integrations",
+      "other",
+    ])
+    .optional(),
 });
 
 type RouteParams = { params: Promise<{ workspaceId: string }> };
@@ -90,6 +110,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       id: idea.id,
       title: idea.title,
       description: idea.description,
+      problemStatement: idea.problemStatement,
       status: idea.status,
       roadmapStatus: idea.roadmapStatus,
       publicUpdate: idea.publicUpdate,
@@ -177,7 +198,14 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
     // Validate request body
     const body = await request.json();
-    const { title, description } = createIdeaSchema.parse(body);
+    const {
+      title,
+      description,
+      problemStatement,
+      frequencyTag,
+      workflowImpact,
+      workflowStage,
+    } = createIdeaSchema.parse(body);
 
     // Create the idea (defaults to PENDING status for admin review)
     const [newIdea] = await db
@@ -187,11 +215,20 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         contributorId: contributor.id,
         title,
         description: description || null,
+        problemStatement,
+        frequencyTag: frequencyTag || null,
+        workflowImpact: workflowImpact || null,
+        workflowStage: workflowStage || null,
         // status defaults to PENDING from schema
         voteCount: 0,
         authorEmail: contributor.email,
       })
       .returning();
+
+    // Generate embedding for duplicate detection (fire-and-forget)
+    updateIdeaEmbedding(newIdea.id, newIdea.title, newIdea.problemStatement).catch((err) =>
+      console.error("Failed to generate embedding for idea:", err)
+    );
 
     const origin = request.headers.get("origin");
     const corsHeaders = await getWorkspaceCorsHeaders(origin, workspaceId, "GET, POST, OPTIONS");
@@ -201,6 +238,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
           id: newIdea.id,
           title: newIdea.title,
           description: newIdea.description,
+          problemStatement: newIdea.problemStatement,
           status: newIdea.status,
           roadmapStatus: newIdea.roadmapStatus,
           publicUpdate: newIdea.publicUpdate,

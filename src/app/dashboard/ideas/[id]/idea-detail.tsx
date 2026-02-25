@@ -18,6 +18,7 @@ import {
   DuplicateSuggestionAlert,
 } from "./components";
 import type { DuplicateSuggestionForView } from "./components";
+import { IdeaClassification } from "./components/idea-classification";
 import { isOnRoadmap } from "@/lib/roadmap-status-config";
 
 interface MergedChild {
@@ -64,6 +65,13 @@ export function IdeaDetail({
   } | null>(null);
   const [isDupMerging, setIsDupMerging] = useState(false);
 
+  // Problem statement state
+  const [problemStatement, setProblemStatement] = useState(
+    idea.problemStatement || ""
+  );
+  const [isSavingProblemStatement, setIsSavingProblemStatement] =
+    useState(false);
+
   // Roadmap fields state
   const [internalNote, setInternalNote] = useState(idea.internalNote || "");
   const [publicUpdate, setPublicUpdate] = useState(idea.publicUpdate || "");
@@ -81,6 +89,8 @@ export function IdeaDetail({
   const [mergedChildrenOpen, setMergedChildrenOpen] = useState(false);
 
   // Track if fields have changed
+  const problemStatementChanged =
+    problemStatement !== (idea.problemStatement || "");
   const descriptionChanged = description !== (idea.description || "");
   const internalNoteChanged = internalNote !== (idea.internalNote || "");
   const publicUpdateChanged = publicUpdate !== (idea.publicUpdate || "");
@@ -108,6 +118,45 @@ export function IdeaDetail({
       toast.error("Failed to update title");
     } finally {
       setIsSavingTitle(false);
+    }
+  };
+
+  const handleSaveProblemStatement = async () => {
+    setIsSavingProblemStatement(true);
+    try {
+      const res = await fetch(`/api/ideas/${idea.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ problemStatement: problemStatement || null }),
+      });
+      if (!res.ok) throw new Error();
+      setIdea((prev) => ({
+        ...prev,
+        problemStatement: problemStatement || null,
+      }));
+      toast.success("Problem statement updated");
+    } catch {
+      toast.error("Failed to update problem statement");
+    } finally {
+      setIsSavingProblemStatement(false);
+    }
+  };
+
+  const handleSaveClassification = async (
+    field: string,
+    value: string | null
+  ) => {
+    try {
+      const res = await fetch(`/api/ideas/${idea.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ [field]: value }),
+      });
+      if (!res.ok) throw new Error();
+      setIdea((prev) => ({ ...prev, [field]: value }));
+      toast.success("Classification updated");
+    } catch {
+      toast.error("Failed to update classification");
     }
   };
 
@@ -402,6 +451,11 @@ export function IdeaDetail({
 
       {/* Content Area: Tabs */}
       <IdeaContentTabs
+        problemStatement={problemStatement}
+        onProblemStatementChange={setProblemStatement}
+        onSaveProblemStatement={handleSaveProblemStatement}
+        isSavingProblemStatement={isSavingProblemStatement}
+        hasProblemStatementChanges={problemStatementChanged}
         description={description}
         onDescriptionChange={setDescription}
         onSaveDescription={handleSaveDescription}
@@ -412,6 +466,14 @@ export function IdeaDetail({
         onSavePublicUpdate={handleSavePublicUpdate}
         isSavingPublicUpdate={isSavingPublicUpdate}
         hasPublicUpdateChanges={publicUpdateChanged}
+      />
+
+      {/* Classification */}
+      <IdeaClassification
+        frequencyTag={idea.frequencyTag}
+        workflowImpact={idea.workflowImpact}
+        workflowStage={idea.workflowStage}
+        onSave={handleSaveClassification}
       />
 
       {/* Internal Note (Private zone - visually distinct with dashed border) */}
