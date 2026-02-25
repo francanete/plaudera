@@ -1,6 +1,6 @@
 {
-  "id": "83b143a0-3e16-4905-9704-e8d04cad1499",
-  "prevId": "1cf1ce3d-6374-44ad-b46c-acf3761e39b5",
+  "id": "1e9d1939-3bbe-4499-ae40-4be86f79634d",
+  "prevId": "83b143a0-3e16-4905-9704-e8d04cad1499",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -1034,27 +1034,6 @@
         }
       },
       "indexes": {
-        "idea_strategic_tags_pk": {
-          "name": "idea_strategic_tags_pk",
-          "columns": [
-            {
-              "expression": "idea_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "tag_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
         "idea_strategic_tags_idea_id_idx": {
           "name": "idea_strategic_tags_idea_id_idx",
           "columns": [
@@ -1114,7 +1093,15 @@
           "onUpdate": "no action"
         }
       },
-      "compositePrimaryKeys": {},
+      "compositePrimaryKeys": {
+        "idea_strategic_tags_idea_id_tag_id_pk": {
+          "name": "idea_strategic_tags_idea_id_tag_id_pk",
+          "columns": [
+            "idea_id",
+            "tag_id"
+          ]
+        }
+      },
       "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {},

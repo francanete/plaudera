@@ -11,6 +11,7 @@ import {
   check,
   foreignKey,
   jsonb,
+  primaryKey,
 } from "drizzle-orm/pg-core";
 import { relations, sql } from "drizzle-orm";
 import { createId } from "@paralleldrive/cuid2";
@@ -745,8 +746,7 @@ export const ideaStrategicTags = pgTable(
       .references(() => strategicTags.id, { onDelete: "cascade" }),
   },
   (table) => [
-    // Composite primary key via unique index
-    uniqueIndex("idea_strategic_tags_pk").on(table.ideaId, table.tagId),
+    primaryKey({ columns: [table.ideaId, table.tagId] }),
     index("idea_strategic_tags_idea_id_idx").on(table.ideaId),
     index("idea_strategic_tags_tag_id_idx").on(table.tagId),
   ]

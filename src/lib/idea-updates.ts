@@ -42,16 +42,46 @@ export const createIdeaSchema = z.object({
 export type CreateIdeaInput = z.infer<typeof createIdeaSchema>;
 
 /**
+ * Options for public/contributor submissions that don't go through
+ * the dashboard auth flow.
+ */
+export interface PublicSubmissionOptions {
+  contributorId: string;
+  authorEmail: string;
+  /** Public submissions default to UNDER_REVIEW instead of PUBLISHED */
+  defaultStatus?: "UNDER_REVIEW" | "PUBLISHED";
+}
+
+/**
  * Create a new idea, optionally placing it directly on the roadmap.
  * When roadmapStatus is provided, uses a transaction to atomically
  * insert the idea and its audit log entry.
+ *
+ * Pass `publicSubmission` for contributor-submitted ideas (public board/widget).
  */
 export async function createIdea(
   workspaceId: string,
-  userId: string,
-  data: CreateIdeaInput
+  userId: string | null,
+  data: CreateIdeaInput,
+  publicSubmission?: PublicSubmissionOptions
 ) {
   const isRoadmapIdea = !!data.roadmapStatus;
+  const defaultStatus = publicSubmission?.defaultStatus ?? "PUBLISHED";
+
+  const baseValues = {
+    workspaceId,
+    title: data.title,
+    description: data.description || null,
+    problemStatement: data.problemStatement || null,
+    frequencyTag: data.frequencyTag || null,
+    workflowImpact: data.workflowImpact || null,
+    workflowStage: data.workflowStage || null,
+    voteCount: 0,
+    ...(publicSubmission && {
+      contributorId: publicSubmission.contributorId,
+      authorEmail: publicSubmission.authorEmail,
+    }),
+  };
 
   let newIdea;
 
@@ -60,17 +90,10 @@ export async function createIdea(
       const [idea] = await tx
         .insert(ideas)
         .values({
-          workspaceId,
-          title: data.title,
-          description: data.description || null,
-          problemStatement: data.problemStatement || null,
-          frequencyTag: data.frequencyTag || null,
-          workflowImpact: data.workflowImpact || null,
-          workflowStage: data.workflowStage || null,
+          ...baseValues,
           status: "PUBLISHED",
           roadmapStatus: data.roadmapStatus!,
           featureDetails: data.featureDetails || null,
-          voteCount: 0,
         })
         .returning();
 
@@ -87,15 +110,8 @@ export async function createIdea(
     [newIdea] = await db
       .insert(ideas)
       .values({
-        workspaceId,
-        title: data.title,
-        description: data.description || null,
-        problemStatement: data.problemStatement || null,
-        frequencyTag: data.frequencyTag || null,
-        workflowImpact: data.workflowImpact || null,
-        workflowStage: data.workflowStage || null,
-        status: "PUBLISHED",
-        voteCount: 0,
+        ...baseValues,
+        status: defaultStatus,
       })
       .returning();
   }

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/db";
-import { ideas, votes, workspaces } from "@/lib/db/schema";
+import { votes, workspaces } from "@/lib/db/schema";
 import { eq, and, inArray } from "drizzle-orm";
 import { queryPublicIdeas, queryPublicRoadmapIdeas } from "@/lib/idea-queries";
 import {
@@ -9,7 +9,7 @@ import {
   hasContributorWorkspaceMembership,
 } from "@/lib/contributor-auth";
 import { handleApiError } from "@/lib/api-utils";
-import { updateIdeaEmbedding } from "@/lib/ai/embeddings";
+import { createIdea, createIdeaSchema } from "@/lib/idea-updates";
 import { NotFoundError, UnauthorizedError, RateLimitError, ForbiddenError } from "@/lib/errors";
 import { validateRequestOrigin } from "@/lib/csrf";
 import { checkIdeaRateLimit } from "@/lib/contributor-rate-limit";
@@ -18,28 +18,12 @@ import {
   applyWorkspaceCorsHeaders,
 } from "@/lib/cors";
 
-const createIdeaSchema = z.object({
-  title: z.string().min(1, "Title is required").max(200, "Title is too long"),
-  description: z.string().max(2000, "Description is too long").optional(),
+// Extend the shared schema to require problemStatement for public submissions
+const publicCreateIdeaSchema = createIdeaSchema.extend({
   problemStatement: z
     .string()
     .min(1, "Problem statement is required")
     .max(2000, "Problem statement is too long"),
-  frequencyTag: z.enum(["daily", "weekly", "monthly", "rarely"]).optional(),
-  workflowImpact: z
-    .enum(["blocker", "major", "minor", "nice_to_have"])
-    .optional(),
-  workflowStage: z
-    .enum([
-      "onboarding",
-      "setup",
-      "daily_workflow",
-      "billing",
-      "reporting",
-      "integrations",
-      "other",
-    ])
-    .optional(),
 });
 
 type RouteParams = { params: Promise<{ workspaceId: string }> };
@@ -198,37 +182,14 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
     // Validate request body
     const body = await request.json();
-    const {
-      title,
-      description,
-      problemStatement,
-      frequencyTag,
-      workflowImpact,
-      workflowStage,
-    } = createIdeaSchema.parse(body);
+    const data = publicCreateIdeaSchema.parse(body);
 
-    // Create the idea (defaults to PENDING status for admin review)
-    const [newIdea] = await db
-      .insert(ideas)
-      .values({
-        workspaceId: workspace.id,
-        contributorId: contributor.id,
-        title,
-        description: description || null,
-        problemStatement,
-        frequencyTag: frequencyTag || null,
-        workflowImpact: workflowImpact || null,
-        workflowStage: workflowStage || null,
-        // status defaults to PENDING from schema
-        voteCount: 0,
-        authorEmail: contributor.email,
-      })
-      .returning();
-
-    // Generate embedding for duplicate detection (fire-and-forget)
-    updateIdeaEmbedding(newIdea.id, newIdea.title, newIdea.problemStatement).catch((err) =>
-      console.error("Failed to generate embedding for idea:", err)
-    );
+    // Create the idea via shared createIdea (handles embedding generation)
+    const newIdea = await createIdea(workspace.id, null, data, {
+      contributorId: contributor.id,
+      authorEmail: contributor.email,
+      defaultStatus: "UNDER_REVIEW",
+    });
 
     const origin = request.headers.get("origin");
     const corsHeaders = await getWorkspaceCorsHeaders(origin, workspaceId, "GET, POST, OPTIONS");

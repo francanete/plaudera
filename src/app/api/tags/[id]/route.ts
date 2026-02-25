@@ -1,12 +1,10 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { z } from "zod";
 import { eq, and } from "drizzle-orm";
 import { db, strategicTags } from "@/lib/db";
-import { handleApiError } from "@/lib/api-utils";
-import { auth } from "@/lib/auth";
-import { headers } from "next/headers";
+import { protectedApiRouteWrapper } from "@/lib/dal";
 import { getUserWorkspace } from "@/lib/workspace";
-import { NotFoundError, UnauthorizedError } from "@/lib/errors";
+import { NotFoundError } from "@/lib/errors";
 
 const updateTagSchema = z.object({
   name: z.string().min(1).max(50).optional(),
@@ -16,14 +14,11 @@ const updateTagSchema = z.object({
     .optional(),
 });
 
-type RouteParams = { params: Promise<{ id: string }> };
+type Params = { id: string };
 
-export async function PATCH(request: NextRequest, { params }: RouteParams) {
-  try {
-    const { id } = await params;
-    const session = await auth.api.getSession({ headers: await headers() });
-    if (!session) throw new UnauthorizedError("Not authenticated");
-
+export const PATCH = protectedApiRouteWrapper<Params>(
+  async (request, { session, params }) => {
+    const { id } = params;
     const workspace = await getUserWorkspace(session.user.id);
     if (!workspace) throw new NotFoundError("Workspace not found");
 
@@ -44,17 +39,13 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     if (!updated) throw new NotFoundError("Tag not found");
 
     return NextResponse.json({ tag: updated });
-  } catch (error) {
-    return handleApiError(error);
-  }
-}
+  },
+  { requirePaid: false }
+);
 
-export async function DELETE(_request: NextRequest, { params }: RouteParams) {
-  try {
-    const { id } = await params;
-    const session = await auth.api.getSession({ headers: await headers() });
-    if (!session) throw new UnauthorizedError("Not authenticated");
-
+export const DELETE = protectedApiRouteWrapper<Params>(
+  async (_request, { session, params }) => {
+    const { id } = params;
     const workspace = await getUserWorkspace(session.user.id);
     if (!workspace) throw new NotFoundError("Workspace not found");
 
@@ -71,7 +62,6 @@ export async function DELETE(_request: NextRequest, { params }: RouteParams) {
     if (!deleted) throw new NotFoundError("Tag not found");
 
     return NextResponse.json({ success: true });
-  } catch (error) {
-    return handleApiError(error);
-  }
-}
+  },
+  { requirePaid: false }
+);

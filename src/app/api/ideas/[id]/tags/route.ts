@@ -1,29 +1,35 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { z } from "zod";
 import { eq, and } from "drizzle-orm";
-import { db, ideaStrategicTags } from "@/lib/db";
-import { handleApiError } from "@/lib/api-utils";
+import { db, ideaStrategicTags, strategicTags } from "@/lib/db";
+import { protectedApiRouteWrapper } from "@/lib/dal";
 import { getIdeaWithOwnerCheck } from "@/lib/idea-updates";
-import { auth } from "@/lib/auth";
-import { headers } from "next/headers";
-import { UnauthorizedError } from "@/lib/errors";
+import { BadRequestError } from "@/lib/errors";
 
 const tagSchema = z.object({
   tagId: z.string().min(1),
 });
 
-type RouteParams = { params: Promise<{ id: string }> };
+type Params = { id: string };
 
-export async function POST(request: NextRequest, { params }: RouteParams) {
-  try {
-    const { id } = await params;
-    const session = await auth.api.getSession({ headers: await headers() });
-    if (!session) throw new UnauthorizedError("Not authenticated");
-
-    await getIdeaWithOwnerCheck(id, session.user.id);
+export const POST = protectedApiRouteWrapper<Params>(
+  async (request, { session, params }) => {
+    const { id } = params;
+    const idea = await getIdeaWithOwnerCheck(id, session.user.id);
 
     const body = await request.json();
     const { tagId } = tagSchema.parse(body);
+
+    // Verify tag belongs to the same workspace as the idea
+    const tag = await db.query.strategicTags.findFirst({
+      where: and(
+        eq(strategicTags.id, tagId),
+        eq(strategicTags.workspaceId, idea.workspaceId)
+      ),
+    });
+    if (!tag) {
+      throw new BadRequestError("Tag not found in this workspace");
+    }
 
     await db
       .insert(ideaStrategicTags)
@@ -31,17 +37,13 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       .onConflictDoNothing();
 
     return NextResponse.json({ success: true }, { status: 201 });
-  } catch (error) {
-    return handleApiError(error);
-  }
-}
+  },
+  { requirePaid: false }
+);
 
-export async function DELETE(request: NextRequest, { params }: RouteParams) {
-  try {
-    const { id } = await params;
-    const session = await auth.api.getSession({ headers: await headers() });
-    if (!session) throw new UnauthorizedError("Not authenticated");
-
+export const DELETE = protectedApiRouteWrapper<Params>(
+  async (request, { session, params }) => {
+    const { id } = params;
     await getIdeaWithOwnerCheck(id, session.user.id);
 
     const body = await request.json();
@@ -57,7 +59,6 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       );
 
     return NextResponse.json({ success: true });
-  } catch (error) {
-    return handleApiError(error);
-  }
-}
+  },
+  { requirePaid: false }
+);
