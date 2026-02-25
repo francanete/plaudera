@@ -4,6 +4,8 @@ import { headers } from "next/headers";
 import { db } from "@/lib/db";
 import { ideas, duplicateSuggestions } from "@/lib/db/schema";
 import { eq, and, ne, or, desc } from "drizzle-orm";
+import { queryIdeaSignals, buildConfidenceSignals } from "@/lib/idea-queries";
+import { computeConfidence } from "@/lib/confidence";
 import { IdeaDetail } from "./idea-detail";
 import type { DuplicateSuggestionForView } from "./components";
 
@@ -43,8 +45,8 @@ export default async function IdeaDetailPage({ params }: PageProps) {
     redirect(`/dashboard/roadmap/${idea.id}`);
   }
 
-  // Fetch published ideas and duplicate suggestions in parallel
-  const [publishedIdeas, rawDupSuggestions] = await Promise.all([
+  // Fetch published ideas, duplicate suggestions, and confidence signals in parallel
+  const [publishedIdeas, rawDupSuggestions, signalsMap] = await Promise.all([
     db
       .select({ id: ideas.id, title: ideas.title })
       .from(ideas)
@@ -90,6 +92,7 @@ export default async function IdeaDetailPage({ params }: PageProps) {
       },
       orderBy: [desc(duplicateSuggestions.similarity)],
     }),
+    queryIdeaSignals([id]),
   ]);
 
   // Transform: for each suggestion, pick the "other" idea (not the current one)
@@ -105,12 +108,19 @@ export default async function IdeaDetailPage({ params }: PageProps) {
     })
     .filter((s) => s.otherIdea.status !== "MERGED");
 
+  // Compute confidence score
+  const rawSignals = signalsMap.get(id);
+  const confidence = rawSignals
+    ? computeConfidence(buildConfidenceSignals(rawSignals, idea))
+    : undefined;
+
   return (
     <IdeaDetail
       idea={idea}
       mergedChildren={idea.mergedFrom}
       publishedIdeas={publishedIdeas}
       duplicateSuggestions={dupSuggestionsForView}
+      confidence={confidence}
     />
   );
 }

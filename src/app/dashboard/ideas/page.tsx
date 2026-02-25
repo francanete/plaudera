@@ -3,7 +3,12 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { db, duplicateSuggestions } from "@/lib/db";
 import { eq, and } from "drizzle-orm";
-import { queryDashboardIdeas } from "@/lib/idea-queries";
+import {
+  queryDashboardIdeas,
+  queryIdeaSignals,
+  buildConfidenceSignals,
+} from "@/lib/idea-queries";
+import { computeConfidence } from "@/lib/confidence";
 import { getUserWorkspace, createUserWorkspace } from "@/lib/workspace";
 import { IdeasList } from "./ideas-list";
 import { Lightbulb, Plus } from "lucide-react";
@@ -54,6 +59,17 @@ export default async function IdeasPage() {
     ideasWithDuplicates.add(dup.duplicateIdeaId);
   }
 
+  // Fetch confidence signals and compute scores
+  const ideaIds = workspaceIdeas.map((i) => i.id);
+  const signalsMap = await queryIdeaSignals(ideaIds);
+  const ideasWithConfidence = workspaceIdeas.map((idea) => {
+    const raw = signalsMap.get(idea.id);
+    if (!raw) return idea;
+    const signals = buildConfidenceSignals(raw, idea);
+    const confidence = computeConfidence(signals);
+    return { ...idea, confidence };
+  });
+
   return (
     <div className="space-y-8">
       <DashboardPageHeader
@@ -69,7 +85,7 @@ export default async function IdeasPage() {
       />
 
       <IdeasList
-        initialIdeas={workspaceIdeas}
+        initialIdeas={ideasWithConfidence}
         ideasWithDuplicates={Array.from(ideasWithDuplicates)}
       />
     </div>

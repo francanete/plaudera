@@ -8,7 +8,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-export type SortOption = "votes" | "newest" | "oldest";
+export type SortOption = "votes" | "newest" | "oldest" | "confidence";
 
 interface IdeasToolbarProps {
   searchTerm: string;
@@ -46,6 +46,7 @@ export function IdeasToolbar({
           <SelectItem value="votes">Most Votes</SelectItem>
           <SelectItem value="newest">Newest</SelectItem>
           <SelectItem value="oldest">Oldest</SelectItem>
+          <SelectItem value="confidence">Confidence</SelectItem>
         </SelectContent>
       </Select>
     </div>
