@@ -34,6 +34,7 @@ vi.mock("@/lib/db", () => ({
     roadmapStatus: "roadmap_status",
   },
   roadmapStatusChanges: { ideaId: "idea_id" },
+  ideaStatusChanges: { ideaId: "idea_id" },
   duplicateSuggestions: {
     status: "status",
     sourceIdeaId: "source_idea_id",
@@ -51,6 +52,7 @@ vi.mock("@/lib/idea-status-config", () => ({
 
 vi.mock("@/lib/roadmap-status-config", () => ({
   ALL_ROADMAP_STATUSES: ["NONE", "PLANNED", "IN_PROGRESS", "RELEASED"],
+  ROADMAP_STATUS_ORDER: { NONE: 0, PLANNED: 1, IN_PROGRESS: 2, RELEASED: 3 },
 }));
 
 // ── Imports (after mocks) ───────────────────────────────────────────────────
@@ -62,7 +64,7 @@ import {
   deleteIdea,
 } from "@/lib/idea-updates";
 import { updateIdeaEmbedding } from "@/lib/ai/embeddings";
-import { NotFoundError, ForbiddenError } from "@/lib/errors";
+import { NotFoundError, ForbiddenError, BadRequestError } from "@/lib/errors";
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -83,6 +85,7 @@ function makeIdea(overrides: Record<string, unknown> = {}) {
     frequencyTag: null,
     workflowImpact: null,
     workflowStage: null,
+    wontBuildReason: null,
     mergedIntoId: null,
     authorEmail: "author@test.com",
     authorName: "Author",
@@ -324,6 +327,7 @@ describe("idea-updates", () => {
         updateIdea("idea-1", "user-1", {
           roadmapStatus: "PLANNED",
           status: "DECLINED",
+          rationale: "test",
         })
       ).rejects.toThrow("Cannot decline an idea that is on the roadmap");
     });
@@ -345,7 +349,10 @@ describe("idea-updates", () => {
       });
       setupTxInsert();
 
-      await updateIdea("idea-1", "user-1", { roadmapStatus: "PLANNED" });
+      await updateIdea("idea-1", "user-1", {
+        roadmapStatus: "PLANNED",
+        rationale: "test",
+      });
 
       const updateData = setFn.mock.calls[0][0];
       expect(updateData.status).toBe("PUBLISHED");
@@ -364,7 +371,10 @@ describe("idea-updates", () => {
       });
       setupTxInsert();
 
-      await updateIdea("idea-1", "user-1", { roadmapStatus: "PLANNED" });
+      await updateIdea("idea-1", "user-1", {
+        roadmapStatus: "PLANNED",
+        rationale: "test",
+      });
 
       const updateData = setFn.mock.calls[0][0];
       expect(updateData.status).toBeUndefined();
@@ -383,7 +393,10 @@ describe("idea-updates", () => {
       });
       const { valuesFn } = setupTxInsert();
 
-      await updateIdea("idea-1", "user-1", { roadmapStatus: "PLANNED" });
+      await updateIdea("idea-1", "user-1", {
+        roadmapStatus: "PLANNED",
+        rationale: "test",
+      });
 
       expect(mockTxInsert).toHaveBeenCalled();
       expect(valuesFn).toHaveBeenCalledWith(
@@ -453,7 +466,10 @@ describe("idea-updates", () => {
 
       setupTxInsert();
 
-      await updateIdea("idea-1", "user-1", { roadmapStatus: "PLANNED" });
+      await updateIdea("idea-1", "user-1", {
+        roadmapStatus: "PLANNED",
+        rationale: "test",
+      });
 
       // The second tx.update call should be for dismissing duplicates
       expect(mockTxUpdate).toHaveBeenCalledTimes(2);
@@ -549,42 +565,9 @@ describe("idea-updates", () => {
   // ── deleteIdea ────────────────────────────────────────────────────────
 
   describe("deleteIdea", () => {
-    it("throws NotFoundError when idea does not exist", async () => {
-      mockFindFirst.mockResolvedValue(undefined);
-
-      await expect(deleteIdea("nonexistent", "user-1")).rejects.toThrow(
-        NotFoundError
-      );
-    });
-
-    it("throws ForbiddenError when user does not own the workspace", async () => {
-      mockFindFirst.mockResolvedValue(
-        makeIdea({ workspace: { ownerId: "other-user" } })
-      );
-
-      await expect(deleteIdea("idea-1", "user-1")).rejects.toThrow(
-        ForbiddenError
-      );
-    });
-
-    it("throws BadRequestError when idea is on the roadmap", async () => {
-      mockFindFirst.mockResolvedValue(makeIdea({ roadmapStatus: "PLANNED" }));
-
-      await expect(deleteIdea("idea-1", "user-1")).rejects.toThrow(
-        "Cannot delete an idea that is on the roadmap"
-      );
-    });
-
-    it("soft-deletes idea (sets status to DECLINED) when roadmapStatus is NONE", async () => {
-      mockFindFirst.mockResolvedValue(makeIdea({ roadmapStatus: "NONE" }));
-      const { setFn } = setupDbUpdate();
-
-      await deleteIdea("idea-1", "user-1");
-
-      expect(mockUpdate).toHaveBeenCalled();
-      expect(setFn).toHaveBeenCalledWith(
-        expect.objectContaining({ status: "DECLINED" })
-      );
+    it("always throws BadRequestError (deprecated)", () => {
+      expect(() => deleteIdea()).toThrow(BadRequestError);
+      expect(() => deleteIdea()).toThrow("DELETE is retired");
     });
   });
 });
