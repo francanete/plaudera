@@ -603,7 +603,7 @@ export function IdeaDetail({
         selectedParentId={selectedParentId}
         onParentSelect={setSelectedParentId}
         onMergeClick={() => setShowMergeDialog(true)}
-        onDeleteClick={handleDeclineClick}
+        onDeclineClick={handleDeclineClick}
       />
 
       {/* Dialogs */}

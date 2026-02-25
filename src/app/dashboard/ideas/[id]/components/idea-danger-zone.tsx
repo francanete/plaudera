@@ -28,7 +28,7 @@ interface IdeaDangerZoneProps {
   selectedParentId: string;
   onParentSelect: (id: string) => void;
   onMergeClick: () => void;
-  onDeleteClick: () => void;
+  onDeclineClick: () => void;
 }
 
 export function IdeaDangerZone({
@@ -38,7 +38,7 @@ export function IdeaDangerZone({
   selectedParentId,
   onParentSelect,
   onMergeClick,
-  onDeleteClick,
+  onDeclineClick,
 }: IdeaDangerZoneProps) {
   const [isOpen, setIsOpen] = useState(false);
 
@@ -125,7 +125,7 @@ export function IdeaDangerZone({
               <Button
                 variant="destructive"
                 size="sm"
-                onClick={onDeleteClick}
+                onClick={onDeclineClick}
                 className="shrink-0"
               >
                 <XCircle className="mr-2 h-4 w-4" />

@@ -62,6 +62,8 @@ import {
   createIdea,
   updateIdea,
   deleteIdea,
+  classifyRoadmapDecision,
+  classifyIdeaStatusDecision,
 } from "@/lib/idea-updates";
 import { updateIdeaEmbedding } from "@/lib/ai/embeddings";
 import { NotFoundError, ForbiddenError, BadRequestError } from "@/lib/errors";
@@ -639,6 +641,67 @@ describe("idea-updates", () => {
     it("always throws BadRequestError (deprecated)", () => {
       expect(() => deleteIdea()).toThrow(BadRequestError);
       expect(() => deleteIdea()).toThrow("DELETE is retired");
+    });
+  });
+
+  // ── classifyRoadmapDecision ─────────────────────────────────────────
+
+  describe("classifyRoadmapDecision", () => {
+    it("returns 'prioritized' when entering roadmap (NONE → any)", () => {
+      expect(classifyRoadmapDecision("NONE", "PLANNED")).toBe("prioritized");
+      expect(classifyRoadmapDecision("NONE", "IN_PROGRESS")).toBe(
+        "prioritized"
+      );
+      expect(classifyRoadmapDecision("NONE", "RELEASED")).toBe("prioritized");
+    });
+
+    it("returns 'deprioritized' when regressing (higher → lower)", () => {
+      expect(classifyRoadmapDecision("IN_PROGRESS", "PLANNED")).toBe(
+        "deprioritized"
+      );
+      expect(classifyRoadmapDecision("RELEASED", "PLANNED")).toBe(
+        "deprioritized"
+      );
+      expect(classifyRoadmapDecision("RELEASED", "IN_PROGRESS")).toBe(
+        "deprioritized"
+      );
+    });
+
+    it("returns 'status_progression' for forward movement", () => {
+      expect(classifyRoadmapDecision("PLANNED", "IN_PROGRESS")).toBe(
+        "status_progression"
+      );
+      expect(classifyRoadmapDecision("IN_PROGRESS", "RELEASED")).toBe(
+        "status_progression"
+      );
+      expect(classifyRoadmapDecision("PLANNED", "RELEASED")).toBe(
+        "status_progression"
+      );
+    });
+  });
+
+  // ── classifyIdeaStatusDecision ──────────────────────────────────────
+
+  describe("classifyIdeaStatusDecision", () => {
+    it("returns 'declined' when target is DECLINED", () => {
+      expect(classifyIdeaStatusDecision("PUBLISHED", "DECLINED")).toBe(
+        "declined"
+      );
+      expect(classifyIdeaStatusDecision("UNDER_REVIEW", "DECLINED")).toBe(
+        "declined"
+      );
+    });
+
+    it("returns 'status_progression' for UNDER_REVIEW → PUBLISHED", () => {
+      expect(classifyIdeaStatusDecision("UNDER_REVIEW", "PUBLISHED")).toBe(
+        "status_progression"
+      );
+    });
+
+    it("returns 'status_reversal' for PUBLISHED → UNDER_REVIEW", () => {
+      expect(classifyIdeaStatusDecision("PUBLISHED", "UNDER_REVIEW")).toBe(
+        "status_reversal"
+      );
     });
   });
 });

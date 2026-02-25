@@ -200,7 +200,7 @@ export async function getIdeaWithOwnerCheck(ideaId: string, userId: string) {
 /**
  * Determine the decision type for a roadmap status change.
  */
-function classifyRoadmapDecision(
+export function classifyRoadmapDecision(
   from: RoadmapStatus,
   to: RoadmapStatus
 ): DecisionType {
@@ -213,7 +213,7 @@ function classifyRoadmapDecision(
 /**
  * Determine the decision type for an idea status change.
  */
-function classifyIdeaStatusDecision(
+export function classifyIdeaStatusDecision(
   from: IdeaStatus,
   to: IdeaStatus
 ): DecisionType {
