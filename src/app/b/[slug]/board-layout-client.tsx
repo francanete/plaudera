@@ -46,7 +46,9 @@ export function BoardLayoutClient({
   const isAuthenticated = contributor !== null;
   const activeView: BoardView = pathname.endsWith("/roadmap")
     ? "roadmap"
-    : "ideas";
+    : pathname.endsWith("/wont-build")
+      ? "wont-build"
+      : "ideas";
 
   const refreshData = useCallback(async () => {
     try {

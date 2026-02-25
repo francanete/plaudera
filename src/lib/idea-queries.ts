@@ -1,10 +1,23 @@
-import { eq, ne, desc, and, or, inArray, sql, count } from "drizzle-orm";
+import {
+  eq,
+  ne,
+  desc,
+  and,
+  or,
+  inArray,
+  sql,
+  count,
+  isNotNull,
+} from "drizzle-orm";
 import {
   db,
   ideas,
   votes,
   contributors,
   duplicateSuggestions,
+  roadmapStatusChanges,
+  ideaStatusChanges,
+  users,
   PUBLIC_VISIBLE_STATUSES,
   type FrequencyTag,
   type WorkflowImpact,
@@ -347,4 +360,88 @@ export function buildConfidenceSignals(
     topDomain: raw.topDomain,
     isFreemailDominant: raw.topDomain ? isFreemailDomain(raw.topDomain) : false,
   };
+}
+
+// ============ Decision Governance Queries ============
+
+export interface DecisionTimelineEntry {
+  id: string;
+  ideaId: string;
+  domain: "roadmap" | "idea_status";
+  fromStatus: string;
+  toStatus: string;
+  rationale: string | null;
+  isPublic: boolean;
+  decisionType: string | null;
+  userName: string | null;
+  createdAt: Date;
+}
+
+/**
+ * Unified decision timeline for an idea.
+ * Joins roadmapStatusChanges + ideaStatusChanges, ordered by date desc.
+ */
+export async function queryDecisionTimeline(
+  ideaId: string
+): Promise<DecisionTimelineEntry[]> {
+  const [roadmapEntries, ideaEntries] = await Promise.all([
+    db
+      .select({
+        id: roadmapStatusChanges.id,
+        ideaId: roadmapStatusChanges.ideaId,
+        fromStatus: roadmapStatusChanges.fromStatus,
+        toStatus: roadmapStatusChanges.toStatus,
+        rationale: roadmapStatusChanges.rationale,
+        isPublic: roadmapStatusChanges.isPublic,
+        decisionType: roadmapStatusChanges.decisionType,
+        userName: users.name,
+        createdAt: roadmapStatusChanges.changedAt,
+      })
+      .from(roadmapStatusChanges)
+      .leftJoin(users, eq(users.id, roadmapStatusChanges.changedBy))
+      .where(eq(roadmapStatusChanges.ideaId, ideaId))
+      .orderBy(desc(roadmapStatusChanges.changedAt)),
+
+    db
+      .select({
+        id: ideaStatusChanges.id,
+        ideaId: ideaStatusChanges.ideaId,
+        fromStatus: ideaStatusChanges.fromStatus,
+        toStatus: ideaStatusChanges.toStatus,
+        rationale: ideaStatusChanges.rationale,
+        isPublic: ideaStatusChanges.isPublic,
+        decisionType: ideaStatusChanges.decisionType,
+        userName: users.name,
+        createdAt: ideaStatusChanges.createdAt,
+      })
+      .from(ideaStatusChanges)
+      .leftJoin(users, eq(users.id, ideaStatusChanges.userId))
+      .where(eq(ideaStatusChanges.ideaId, ideaId))
+      .orderBy(desc(ideaStatusChanges.createdAt)),
+  ]);
+
+  const timeline: DecisionTimelineEntry[] = [
+    ...roadmapEntries.map((e) => ({ ...e, domain: "roadmap" as const })),
+    ...ideaEntries.map((e) => ({ ...e, domain: "idea_status" as const })),
+  ];
+
+  timeline.sort(
+    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+  );
+
+  return timeline;
+}
+
+/**
+ * Query DECLINED ideas with a wontBuildReason for the public Won't Build view.
+ */
+export async function queryWontBuildIdeas(workspaceId: string) {
+  return db.query.ideas.findMany({
+    where: and(
+      eq(ideas.workspaceId, workspaceId),
+      eq(ideas.status, "DECLINED"),
+      isNotNull(ideas.wontBuildReason)
+    ),
+    orderBy: [desc(ideas.updatedAt)],
+  });
 }

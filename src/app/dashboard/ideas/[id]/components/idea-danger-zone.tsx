@@ -13,7 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ChevronDown, Trash2, GitMerge, Settings2 } from "lucide-react";
+import { ChevronDown, XCircle, GitMerge, Settings2 } from "lucide-react";
 import { useState } from "react";
 
 interface PublishedIdea {
@@ -110,15 +110,16 @@ export function IdeaDangerZone({
             <div className="border-border border-t" />
           )}
 
-          {/* Delete Section - hidden for roadmap ideas */}
+          {/* Decline Section - hidden for roadmap ideas */}
           {showDeleteSection && (
             <div className="space-y-3 p-4">
               <div className="space-y-1">
                 <span className="text-muted-foreground text-xs font-medium tracking-[0.1em] uppercase">
-                  Delete Idea
+                  Decline Idea
                 </span>
                 <p className="text-muted-foreground/70 text-xs">
-                  Permanently remove this idea and all associated data.
+                  Mark this idea as declined with a rationale. Optionally make
+                  it visible on the public Won&apos;t Build page.
                 </p>
               </div>
               <Button
@@ -127,8 +128,8 @@ export function IdeaDangerZone({
                 onClick={onDeleteClick}
                 className="shrink-0"
               >
-                <Trash2 className="mr-2 h-4 w-4" />
-                Delete idea
+                <XCircle className="mr-2 h-4 w-4" />
+                Decline idea
               </Button>
             </div>
           )}
