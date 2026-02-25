@@ -34,6 +34,7 @@ import {
   VISIBLE_ROADMAP_STATUSES,
   ROADMAP_STATUS_CONFIG,
   ROADMAP_ICON_COLORS,
+  ROADMAP_STATUS_ORDER,
 } from "@/lib/roadmap-status-config";
 import { RoadmapIdeaCard } from "@/components/board/roadmap-idea-card";
 import { IdeaInternalNote } from "@/app/dashboard/ideas/[id]/components/idea-internal-note";
@@ -87,13 +88,6 @@ function formatDate(dateString: string): string {
     day: "numeric",
   });
 }
-
-const ROADMAP_STATUS_ORDER: Record<RoadmapStatus, number> = {
-  NONE: 0,
-  PLANNED: 1,
-  IN_PROGRESS: 2,
-  RELEASED: 3,
-};
 
 export function RoadmapIdeaDetail({
   idea: initialIdea,

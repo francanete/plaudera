@@ -12,7 +12,10 @@ import {
 } from "@/lib/db";
 import { NotFoundError, ForbiddenError, BadRequestError } from "@/lib/errors";
 import { ALL_IDEA_STATUSES } from "@/lib/idea-status-config";
-import { ALL_ROADMAP_STATUSES } from "@/lib/roadmap-status-config";
+import {
+  ALL_ROADMAP_STATUSES,
+  ROADMAP_STATUS_ORDER,
+} from "@/lib/roadmap-status-config";
 import { updateIdeaEmbedding } from "@/lib/ai/embeddings";
 
 export const createIdeaSchema = z.object({
@@ -193,13 +196,6 @@ export async function getIdeaWithOwnerCheck(ideaId: string, userId: string) {
 }
 
 // ============ Decision Type Classification ============
-
-const ROADMAP_STATUS_ORDER: Record<RoadmapStatus, number> = {
-  NONE: 0,
-  PLANNED: 1,
-  IN_PROGRESS: 2,
-  RELEASED: 3,
-};
 
 /**
  * Determine the decision type for a roadmap status change.
