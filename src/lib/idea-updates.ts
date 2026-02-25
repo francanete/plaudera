@@ -347,8 +347,9 @@ export async function updateIdea(
     }
   }
 
-  // Track idea status changes
-  let ideaStatusChanged = false;
+  // Track idea status changes (including auto-publish)
+  let ideaStatusChanged =
+    updateData.status !== undefined && updateData.status !== idea.status;
   const previousIdeaStatus = idea.status;
 
   if (data.status !== undefined) {
@@ -371,7 +372,7 @@ export async function updateIdea(
     }
 
     updateData.status = data.status;
-    ideaStatusChanged = data.status !== idea.status;
+    ideaStatusChanged = ideaStatusChanged || data.status !== idea.status;
   }
 
   const updatedIdea = await db.transaction(async (tx) => {

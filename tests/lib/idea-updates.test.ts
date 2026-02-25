@@ -409,6 +409,50 @@ describe("idea-updates", () => {
       );
     });
 
+    it("inserts ideaStatusChanges record for auto-publish (UNDER_REVIEW -> PUBLISHED)", async () => {
+      const idea = makeIdea({
+        status: "UNDER_REVIEW",
+        roadmapStatus: "NONE",
+      });
+      mockFindFirst.mockResolvedValue(idea);
+
+      // tx.update for idea update, then for duplicate dismiss
+      const returningFn = vi
+        .fn()
+        .mockResolvedValue([
+          { ...idea, status: "PUBLISHED", roadmapStatus: "PLANNED" },
+        ]);
+      const ideaWhereFn = vi.fn().mockReturnValue({ returning: returningFn });
+      const ideaSetFn = vi.fn().mockReturnValue({ where: ideaWhereFn });
+      const dismissWhereFn = vi.fn().mockResolvedValue(undefined);
+      const dismissSetFn = vi.fn().mockReturnValue({ where: dismissWhereFn });
+      mockTxUpdate
+        .mockReturnValueOnce({ set: ideaSetFn })
+        .mockReturnValueOnce({ set: dismissSetFn });
+
+      const insertCalls: unknown[] = [];
+      const valuesFn = vi.fn().mockImplementation((vals) => {
+        insertCalls.push(vals);
+        return Promise.resolve(undefined);
+      });
+      mockTxInsert.mockReturnValue({ values: valuesFn });
+
+      await updateIdea("idea-1", "user-1", {
+        roadmapStatus: "PLANNED",
+        rationale: "test",
+      });
+
+      // Should have 2 inserts: roadmapStatusChanges + ideaStatusChanges
+      expect(valuesFn).toHaveBeenCalledTimes(2);
+      expect(valuesFn).toHaveBeenCalledWith(
+        expect.objectContaining({
+          ideaId: "idea-1",
+          fromStatus: "UNDER_REVIEW",
+          toStatus: "PUBLISHED",
+        })
+      );
+    });
+
     it("does NOT insert audit record when roadmapStatus stays the same", async () => {
       const idea = makeIdea({ roadmapStatus: "NONE" });
       mockFindFirst.mockResolvedValue(idea);
@@ -436,6 +480,33 @@ describe("idea-updates", () => {
           fromStatus: "PLANNED",
           toStatus: "IN_PROGRESS",
           changedBy: "user-1",
+        })
+      );
+    });
+
+    it("inserts ideaStatusChanges for auto-publish UNDER_REVIEW -> PUBLISHED", async () => {
+      const idea = makeIdea({
+        status: "UNDER_REVIEW",
+        roadmapStatus: "NONE",
+      });
+      mockFindFirst.mockResolvedValue(idea);
+      setupTxUpdate({
+        ...idea,
+        status: "PUBLISHED",
+        roadmapStatus: "PLANNED",
+      });
+      const { valuesFn } = setupTxInsert();
+
+      await updateIdea("idea-1", "user-1", {
+        roadmapStatus: "PLANNED",
+        rationale: "test",
+      });
+
+      expect(valuesFn).toHaveBeenCalledWith(
+        expect.objectContaining({
+          userId: "user-1",
+          fromStatus: "UNDER_REVIEW",
+          toStatus: "PUBLISHED",
         })
       );
     });
