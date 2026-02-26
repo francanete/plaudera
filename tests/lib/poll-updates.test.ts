@@ -287,6 +287,28 @@ describe("poll-updates", () => {
       ).rejects.toThrow("not active");
     });
 
+    it("throws BadRequestError when poll has expired closesAt", async () => {
+      setupTransaction();
+      const pastDate = new Date(Date.now() - 86400000).toISOString();
+      mockTxExecute.mockResolvedValue({
+        rows: [
+          {
+            id: "poll-1",
+            status: "active",
+            maxResponses: null,
+            closesAt: pastDate,
+          },
+        ],
+      });
+
+      await expect(
+        submitPollResponse("poll-1", "c-1", "response", "ws-1")
+      ).rejects.toThrow(BadRequestError);
+      await expect(
+        submitPollResponse("poll-1", "c-1", "response", "ws-1")
+      ).rejects.toThrow("expired");
+    });
+
     it("throws ConflictError when contributor already responded", async () => {
       setupTransaction();
       mockTxExecute.mockResolvedValue({

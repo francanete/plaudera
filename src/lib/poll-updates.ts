@@ -156,6 +156,8 @@ export async function submitPollResponse(
     if (!poll) throw new NotFoundError("Poll not found");
     if (poll.status !== "active")
       throw new BadRequestError("Poll is not active");
+    if (poll.closesAt && new Date(poll.closesAt) <= new Date())
+      throw new BadRequestError("Poll has expired");
 
     // Check if already responded (inside transaction for consistency)
     const existing = await tx.query.pollResponses.findFirst({
