@@ -41,7 +41,7 @@ export default async function PollDetailPage({
         title={poll.question}
         icon={MessageCircleQuestion}
         iconClassName="bg-violet-100 text-violet-600 dark:bg-violet-900/30 dark:text-violet-400"
-        backHref="/dashboard/ideas/polls"
+        backHref="/dashboard/polls"
         backLabel="Back to polls"
         action={
           <div className="flex items-center gap-3">

@@ -55,7 +55,7 @@ const navigation = [
   { name: "Roadmap", href: "/dashboard/roadmap", icon: Map },
   {
     name: "Polls",
-    href: "/dashboard/ideas/polls",
+    href: "/dashboard/polls",
     icon: MessageCircleQuestion,
   },
   { name: "Duplicates", href: "/dashboard/duplicates", icon: Copy },

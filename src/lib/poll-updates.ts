@@ -1,4 +1,4 @@
-import { eq, and, count } from "drizzle-orm";
+import { eq, and, count, sql } from "drizzle-orm";
 import { z } from "zod";
 import { db, polls, pollResponses } from "@/lib/db";
 import { NotFoundError, BadRequestError, ConflictError } from "@/lib/errors";
@@ -134,49 +134,66 @@ export async function submitPollResponse(
     throw new BadRequestError("Response cannot be empty");
   }
 
-  const poll = await db.query.polls.findFirst({
-    where: and(eq(polls.id, pollId), eq(polls.workspaceId, workspaceId)),
-  });
+  return db.transaction(async (tx) => {
+    // Lock the poll row to prevent concurrent responses from racing
+    const pollResult = await tx.execute(sql`
+      SELECT id, workspace_id AS "workspaceId", question, status,
+             max_responses AS "maxResponses", closes_at AS "closesAt"
+      FROM polls
+      WHERE id = ${pollId} AND workspace_id = ${workspaceId}
+      FOR UPDATE
+    `);
+    const poll = pollResult.rows[0] as
+      | {
+          id: string;
+          workspaceId: string;
+          status: string;
+          maxResponses: number | null;
+          closesAt: Date | null;
+        }
+      | undefined;
 
-  if (!poll) throw new NotFoundError("Poll not found");
-  if (poll.status !== "active") throw new BadRequestError("Poll is not active");
+    if (!poll) throw new NotFoundError("Poll not found");
+    if (poll.status !== "active")
+      throw new BadRequestError("Poll is not active");
 
-  // Check if already responded
-  const existing = await db.query.pollResponses.findFirst({
-    where: and(
-      eq(pollResponses.pollId, pollId),
-      eq(pollResponses.contributorId, contributorId)
-    ),
-  });
+    // Check if already responded (inside transaction for consistency)
+    const existing = await tx.query.pollResponses.findFirst({
+      where: and(
+        eq(pollResponses.pollId, pollId),
+        eq(pollResponses.contributorId, contributorId)
+      ),
+    });
 
-  if (existing)
-    throw new ConflictError("You have already responded to this poll");
+    if (existing)
+      throw new ConflictError("You have already responded to this poll");
 
-  const [newResponse] = await db
-    .insert(pollResponses)
-    .values({
-      pollId,
-      contributorId,
-      response: response.trim(),
-    })
-    .returning();
+    const [newResponse] = await tx
+      .insert(pollResponses)
+      .values({
+        pollId,
+        contributorId,
+        response: response.trim(),
+      })
+      .returning();
 
-  // Check maxResponses auto-close
-  if (poll.maxResponses) {
-    const [responseCount] = await db
-      .select({ count: count() })
-      .from(pollResponses)
-      .where(eq(pollResponses.pollId, pollId));
+    // Check maxResponses auto-close (count is accurate under the lock)
+    if (poll.maxResponses) {
+      const [responseCount] = await tx
+        .select({ count: count() })
+        .from(pollResponses)
+        .where(eq(pollResponses.pollId, pollId));
 
-    if ((responseCount?.count ?? 0) >= poll.maxResponses) {
-      await db
-        .update(polls)
-        .set({ status: "closed", closedAt: new Date() })
-        .where(eq(polls.id, pollId));
+      if ((responseCount?.count ?? 0) >= poll.maxResponses) {
+        await tx
+          .update(polls)
+          .set({ status: "closed", closedAt: new Date() })
+          .where(eq(polls.id, pollId));
+      }
     }
-  }
 
-  return newResponse;
+    return newResponse;
+  });
 }
 
 /**
@@ -184,12 +201,15 @@ export async function submitPollResponse(
  */
 export async function linkResponseToIdea(
   responseId: string,
+  pollId: string,
   ideaId: string | null
 ) {
   const [updated] = await db
     .update(pollResponses)
     .set({ linkedIdeaId: ideaId })
-    .where(eq(pollResponses.id, responseId))
+    .where(
+      and(eq(pollResponses.id, responseId), eq(pollResponses.pollId, pollId))
+    )
     .returning();
 
   if (!updated) throw new NotFoundError("Response not found");

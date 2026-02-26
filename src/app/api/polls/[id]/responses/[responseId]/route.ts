@@ -25,7 +25,11 @@ export const PATCH = protectedApiRouteWrapper<{
     const body = await request.json();
     const { linkedIdeaId } = linkSchema.parse(body);
 
-    const response = await linkResponseToIdea(params.responseId, linkedIdeaId);
+    const response = await linkResponseToIdea(
+      params.responseId,
+      params.id,
+      linkedIdeaId
+    );
     return NextResponse.json({ response });
   },
   { requirePaid: true }

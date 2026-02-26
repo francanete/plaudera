@@ -73,7 +73,7 @@ export function CreatePollForm() {
           ? "Poll created and activated!"
           : "Poll saved as draft"
       );
-      router.push("/dashboard/ideas/polls");
+      router.push("/dashboard/polls");
       router.refresh();
     } catch (error) {
       toast.error(

@@ -35,7 +35,7 @@ export default async function PollsPage() {
         iconClassName="bg-violet-100 text-violet-600 dark:bg-violet-900/30 dark:text-violet-400"
         action={{
           label: "Create poll",
-          href: "/dashboard/ideas/polls/create",
+          href: "/dashboard/polls/create",
           icon: Plus,
         }}
       />
@@ -53,7 +53,7 @@ export default async function PollsPage() {
           {polls.map((poll) => (
             <Link
               key={poll.id}
-              href={`/dashboard/ideas/polls/${poll.id}`}
+              href={`/dashboard/polls/${poll.id}`}
               className="bg-card hover:bg-accent/50 block rounded-lg border p-4 transition-colors"
             >
               <div className="flex items-start justify-between gap-4">
