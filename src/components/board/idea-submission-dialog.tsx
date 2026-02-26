@@ -168,7 +168,7 @@ export function IdeaSubmissionDialog({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (isSubmitting) return;
+    if (isSubmitting || isCheckingSimilar) return;
 
     // Validate before setting loading state
     if (submissionType === "poll" && hasPoll) {
