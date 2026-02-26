@@ -91,7 +91,7 @@ export function IdeasTable({ ideas }: IdeasTableProps) {
     });
   }, [ideas, sortColumn, sortDir]);
 
-  const SortIcon = ({ column }: { column: SortColumn }) => {
+  const sortIcon = (column: SortColumn) => {
     if (sortColumn !== column)
       return <ArrowUpDown className="ml-1 inline h-3 w-3 opacity-40" />;
     return sortDir === "asc" ? (
@@ -110,37 +110,37 @@ export function IdeasTable({ ideas }: IdeasTableProps) {
               className="cursor-pointer select-none"
               onClick={() => handleSort("title")}
             >
-              Title <SortIcon column="title" />
+              Title {sortIcon("title")}
             </TableHead>
             <TableHead
               className="cursor-pointer select-none"
               onClick={() => handleSort("confidence")}
             >
-              Confidence <SortIcon column="confidence" />
+              Confidence {sortIcon("confidence")}
             </TableHead>
             <TableHead
               className="w-20 cursor-pointer text-right select-none"
               onClick={() => handleSort("votes")}
             >
-              Votes <SortIcon column="votes" />
+              Votes {sortIcon("votes")}
             </TableHead>
             <TableHead
               className="cursor-pointer select-none"
               onClick={() => handleSort("frequency")}
             >
-              Frequency <SortIcon column="frequency" />
+              Frequency {sortIcon("frequency")}
             </TableHead>
             <TableHead
               className="cursor-pointer select-none"
               onClick={() => handleSort("impact")}
             >
-              Impact <SortIcon column="impact" />
+              Impact {sortIcon("impact")}
             </TableHead>
             <TableHead
               className="cursor-pointer select-none"
               onClick={() => handleSort("tags")}
             >
-              Tags <SortIcon column="tags" />
+              Tags {sortIcon("tags")}
             </TableHead>
           </TableRow>
         </TableHeader>

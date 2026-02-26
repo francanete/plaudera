@@ -4,7 +4,7 @@ import { eq, and } from "drizzle-orm";
 import { db, strategicTags } from "@/lib/db";
 import { protectedApiRouteWrapper } from "@/lib/dal";
 import { getUserWorkspace } from "@/lib/workspace";
-import { NotFoundError, ConflictError, BadRequestError } from "@/lib/errors";
+import { NotFoundError, ConflictError } from "@/lib/errors";
 
 const updateTagSchema = z
   .object({

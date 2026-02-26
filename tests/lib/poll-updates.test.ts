@@ -93,7 +93,7 @@ describe("poll-updates", () => {
     });
 
     it("creates an active poll in a transaction and closes existing active polls", async () => {
-      const tx = setupTransaction();
+      setupTransaction();
       const newPoll = { id: "poll-2", status: "active", question: "Q?" };
 
       // tx.update (close existing) chain
@@ -169,7 +169,7 @@ describe("poll-updates", () => {
         status: "draft",
       });
 
-      const tx = setupTransaction();
+      setupTransaction();
       const activatedPoll = { id: "poll-1", status: "active" };
 
       // tx.update for closing existing active

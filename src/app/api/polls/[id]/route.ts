@@ -4,7 +4,7 @@ import { protectedApiRouteWrapper } from "@/lib/dal";
 import { getUserWorkspace } from "@/lib/workspace";
 import { activatePoll, closePoll } from "@/lib/poll-updates";
 import { getPollById } from "@/lib/poll-queries";
-import { NotFoundError, BadRequestError } from "@/lib/errors";
+import { NotFoundError } from "@/lib/errors";
 
 const updatePollSchema = z.object({
   action: z.enum(["activate", "close"]),

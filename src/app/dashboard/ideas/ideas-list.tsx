@@ -14,7 +14,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Plus, Lightbulb, LayoutList, Table2 } from "lucide-react";
-import type { Idea, IdeaStatus } from "@/lib/db/schema";
+import type { IdeaStatus } from "@/lib/db/schema";
 import type { ConfidenceResult } from "@/lib/confidence";
 import type { queryDashboardIdeas } from "@/lib/idea-queries";
 import {
