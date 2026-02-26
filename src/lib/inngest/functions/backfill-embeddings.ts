@@ -1,6 +1,6 @@
 import { inngest, type InngestStepLike } from "../client";
 import { db, ideas, ideaEmbeddings } from "@/lib/db";
-import { eq, ne, gt, and, asc, isNull } from "drizzle-orm";
+import { eq, ne, gt, and, asc, isNull, isNotNull } from "drizzle-orm";
 import { updateIdeaEmbedding } from "@/lib/ai/embeddings";
 
 const BATCH_SIZE = 20;
@@ -27,7 +27,10 @@ export async function backfillEmbeddingsHandler(
     }[] = await step.run(
       `fetch-batch-after-${lastProcessedId ?? "start"}`,
       async () => {
-        const conditions = [ne(ideas.status, "MERGED")];
+        const conditions = [
+          ne(ideas.status, "MERGED"),
+          isNotNull(ideas.problemStatement),
+        ];
         if (workspaceId) {
           conditions.push(eq(ideas.workspaceId, workspaceId));
         }

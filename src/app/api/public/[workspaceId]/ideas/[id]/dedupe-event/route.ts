@@ -5,6 +5,7 @@ import { db, dedupeEvents, ideas } from "@/lib/db";
 import { getWorkspaceCorsHeaders } from "@/lib/cors";
 import { validateRequestOrigin } from "@/lib/csrf";
 import { handleApiError } from "@/lib/api-utils";
+import { checkDedupeEventRateLimit } from "@/lib/contributor-rate-limit";
 
 const dedupeEventSchema = z.object({
   eventType: z.enum(["accepted", "dismissed"]),
@@ -34,6 +35,20 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       return NextResponse.json(
         { error: csrfResult.reason },
         { status: 403, headers }
+      );
+    }
+
+    const ip =
+      request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+      request.headers.get("x-real-ip") ||
+      "unknown";
+    const rateLimitResult = await checkDedupeEventRateLimit(ip);
+    if (!rateLimitResult.allowed) {
+      const origin = request.headers.get("origin");
+      const headers = await getWorkspaceCorsHeaders(origin, workspaceId, "POST, OPTIONS");
+      return NextResponse.json(
+        { error: "Too many requests", resetAt: rateLimitResult.resetAt },
+        { status: 429, headers }
       );
     }
 

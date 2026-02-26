@@ -103,3 +103,18 @@ export function checkIdentifyRateLimit(ip: string): Promise<RateLimitResult> {
     IDENTIFY_MAX_REQUESTS
   );
 }
+
+// Dedupe events: 30 per minute per IP
+const DEDUPE_EVENT_WINDOW_MS = 60 * 1000;
+const DEDUPE_EVENT_MAX_REQUESTS = 30;
+
+export function checkDedupeEventRateLimit(
+  ip: string
+): Promise<RateLimitResult> {
+  return checkRateLimit(
+    "dedupe_event",
+    ip,
+    DEDUPE_EVENT_WINDOW_MS,
+    DEDUPE_EVENT_MAX_REQUESTS
+  );
+}
