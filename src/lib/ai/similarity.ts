@@ -73,6 +73,7 @@ export async function findDuplicatesInWorkspace(
     INNER JOIN idea_embeddings b_emb ON b_emb.idea_id = b_idea.id
     WHERE a_idea.workspace_id = ${workspaceId}
       AND a_idea.status != 'MERGED'
+      AND b_idea.status != 'MERGED'
       AND (a_idea.roadmap_status = 'NONE' OR b_idea.roadmap_status = 'NONE')
       AND CASE WHEN a_emb.problem_embedding IS NOT NULL AND b_emb.problem_embedding IS NOT NULL
         THEN 0.7 * (1 - (a_emb.embedding <=> b_emb.embedding)) + 0.3 * (1 - (a_emb.problem_embedding <=> b_emb.problem_embedding))

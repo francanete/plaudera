@@ -25,13 +25,13 @@ export async function OPTIONS(request: NextRequest, { params }: RouteParams) {
 }
 
 export async function POST(request: NextRequest, { params }: RouteParams) {
-  try {
-    const { workspaceId, id: ideaId } = await params;
+  const { workspaceId, id: ideaId } = await params;
+  const origin = request.headers.get("origin");
+  const headers = await getWorkspaceCorsHeaders(origin, workspaceId, "POST, OPTIONS");
 
+  try {
     const csrfResult = await validateRequestOrigin(request, workspaceId);
     if (!csrfResult.valid) {
-      const origin = request.headers.get("origin");
-      const headers = await getWorkspaceCorsHeaders(origin, workspaceId, "POST, OPTIONS");
       return NextResponse.json(
         { error: csrfResult.reason },
         { status: 403, headers }
@@ -44,8 +44,6 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       "unknown";
     const rateLimitResult = await checkDedupeEventRateLimit(ip);
     if (!rateLimitResult.allowed) {
-      const origin = request.headers.get("origin");
-      const headers = await getWorkspaceCorsHeaders(origin, workspaceId, "POST, OPTIONS");
       return NextResponse.json(
         { error: "Too many requests", resetAt: rateLimitResult.resetAt },
         { status: 429, headers }
@@ -58,8 +56,6 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     });
 
     if (!idea) {
-      const origin = request.headers.get("origin");
-      const headers = await getWorkspaceCorsHeaders(origin, workspaceId, "POST, OPTIONS");
       return NextResponse.json(
         { error: "Idea not found" },
         { status: 404, headers }
@@ -77,14 +73,9 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       similarity: data.similarity ?? null,
     });
 
-    const origin = request.headers.get("origin");
-    const headers = await getWorkspaceCorsHeaders(origin, workspaceId, "POST, OPTIONS");
     return NextResponse.json({ success: true }, { headers });
   } catch (error) {
-    const { workspaceId } = await params;
-    const origin = request.headers.get("origin");
     const errorResponse = handleApiError(error);
-    const headers = await getWorkspaceCorsHeaders(origin, workspaceId, "POST, OPTIONS");
     Object.entries(headers).forEach(([key, value]) => {
       errorResponse.headers.set(key, value);
     });
