@@ -74,6 +74,13 @@ export const pollStatusEnum = pgEnum("poll_status", [
   "active",
   "closed",
 ]);
+export const dedupeEventTypeEnum = pgEnum("dedupe_event_type", [
+  "shown",
+  "accepted",
+  "dismissed",
+  "dashboard_merged",
+  "dashboard_dismissed",
+]);
 
 // ============ Auth Tables (Better Auth) ============
 // Note: Better Auth expects specific table names. We use pluralized names
@@ -659,7 +666,10 @@ export const ideaEmbeddings = pgTable(
       .unique()
       .references(() => ideas.id, { onDelete: "cascade" }),
     embedding: vector("embedding", { dimensions: 768 }).notNull(),
-    modelVersion: text("model_version").notNull().default("text-embedding-004"),
+    problemEmbedding: vector("problem_embedding", { dimensions: 768 }),
+    modelVersion: text("model_version")
+      .notNull()
+      .default("gemini-embedding-001"),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at")
       .defaultNow()
@@ -671,6 +681,10 @@ export const ideaEmbeddings = pgTable(
     index("idea_embeddings_vector_idx").using(
       "hnsw",
       table.embedding.op("vector_cosine_ops")
+    ),
+    index("idea_embeddings_problem_vector_idx").using(
+      "hnsw",
+      table.problemEmbedding.op("vector_cosine_ops")
     ),
   ]
 );
@@ -707,6 +721,35 @@ export const duplicateSuggestions = pgTable(
       table.sourceIdeaId,
       table.duplicateIdeaId
     ),
+  ]
+);
+
+// ============ Dedupe Events (Telemetry) ============
+export const dedupeEvents = pgTable(
+  "dedupe_events",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => createId()),
+    workspaceId: text("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    ideaId: text("idea_id").references(() => ideas.id, {
+      onDelete: "set null",
+    }),
+    relatedIdeaId: text("related_idea_id").references(() => ideas.id, {
+      onDelete: "set null",
+    }),
+    eventType: dedupeEventTypeEnum("event_type").notNull(),
+    similarity: integer("similarity"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => [
+    index("dedupe_events_workspace_event_idx").on(
+      table.workspaceId,
+      table.eventType
+    ),
+    index("dedupe_events_idea_id_idx").on(table.ideaId),
   ]
 );
 
@@ -1125,6 +1168,9 @@ export type PollResponse = typeof pollResponses.$inferSelect;
 export type NewPollResponse = typeof pollResponses.$inferInsert;
 export type PollTemplateType = (typeof pollTemplateTypeEnum.enumValues)[number];
 export type PollStatus = (typeof pollStatusEnum.enumValues)[number];
+export type DedupeEvent = typeof dedupeEvents.$inferSelect;
+export type NewDedupeEvent = typeof dedupeEvents.$inferInsert;
+export type DedupeEventType = (typeof dedupeEventTypeEnum.enumValues)[number];
 
 // ============ Rate Limiting ============
 export const rateLimits = pgTable("rate_limits", {

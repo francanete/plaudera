@@ -7,6 +7,7 @@ import { getUserWorkspace } from "@/lib/workspace";
 import { DuplicatesList } from "./duplicates-list";
 import { Copy } from "lucide-react";
 import { DashboardPageHeader } from "@/components/dashboard/dashboard-page-header";
+import Link from "next/link";
 
 export default async function DuplicatesPage() {
   const session = await auth.api.getSession({
@@ -64,6 +65,17 @@ export default async function DuplicatesPage() {
         icon={Copy}
         iconClassName="bg-indigo-100 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-400"
       />
+
+      <div className="flex gap-2 text-sm">
+        <span className="font-medium">Pairs View</span>
+        <span className="text-muted-foreground">/</span>
+        <Link
+          href="/dashboard/duplicates/clusters"
+          className="text-muted-foreground hover:text-foreground transition-colors"
+        >
+          Clusters View
+        </Link>
+      </div>
 
       <DuplicatesList initialSuggestions={suggestions} />
     </div>

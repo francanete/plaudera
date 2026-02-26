@@ -177,7 +177,7 @@ export function BoardLayoutClient({
     frequencyTag?: string;
     workflowImpact?: string;
     workflowStage?: string;
-  }) => {
+  }): Promise<{ ideaId: string }> => {
     const res = await fetch(`/api/public/${workspaceId}/ideas`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -189,8 +189,14 @@ export function BoardLayoutClient({
       throw new Error(errorData.error || "Failed to submit idea");
     }
 
+    const responseData = await res.json();
     toast.success("Idea submitted successfully!");
     router.refresh();
+    return { ideaId: responseData.idea.id };
+  };
+
+  const handleVoteForIdea = async (ideaId: string) => {
+    await handleVoteAfterAuth(ideaId);
   };
 
   const getCallbackUrl = () => {
@@ -259,6 +265,8 @@ export function BoardLayoutClient({
         open={submitDialogOpen}
         onOpenChange={setSubmitDialogOpen}
         onSubmit={handleIdeaSubmit}
+        workspaceId={workspaceId}
+        onVoteForIdea={handleVoteForIdea}
         activePoll={activePoll}
         onPollResponse={
           activePoll

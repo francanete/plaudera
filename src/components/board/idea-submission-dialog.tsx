@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   Dialog,
   DialogContent,
@@ -18,6 +18,8 @@ import {
   ChevronDown,
   ChevronUp,
   MessageCircleQuestion,
+  ArrowUp,
+  Search,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -30,24 +32,39 @@ interface IdeaSubmissionData {
   workflowStage?: string;
 }
 
+export interface SubmitResult {
+  ideaId: string;
+}
+
+interface SimilarIdeaSuggestion {
+  ideaId: string;
+  title: string;
+  voteCount: number;
+  similarity: number;
+}
+
 type SubmissionType = "idea" | "poll";
 
 interface IdeaSubmissionDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSubmit: (data: IdeaSubmissionData) => Promise<void>;
+  onSubmit: (data: IdeaSubmissionData) => Promise<SubmitResult | void>;
+  workspaceId?: string;
   activePoll?: { id: string; question: string } | null;
   onPollResponse?: (response: string) => Promise<void>;
   defaultType?: SubmissionType;
+  onVoteForIdea?: (ideaId: string) => Promise<void>;
 }
 
 export function IdeaSubmissionDialog({
   open,
   onOpenChange,
   onSubmit,
+  workspaceId,
   activePoll,
   onPollResponse,
   defaultType,
+  onVoteForIdea,
 }: IdeaSubmissionDialogProps) {
   const [submissionType, setSubmissionType] = useState<SubmissionType>(
     defaultType ?? "idea"
@@ -67,6 +84,10 @@ export function IdeaSubmissionDialog({
   const [pollResponse, setPollResponse] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const [similarIdeas, setSimilarIdeas] = useState<SimilarIdeaSuggestion[]>([]);
+  const [showSimilarPanel, setShowSimilarPanel] = useState(false);
+  const [isCheckingSimilar, setIsCheckingSimilar] = useState(false);
+  const [submittedIdeaId, setSubmittedIdeaId] = useState<string | null>(null);
 
   const hasPoll = activePoll && onPollResponse;
 
@@ -80,10 +101,60 @@ export function IdeaSubmissionDialog({
     setWorkflowStage("");
     setPollResponse("");
     setError("");
+    setSimilarIdeas([]);
+    setShowSimilarPanel(false);
+    setIsCheckingSimilar(false);
+    setSubmittedIdeaId(null);
     if (!defaultType) {
       setSubmissionType("idea");
     }
   };
+
+  const pollForSimilarIdeas = useCallback(
+    async (ideaId: string, wsId: string) => {
+      setIsCheckingSimilar(true);
+      for (let attempt = 0; attempt < 3; attempt++) {
+        await new Promise((r) => setTimeout(r, 1000));
+        try {
+          const res = await fetch(
+            `/api/public/${wsId}/ideas/${ideaId}/similar`
+          );
+          if (!res.ok) continue;
+          const data = await res.json();
+          if (data.status === "ready" && data.similarIdeas?.length > 0) {
+            setSimilarIdeas(data.similarIdeas);
+            setShowSimilarPanel(true);
+            setIsCheckingSimilar(false);
+            return;
+          }
+          if (data.status === "failed") break;
+        } catch {
+          // continue retrying
+        }
+      }
+      setIsCheckingSimilar(false);
+    },
+    []
+  );
+
+  const handleRecordDedupeEvent = useCallback(
+    async (
+      eventType: "accepted" | "dismissed",
+      relatedIdeaId: string,
+      similarity?: number
+    ) => {
+      if (!workspaceId || !submittedIdeaId) return;
+      fetch(
+        `/api/public/${workspaceId}/ideas/${submittedIdeaId}/dedupe-event`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ eventType, relatedIdeaId, similarity }),
+        }
+      ).catch(() => {});
+    },
+    [workspaceId, submittedIdeaId]
+  );
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -102,8 +173,10 @@ export function IdeaSubmissionDialog({
     try {
       if (submissionType === "poll" && hasPoll) {
         await onPollResponse(pollResponse.trim());
+        resetFields();
+        onOpenChange(false);
       } else {
-        await onSubmit({
+        const result = await onSubmit({
           title: title.trim(),
           problemStatement: problemStatement.trim(),
           description: description.trim() || undefined,
@@ -111,9 +184,17 @@ export function IdeaSubmissionDialog({
           workflowImpact: workflowImpact || undefined,
           workflowStage: workflowStage || undefined,
         });
+
+        // If we got an ideaId back and have workspace context, check for similar ideas
+        if (result?.ideaId && workspaceId) {
+          setSubmittedIdeaId(result.ideaId);
+          pollForSimilarIdeas(result.ideaId, workspaceId);
+          // Don't close yet — wait for similar ideas check
+        } else {
+          resetFields();
+          onOpenChange(false);
+        }
       }
-      resetFields();
-      onOpenChange(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to submit");
     } finally {
@@ -123,11 +204,34 @@ export function IdeaSubmissionDialog({
 
   const handleClose = (isOpen: boolean) => {
     if (!isOpen) {
+      // Record dismiss for any shown similar ideas
+      if (showSimilarPanel) {
+        similarIdeas.forEach((s) =>
+          handleRecordDedupeEvent("dismissed", s.ideaId, s.similarity)
+        );
+      }
       setTimeout(() => {
         resetFields();
       }, 200);
     }
     onOpenChange(isOpen);
+  };
+
+  const handleKeepMyIdea = () => {
+    similarIdeas.forEach((s) =>
+      handleRecordDedupeEvent("dismissed", s.ideaId, s.similarity)
+    );
+    resetFields();
+    onOpenChange(false);
+  };
+
+  const handleVoteOnSimilar = async (similar: SimilarIdeaSuggestion) => {
+    handleRecordDedupeEvent("accepted", similar.ideaId, similar.similarity);
+    if (onVoteForIdea) {
+      await onVoteForIdea(similar.ideaId);
+    }
+    resetFields();
+    onOpenChange(false);
   };
 
   const selectClassName =
@@ -333,37 +437,97 @@ export function IdeaSubmissionDialog({
 
           {error && <p className="text-destructive text-sm">{error}</p>}
 
-          <div className="flex justify-end gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-              disabled={isSubmitting}
-            >
-              Cancel
-            </Button>
-            <Button
-              type="submit"
-              disabled={
-                isSubmitting ||
-                (submissionType === "poll"
-                  ? !pollResponse.trim()
-                  : !title.trim() || !problemStatement.trim())
-              }
-            >
-              {isSubmitting ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Submitting...
-                </>
-              ) : submissionType === "poll" ? (
-                "Send feedback"
-              ) : (
-                "Submit idea"
-              )}
-            </Button>
-          </div>
+          {!showSimilarPanel && !isCheckingSimilar && (
+            <div className="flex justify-end gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => onOpenChange(false)}
+                disabled={isSubmitting}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                disabled={
+                  isSubmitting ||
+                  (submissionType === "poll"
+                    ? !pollResponse.trim()
+                    : !title.trim() || !problemStatement.trim())
+                }
+              >
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Submitting...
+                  </>
+                ) : submissionType === "poll" ? (
+                  "Send feedback"
+                ) : (
+                  "Submit idea"
+                )}
+              </Button>
+            </div>
+          )}
         </form>
+
+        {/* Checking for similar ideas */}
+        {isCheckingSimilar && !showSimilarPanel && (
+          <div className="flex items-center gap-2 rounded-lg border border-blue-200 bg-blue-50 p-3 text-sm text-blue-700 dark:border-blue-800 dark:bg-blue-900/20 dark:text-blue-300">
+            <Search className="h-4 w-4 animate-pulse" />
+            Checking for similar ideas...
+          </div>
+        )}
+
+        {/* Similar ideas panel */}
+        {showSimilarPanel && similarIdeas.length > 0 && (
+          <div className="space-y-3">
+            <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 dark:border-amber-800 dark:bg-amber-900/20">
+              <p className="text-sm font-medium text-amber-800 dark:text-amber-300">
+                Did you mean one of these?
+              </p>
+              <p className="text-muted-foreground mt-0.5 text-xs">
+                Similar ideas already exist. Vote on one instead of creating a
+                duplicate.
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              {similarIdeas.map((similar) => (
+                <div
+                  key={similar.ideaId}
+                  className="flex items-center justify-between gap-3 rounded-lg border p-3"
+                >
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-medium">
+                      {similar.title}
+                    </p>
+                    <div className="text-muted-foreground flex items-center gap-2 text-xs">
+                      <span className="flex items-center gap-0.5">
+                        <ArrowUp className="h-3 w-3" />
+                        {similar.voteCount}
+                      </span>
+                      <span>{similar.similarity}% similar</span>
+                    </div>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleVoteOnSimilar(similar)}
+                  >
+                    Vote on this
+                  </Button>
+                </div>
+              ))}
+            </div>
+
+            <div className="flex justify-end">
+              <Button variant="ghost" size="sm" onClick={handleKeepMyIdea}>
+                Keep my idea
+              </Button>
+            </div>
+          </div>
+        )}
       </DialogContent>
     </Dialog>
   );
