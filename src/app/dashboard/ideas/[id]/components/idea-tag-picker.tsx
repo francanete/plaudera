@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/command";
 import Link from "next/link";
 
-interface TagInfo {
+export interface TagInfo {
   id: string;
   name: string;
   color: string;

@@ -24,7 +24,7 @@ import type { DecisionTimelineEntry } from "@/lib/idea-queries";
 import type { DecisionType } from "@/lib/db/schema";
 import { ConfidenceBadge, OutlierWarning } from "../components";
 import { IdeaClassification } from "./components/idea-classification";
-import { IdeaTagPicker } from "./components/idea-tag-picker";
+import { IdeaTagPicker, type TagInfo } from "./components/idea-tag-picker";
 import { isOnRoadmap } from "@/lib/roadmap-status-config";
 
 interface MergedChild {
@@ -35,12 +35,6 @@ interface MergedChild {
 interface PublishedIdea {
   id: string;
   title: string;
-}
-
-interface TagInfo {
-  id: string;
-  name: string;
-  color: string;
 }
 
 interface IdeaDetailProps {
