@@ -112,11 +112,14 @@ export function ClusterList({ initialClusters }: ClusterListProps) {
 
       for (const pair of pairsToMerge) {
         try {
-          const res = await fetch(`/api/duplicates/${pair.suggestionId}/merge`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ keepIdeaId: cluster.canonicalId }),
-          });
+          const res = await fetch(
+            `/api/duplicates/${pair.suggestionId}/merge`,
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ keepIdeaId: cluster.canonicalId }),
+            }
+          );
           if (res.ok || res.status === 404) {
             mergedPairs.push(pair);
           } else {
