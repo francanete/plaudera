@@ -149,7 +149,7 @@ export async function queryIdeaSignals(
   const fourteenDaysAgo = new Date();
   fourteenDaysAgo.setDate(fourteenDaysAgo.getDate() - 14);
 
-  const [voteAggs, domainRows, dupeRows] = await Promise.all([
+  const [voteAggs, domainRows, dupeRows, dupeAsTarget] = await Promise.all([
     // Vote aggregates per idea
     db
       .select({
@@ -193,7 +193,7 @@ export async function queryIdeaSignals(
         sql`split_part(${contributors.email}, '@', 2)`
       ) as unknown as DomainRow[],
 
-    // Duplicate cluster strength per idea
+    // Duplicate cluster strength per idea (as source)
     db
       .select({
         ideaId: duplicateSuggestions.sourceIdeaId,
@@ -212,27 +212,27 @@ export async function queryIdeaSignals(
       .groupBy(
         duplicateSuggestions.sourceIdeaId
       ) as unknown as DupeClusterRow[],
-  ]);
 
-  // Also check where idea is the duplicate (not just source)
-  const dupeAsTarget = (await db
-    .select({
-      ideaId: duplicateSuggestions.duplicateIdeaId,
-      clusterSize: count().as("cluster_size"),
-      avgSimilarity: sql<number>`avg(${duplicateSuggestions.similarity})`.as(
-        "avg_similarity"
-      ),
-    })
-    .from(duplicateSuggestions)
-    .where(
-      and(
-        inArray(duplicateSuggestions.duplicateIdeaId, ideaIds),
-        inArray(duplicateSuggestions.status, ["PENDING", "MERGED"])
+    // Duplicate cluster strength per idea (as target)
+    db
+      .select({
+        ideaId: duplicateSuggestions.duplicateIdeaId,
+        clusterSize: count().as("cluster_size"),
+        avgSimilarity: sql<number>`avg(${duplicateSuggestions.similarity})`.as(
+          "avg_similarity"
+        ),
+      })
+      .from(duplicateSuggestions)
+      .where(
+        and(
+          inArray(duplicateSuggestions.duplicateIdeaId, ideaIds),
+          inArray(duplicateSuggestions.status, ["PENDING", "MERGED"])
+        )
       )
-    )
-    .groupBy(
-      duplicateSuggestions.duplicateIdeaId
-    )) as unknown as DupeClusterRow[];
+      .groupBy(
+        duplicateSuggestions.duplicateIdeaId
+      ) as unknown as DupeClusterRow[],
+  ]);
 
   // Build vote aggregates map
   const voteMap = new Map<string, VoteAggregateRow>();
@@ -442,6 +442,13 @@ export async function queryWontBuildIdeas(workspaceId: string) {
       eq(ideas.status, "DECLINED"),
       isNotNull(ideas.wontBuildReason)
     ),
+    columns: {
+      id: true,
+      title: true,
+      description: true,
+      wontBuildReason: true,
+      updatedAt: true,
+    },
     orderBy: [desc(ideas.updatedAt)],
   });
 }

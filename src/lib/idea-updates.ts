@@ -371,7 +371,11 @@ export async function updateIdea(
       updateData.wontBuildReason = data.wontBuildReason ?? null;
     }
 
-    updateData.status = data.status;
+    // Only apply explicit status if auto-publish hasn't already set it
+    // (auto-publish takes precedence when moving to roadmap)
+    if (updateData.status === undefined || updateData.status !== data.status) {
+      updateData.status = data.status;
+    }
     ideaStatusChanged = ideaStatusChanged || data.status !== idea.status;
   }
 
@@ -454,14 +458,4 @@ export async function updateIdea(
   }
 
   return updatedIdea;
-}
-
-/**
- * @deprecated Use updateIdea() with status: "DECLINED" and rationale instead.
- * Kept only for backward compatibility — throws a descriptive error.
- */
-export function deleteIdea(): never {
-  throw new BadRequestError(
-    "DELETE is retired. Use PATCH with status: DECLINED and rationale."
-  );
 }

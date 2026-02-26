@@ -7,6 +7,7 @@ import {
   ideas,
   votes,
   ideaEmbeddings,
+  dedupeEvents,
 } from "@/lib/db";
 import { protectedApiRouteWrapper } from "@/lib/dal";
 import { getUserWorkspace } from "@/lib/workspace";
@@ -153,6 +154,15 @@ export const POST = protectedApiRouteWrapper<{ id: string }>(
             )
           )
         );
+    });
+
+    // Record telemetry before responding
+    await db.insert(dedupeEvents).values({
+      workspaceId: workspace.id,
+      ideaId: keepIdeaId,
+      relatedIdeaId: mergeIdeaId,
+      eventType: "dashboard_merged",
+      similarity: suggestion.similarity,
     });
 
     return NextResponse.json({

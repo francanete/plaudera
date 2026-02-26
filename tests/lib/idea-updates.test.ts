@@ -61,7 +61,6 @@ import {
   getIdeaWithOwnerCheck,
   createIdea,
   updateIdea,
-  deleteIdea,
   classifyRoadmapDecision,
   classifyIdeaStatusDecision,
 } from "@/lib/idea-updates";
@@ -632,15 +631,6 @@ describe("idea-updates", () => {
       await updateIdea("idea-1", "user-1", { status: "PUBLISHED" });
 
       expect(updateIdeaEmbedding).not.toHaveBeenCalled();
-    });
-  });
-
-  // ── deleteIdea ────────────────────────────────────────────────────────
-
-  describe("deleteIdea", () => {
-    it("always throws BadRequestError (deprecated)", () => {
-      expect(() => deleteIdea()).toThrow(BadRequestError);
-      expect(() => deleteIdea()).toThrow("DELETE is retired");
     });
   });
 

@@ -552,6 +552,21 @@ export function EmbedBoard({
           if (!open) setSubmitDefaultType(undefined);
         }}
         defaultType={submitDefaultType}
+        workspaceId={workspaceId}
+        onVoteForIdea={async (ideaId) => {
+          const idea = ideas.find((i) => i.id === ideaId);
+          await executeVote(
+            ideaId,
+            idea || {
+              id: ideaId,
+              hasVoted: false,
+              voteCount: 0,
+              title: "",
+              status: "UNDER_REVIEW" as const,
+              roadmapStatus: "NONE" as const,
+            }
+          );
+        }}
         onSubmit={async (data) => {
           const res = await fetch(`/api/public/${workspaceId}/ideas`, {
             method: "POST",
@@ -562,7 +577,9 @@ export function EmbedBoard({
             const errorData = await res.json().catch(() => ({}));
             throw new Error(errorData.error || "Failed to submit idea");
           }
+          const responseData = await res.json();
           await handleSubmitSuccess();
+          return { ideaId: responseData.idea.id };
         }}
         activePoll={activePoll}
         onPollResponse={
