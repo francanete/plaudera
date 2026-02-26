@@ -7,7 +7,15 @@ import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { ContributorAuthDialog } from "@/components/board/contributor-auth-dialog";
 import { IdeaSubmissionDialog } from "@/components/board/idea-submission-dialog";
-import { ChevronUp, Plus, ExternalLink, User, LogOut, Map } from "lucide-react";
+import {
+  ChevronUp,
+  Plus,
+  ExternalLink,
+  User,
+  LogOut,
+  Map,
+  MessageCircleQuestion,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { IdeaStatus, RoadmapStatus } from "@/lib/db/schema";
 import { IDEA_STATUS_CONFIG } from "@/lib/idea-status-config";
@@ -54,6 +62,13 @@ export function EmbedBoard({
   const [authDialogOpen, setAuthDialogOpen] = useState(false);
   const [submitDialogOpen, setSubmitDialogOpen] = useState(false);
   const [pendingAction, setPendingAction] = useState<PendingAction>(null);
+  const [activePoll, setActivePoll] = useState<{
+    id: string;
+    question: string;
+  } | null>(null);
+  const [submitDefaultType, setSubmitDefaultType] = useState<
+    "idea" | "poll" | undefined
+  >();
 
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -91,6 +106,16 @@ export function EmbedBoard({
       // Log error for debugging but don't disrupt UX - user can refresh manually
       console.error("[EmbedBoard] Failed to refresh data:", error);
     }
+  }, [workspaceId]);
+
+  // Fetch active poll on mount
+  useEffect(() => {
+    fetch(`/api/public/${workspaceId}/polls/active`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data?.poll) setActivePoll(data.poll);
+      })
+      .catch(() => {});
   }, [workspaceId]);
 
   // Build callback URL with intent params for post-verification redirect
@@ -271,6 +296,7 @@ export function EmbedBoard({
 
   // Submit handler
   const handleSubmitClick = () => {
+    setSubmitDefaultType(undefined);
     if (!isAuthenticated) {
       setPendingAction({ type: "submit" });
       setAuthDialogOpen(true);
@@ -444,6 +470,31 @@ export function EmbedBoard({
         )}
       </div>
 
+      {/* Poll banner */}
+      {activePoll && (
+        <button
+          onClick={() => {
+            setSubmitDefaultType("poll");
+            if (!isAuthenticated) {
+              setPendingAction({ type: "submit" });
+              setAuthDialogOpen(true);
+              return;
+            }
+            setSubmitDialogOpen(true);
+          }}
+          className="mb-3 flex w-full items-center gap-2 rounded-lg border border-violet-200 bg-violet-50 px-3 py-2.5 text-left transition-colors hover:bg-violet-100 dark:border-violet-800 dark:bg-violet-900/20 dark:hover:bg-violet-900/30"
+        >
+          <MessageCircleQuestion className="h-4 w-4 shrink-0 text-violet-500" />
+          <span className="min-w-0 flex-1 truncate text-sm">
+            <span className="font-medium">Quick question:</span>{" "}
+            {activePoll.question}
+          </span>
+          <span className="text-primary shrink-0 text-xs font-medium">
+            Reply
+          </span>
+        </button>
+      )}
+
       {/* Ideas list */}
       <div className="flex-1 space-y-2 overflow-auto">
         {ideas.length === 0 ? (
@@ -496,7 +547,11 @@ export function EmbedBoard({
 
       <IdeaSubmissionDialog
         open={submitDialogOpen}
-        onOpenChange={setSubmitDialogOpen}
+        onOpenChange={(open) => {
+          setSubmitDialogOpen(open);
+          if (!open) setSubmitDefaultType(undefined);
+        }}
+        defaultType={submitDefaultType}
         onSubmit={async (data) => {
           const res = await fetch(`/api/public/${workspaceId}/ideas`, {
             method: "POST",
@@ -509,6 +564,29 @@ export function EmbedBoard({
           }
           await handleSubmitSuccess();
         }}
+        activePoll={activePoll}
+        onPollResponse={
+          activePoll
+            ? async (response) => {
+                const res = await fetch(
+                  `/api/public/${workspaceId}/polls/${activePoll.id}/respond`,
+                  {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ response }),
+                  }
+                );
+                if (!res.ok) {
+                  const errorData = await res.json().catch(() => ({}));
+                  throw new Error(
+                    errorData.error || "Failed to submit feedback"
+                  );
+                }
+                toast.success("Feedback submitted!");
+                notifyParent({ type: "plaudera:submitted" });
+              }
+            : undefined
+        }
       />
     </div>
   );

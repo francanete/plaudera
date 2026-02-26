@@ -38,10 +38,24 @@ export function BoardLayoutClient({
   const [authDialogOpen, setAuthDialogOpen] = useState(false);
   const [submitDialogOpen, setSubmitDialogOpen] = useState(false);
   const [pendingAction, setPendingAction] = useState<PendingAction>(null);
+  const [activePoll, setActivePoll] = useState<{
+    id: string;
+    question: string;
+  } | null>(null);
 
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const router = useRouter();
+
+  // Fetch active poll on mount
+  useEffect(() => {
+    fetch(`/api/public/${workspaceId}/polls/active`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data?.poll) setActivePoll(data.poll);
+      })
+      .catch(() => {});
+  }, [workspaceId]);
 
   const isAuthenticated = contributor !== null;
   const activeView: BoardView = pathname.endsWith("/roadmap")
@@ -207,6 +221,14 @@ export function BoardLayoutClient({
           activeView={activeView}
           slug={slug}
           isSubdomain={isSubdomain}
+          activePollQuestion={activePoll?.question}
+          onPollClick={() => {
+            if (!isAuthenticated) {
+              handleRequireAuth({ type: "submit" });
+              return;
+            }
+            setSubmitDialogOpen(true);
+          }}
         />
       </div>
 
@@ -237,6 +259,29 @@ export function BoardLayoutClient({
         open={submitDialogOpen}
         onOpenChange={setSubmitDialogOpen}
         onSubmit={handleIdeaSubmit}
+        activePoll={activePoll}
+        onPollResponse={
+          activePoll
+            ? async (response) => {
+                const res = await fetch(
+                  `/api/public/${workspaceId}/polls/${activePoll.id}/respond`,
+                  {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ response }),
+                  }
+                );
+                if (!res.ok) {
+                  const errorData = await res.json().catch(() => ({}));
+                  throw new Error(
+                    errorData.error || "Failed to submit feedback"
+                  );
+                }
+                toast.success("Feedback submitted!");
+                router.refresh();
+              }
+            : undefined
+        }
       />
     </div>
   );

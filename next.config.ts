@@ -34,6 +34,7 @@ const embedSecurityHeaders = [
 const nextConfig: NextConfig = {
   // Enable React strict mode for better development experience
   reactStrictMode: true,
+  devIndicators: false,
 
   // Image optimization
   images: {

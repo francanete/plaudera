@@ -64,6 +64,16 @@ export const decisionTypeEnum = pgEnum("decision_type", [
   "status_progression",
   "status_reversal",
 ]);
+export const pollTemplateTypeEnum = pgEnum("poll_template_type", [
+  "cant_do",
+  "most_annoying",
+  "custom",
+]);
+export const pollStatusEnum = pgEnum("poll_status", [
+  "draft",
+  "active",
+  "closed",
+]);
 
 // ============ Auth Tables (Better Auth) ============
 // Note: Better Auth expects specific table names. We use pluralized names
@@ -786,6 +796,59 @@ export const ideaStrategicTags = pgTable(
   ]
 );
 
+// ============ Polls Table ============
+export const polls = pgTable(
+  "polls",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => createId()),
+    workspaceId: text("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    question: text("question").notNull(),
+    templateType: pollTemplateTypeEnum("template_type"),
+    status: pollStatusEnum("status").default("draft").notNull(),
+    maxResponses: integer("max_responses"),
+    closesAt: timestamp("closes_at"),
+    closedAt: timestamp("closed_at"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at")
+      .defaultNow()
+      .notNull()
+      .$onUpdate(() => new Date()),
+  },
+  (table) => [index("polls_workspace_id_idx").on(table.workspaceId)]
+);
+
+// ============ Poll Responses Table ============
+export const pollResponses = pgTable(
+  "poll_responses",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => createId()),
+    pollId: text("poll_id")
+      .notNull()
+      .references(() => polls.id, { onDelete: "cascade" }),
+    contributorId: text("contributor_id")
+      .notNull()
+      .references(() => contributors.id, { onDelete: "cascade" }),
+    response: text("response").notNull(),
+    linkedIdeaId: text("linked_idea_id").references(() => ideas.id, {
+      onDelete: "set null",
+    }),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex("poll_responses_poll_contributor_idx").on(
+      table.pollId,
+      table.contributorId
+    ),
+    index("poll_responses_poll_id_idx").on(table.pollId),
+  ]
+);
+
 // ============ Workspaces Relations ============
 export const workspacesRelations = relations(workspaces, ({ one, many }) => ({
   owner: one(users, {
@@ -799,6 +862,7 @@ export const workspacesRelations = relations(workspaces, ({ one, many }) => ({
   slugChangeHistory: many(slugChangeHistory),
   contributorMemberships: many(contributorWorkspaceMemberships),
   strategicTags: many(strategicTags),
+  polls: many(polls),
 }));
 
 // ============ Slug Change History Relations ============
@@ -901,6 +965,7 @@ export const contributorsRelations = relations(contributors, ({ many }) => ({
   ideas: many(ideas),
   votes: many(votes),
   workspaceMemberships: many(contributorWorkspaceMemberships),
+  pollResponses: many(pollResponses),
 }));
 
 // ============ Contributor Workspace Membership Relations ============
@@ -973,6 +1038,30 @@ export const ideaStrategicTagsRelations = relations(
   })
 );
 
+// ============ Polls Relations ============
+export const pollsRelations = relations(polls, ({ one, many }) => ({
+  workspace: one(workspaces, {
+    fields: [polls.workspaceId],
+    references: [workspaces.id],
+  }),
+  responses: many(pollResponses),
+}));
+
+export const pollResponsesRelations = relations(pollResponses, ({ one }) => ({
+  poll: one(polls, {
+    fields: [pollResponses.pollId],
+    references: [polls.id],
+  }),
+  contributor: one(contributors, {
+    fields: [pollResponses.contributorId],
+    references: [contributors.id],
+  }),
+  linkedIdea: one(ideas, {
+    fields: [pollResponses.linkedIdeaId],
+    references: [ideas.id],
+  }),
+}));
+
 // ============ Type Exports ============
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
@@ -1030,6 +1119,12 @@ export type IdeaStatusChange = typeof ideaStatusChanges.$inferSelect;
 export type NewIdeaStatusChange = typeof ideaStatusChanges.$inferInsert;
 export type WorkflowImpact = (typeof workflowImpactEnum.enumValues)[number];
 export type WorkflowStage = (typeof workflowStageEnum.enumValues)[number];
+export type Poll = typeof polls.$inferSelect;
+export type NewPoll = typeof polls.$inferInsert;
+export type PollResponse = typeof pollResponses.$inferSelect;
+export type NewPollResponse = typeof pollResponses.$inferInsert;
+export type PollTemplateType = (typeof pollTemplateTypeEnum.enumValues)[number];
+export type PollStatus = (typeof pollStatusEnum.enumValues)[number];
 
 // ============ Rate Limiting ============
 export const rateLimits = pgTable("rate_limits", {
