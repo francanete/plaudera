@@ -3,7 +3,14 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { AuthStatusPill } from "./auth-status-pill";
-import { Plus, Lightbulb, Map, Mail, Ban } from "lucide-react";
+import {
+  Plus,
+  Lightbulb,
+  Map,
+  Mail,
+  Ban,
+  MessageCircleQuestion,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export type BoardView = "ideas" | "roadmap" | "wont-build";
@@ -18,6 +25,8 @@ interface BoardHeaderProps {
   activeView?: BoardView;
   slug?: string;
   isSubdomain?: boolean;
+  activePollQuestion?: string | null;
+  onPollClick?: () => void;
 }
 
 export function BoardHeader({
@@ -30,6 +39,8 @@ export function BoardHeader({
   activeView = "ideas",
   slug,
   isSubdomain = false,
+  activePollQuestion,
+  onPollClick,
 }: BoardHeaderProps) {
   const ideasHref = slug ? (isSubdomain ? "/" : `/b/${slug}`) : "#";
   const roadmapHref = slug
@@ -179,6 +190,25 @@ export function BoardHeader({
           </div>
         </div>
       </div>
+
+      {/* Poll banner */}
+      {activePollQuestion && onPollClick && (
+        <div className="border-b border-slate-200 dark:border-slate-700">
+          <button
+            onClick={onPollClick}
+            className="flex w-full items-center gap-2 px-4 py-2.5 text-left transition-colors hover:bg-slate-50 sm:px-6 dark:hover:bg-slate-800/50"
+          >
+            <MessageCircleQuestion className="h-4 w-4 shrink-0 text-violet-500" />
+            <span className="min-w-0 flex-1 truncate text-sm">
+              <span className="font-medium">Quick question:</span>{" "}
+              {activePollQuestion}
+            </span>
+            <span className="text-primary shrink-0 text-xs font-medium">
+              Share your thoughts
+            </span>
+          </button>
+        </div>
+      )}
 
       {/* Mobile Navigation Tabs */}
       {slug && (
