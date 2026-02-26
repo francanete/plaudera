@@ -442,6 +442,13 @@ export async function queryWontBuildIdeas(workspaceId: string) {
       eq(ideas.status, "DECLINED"),
       isNotNull(ideas.wontBuildReason)
     ),
+    columns: {
+      id: true,
+      title: true,
+      description: true,
+      wontBuildReason: true,
+      updatedAt: true,
+    },
     orderBy: [desc(ideas.updatedAt)],
   });
 }

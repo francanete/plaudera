@@ -38,18 +38,14 @@ export const POST = protectedApiRouteWrapper<{ id: string }>(
       })
       .where(eq(duplicateSuggestions.id, params.id));
 
-    // Fire-and-forget: record telemetry
-    db.insert(dedupeEvents)
-      .values({
-        workspaceId: workspace.id,
-        ideaId: suggestion.sourceIdeaId,
-        relatedIdeaId: suggestion.duplicateIdeaId,
-        eventType: "dashboard_dismissed",
-        similarity: suggestion.similarity,
-      })
-      .catch((err) =>
-        console.error("[dismiss] Failed to record telemetry:", err)
-      );
+    // Record telemetry before responding
+    await db.insert(dedupeEvents).values({
+      workspaceId: workspace.id,
+      ideaId: suggestion.sourceIdeaId,
+      relatedIdeaId: suggestion.duplicateIdeaId,
+      eventType: "dashboard_dismissed",
+      similarity: suggestion.similarity,
+    });
 
     return NextResponse.json({ success: true });
   },

@@ -78,9 +78,9 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 
     const similarIdeas = await findSimilarToIdea(ideaId, workspaceId, 3);
 
-    // Fire-and-forget: record "shown" telemetry if results found
+    // Record "shown" telemetry before responding
     if (similarIdeas.length > 0) {
-      Promise.all(
+      await Promise.all(
         similarIdeas.map((similar) =>
           db.insert(dedupeEvents).values({
             workspaceId,
@@ -90,8 +90,6 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
             similarity: similar.similarity,
           })
         )
-      ).catch((err) =>
-        console.error("[similar] Failed to record shown events:", err)
       );
     }
 

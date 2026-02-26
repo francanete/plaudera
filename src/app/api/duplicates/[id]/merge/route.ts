@@ -156,18 +156,14 @@ export const POST = protectedApiRouteWrapper<{ id: string }>(
         );
     });
 
-    // Fire-and-forget: record telemetry
-    db.insert(dedupeEvents)
-      .values({
-        workspaceId: workspace.id,
-        ideaId: keepIdeaId,
-        relatedIdeaId: mergeIdeaId,
-        eventType: "dashboard_merged",
-        similarity: suggestion.similarity,
-      })
-      .catch((err) =>
-        console.error("[merge] Failed to record telemetry:", err)
-      );
+    // Record telemetry before responding
+    await db.insert(dedupeEvents).values({
+      workspaceId: workspace.id,
+      ideaId: keepIdeaId,
+      relatedIdeaId: mergeIdeaId,
+      eventType: "dashboard_merged",
+      similarity: suggestion.similarity,
+    });
 
     return NextResponse.json({
       success: true,

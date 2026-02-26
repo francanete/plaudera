@@ -1,5 +1,5 @@
 import { inngest, type InngestStepLike } from "../client";
-import { db, ideas, ideaEmbeddings } from "@/lib/db";
+import { db, ideas, ideaEmbeddings, workspaces } from "@/lib/db";
 import { eq, ne, gt, and, asc, isNull, isNotNull } from "drizzle-orm";
 import { updateIdeaEmbedding } from "@/lib/ai/embeddings";
 
@@ -14,6 +14,24 @@ export async function backfillEmbeddingsHandler(
   step: InngestStepLike,
   workspaceId?: string
 ) {
+  // Validate workspace exists if specified
+  if (workspaceId) {
+    const workspace = await step.run("validate-workspace", async () => {
+      return db.query.workspaces.findFirst({
+        where: eq(workspaces.id, workspaceId),
+        columns: { id: true },
+      });
+    });
+    if (!workspace) {
+      return {
+        totalProcessed: 0,
+        totalErrors: 0,
+        workspaceId,
+        error: "Workspace not found",
+      };
+    }
+  }
+
   let lastProcessedId: string | null = null;
   let totalProcessed = 0;
   let totalErrors = 0;

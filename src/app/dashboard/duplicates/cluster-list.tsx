@@ -97,26 +97,26 @@ export function ClusterList({ initialClusters }: ClusterListProps) {
     setLoadingClusters((prev) => new Set(prev).add(clusterId));
 
     try {
-      // Only merge pairs where at least one idea (non-canonical) is selected
       const pairsToMerge = cluster.pairs.filter((pair) => {
-        const otherIdea =
-          pair.ideaAId === cluster.canonicalId ? pair.ideaBId : pair.ideaAId;
-        return selected.has(otherIdea);
+        if (pair.ideaAId === cluster.canonicalId) {
+          return selected.has(pair.ideaBId);
+        }
+        if (pair.ideaBId === cluster.canonicalId) {
+          return selected.has(pair.ideaAId);
+        }
+        return false;
       });
 
-      const mergedPairs: typeof pairsToMerge = [];
-      const failedPairs: typeof pairsToMerge = [];
+      const mergedPairs: (typeof cluster.pairs)[0][] = [];
+      const failedPairs: (typeof cluster.pairs)[0][] = [];
 
       for (const pair of pairsToMerge) {
         try {
-          const res = await fetch(
-            `/api/duplicates/${pair.suggestionId}/merge`,
-            {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ keepIdeaId: cluster.canonicalId }),
-            }
-          );
+          const res = await fetch(`/api/duplicates/${pair.suggestionId}/merge`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ keepIdeaId: cluster.canonicalId }),
+          });
           if (res.ok || res.status === 404) {
             mergedPairs.push(pair);
           } else {

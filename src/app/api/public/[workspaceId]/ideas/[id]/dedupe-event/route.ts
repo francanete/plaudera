@@ -65,6 +65,19 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     const body = await request.json();
     const data = dedupeEventSchema.parse(body);
 
+    // Validate related idea belongs to the same workspace
+    const relatedIdea = await db.query.ideas.findFirst({
+      where: and(eq(ideas.id, data.relatedIdeaId), eq(ideas.workspaceId, workspaceId)),
+      columns: { id: true },
+    });
+
+    if (!relatedIdea) {
+      return NextResponse.json(
+        { error: "Related idea not found" },
+        { status: 404, headers }
+      );
+    }
+
     await db.insert(dedupeEvents).values({
       workspaceId,
       ideaId,
