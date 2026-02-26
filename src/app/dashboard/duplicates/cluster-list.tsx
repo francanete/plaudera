@@ -100,6 +100,9 @@ export function ClusterList({ initialClusters }: ClusterListProps) {
         return selected.has(otherIdea);
       });
 
+      const mergedPairs: typeof pairsToMerge = [];
+      const failedPairs: typeof pairsToMerge = [];
+
       for (const pair of pairsToMerge) {
         try {
           const res = await fetch(
@@ -110,35 +113,56 @@ export function ClusterList({ initialClusters }: ClusterListProps) {
               body: JSON.stringify({ keepIdeaId: cluster.canonicalId }),
             }
           );
-          if (!res.ok && res.status !== 404) {
+          if (res.ok || res.status === 404) {
+            mergedPairs.push(pair);
+          } else {
             const data = await res.json().catch(() => ({}));
-            if (data.error?.includes("already been processed")) continue;
-            console.error(`Failed to merge pair ${pair.suggestionId}:`, data);
+            if (data.error?.includes("already been processed")) {
+              mergedPairs.push(pair);
+            } else {
+              failedPairs.push(pair);
+            }
           }
         } catch {
-          // Continue with remaining pairs
+          failedPairs.push(pair);
         }
       }
+
+      if (mergedPairs.length === 0) {
+        toast.error("Failed to merge any ideas");
+        return;
+      }
+
+      // Only remove successfully merged ideas from UI
+      const successfullyMergedIds = new Set(
+        mergedPairs.map((pair) =>
+          pair.ideaAId === cluster.canonicalId ? pair.ideaBId : pair.ideaAId
+        )
+      );
 
       const nonCanonicalIds = cluster.ideas
         .filter((i) => i.id !== cluster.canonicalId)
         .map((i) => i.id);
-      const allMerged = nonCanonicalIds.every((id) => selected.has(id));
+      const allMerged = nonCanonicalIds.every((id) =>
+        successfullyMergedIds.has(id)
+      );
 
       if (allMerged) {
         // Entire cluster resolved
         setClusters((prev) => prev.filter((_, i) => i !== clusterIndex));
       } else {
-        // Remove merged ideas from cluster
+        // Remove only successfully merged ideas from cluster
         setClusters((prev) =>
           prev.map((c, i) => {
             if (i !== clusterIndex) return c;
             return {
               ...c,
               ideas: c.ideas.filter(
-                (idea) => idea.id === c.canonicalId || !selected.has(idea.id)
+                (idea) =>
+                  idea.id === c.canonicalId ||
+                  !successfullyMergedIds.has(idea.id)
               ),
-              pairs: c.pairs.filter((pair) => !pairsToMerge.includes(pair)),
+              pairs: c.pairs.filter((pair) => !mergedPairs.includes(pair)),
             };
           })
         );
@@ -148,9 +172,15 @@ export function ClusterList({ initialClusters }: ClusterListProps) {
         }));
       }
 
-      toast.success(
-        `Merged ${selected.size} idea${selected.size > 1 ? "s" : ""}`
-      );
+      if (failedPairs.length > 0) {
+        toast.warning(
+          `Merged ${mergedPairs.length} idea${mergedPairs.length > 1 ? "s" : ""}, ${failedPairs.length} failed`
+        );
+      } else {
+        toast.success(
+          `Merged ${mergedPairs.length} idea${mergedPairs.length > 1 ? "s" : ""}`
+        );
+      }
     } catch {
       toast.error("Failed to merge ideas");
     } finally {

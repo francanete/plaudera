@@ -455,13 +455,3 @@ export async function updateIdea(
 
   return updatedIdea;
 }
-
-/**
- * @deprecated Use updateIdea() with status: "DECLINED" and rationale instead.
- * Kept only for backward compatibility — throws a descriptive error.
- */
-export function deleteIdea(): never {
-  throw new BadRequestError(
-    "DELETE is retired. Use PATCH with status: DECLINED and rationale."
-  );
-}

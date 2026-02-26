@@ -1,13 +1,14 @@
 import { inngest, type InngestStepLike } from "../client";
 import { db, ideas, ideaEmbeddings } from "@/lib/db";
-import { eq, ne, gt, and, asc } from "drizzle-orm";
+import { eq, ne, gt, and, asc, isNull } from "drizzle-orm";
 import { updateIdeaEmbedding } from "@/lib/ai/embeddings";
 
 const BATCH_SIZE = 20;
 
 /**
  * Extracted handler for testability.
- * Re-generates title-only embeddings and adds problem embeddings for all ideas.
+ * Generates problem embeddings for ideas that don't have one yet.
+ * Only processes ideas missing a problemEmbedding to avoid redundant API calls.
  */
 export async function backfillEmbeddingsHandler(
   step: InngestStepLike,
@@ -41,7 +42,8 @@ export async function backfillEmbeddingsHandler(
             problemStatement: ideas.problemStatement,
           })
           .from(ideas)
-          .where(and(...conditions))
+          .leftJoin(ideaEmbeddings, eq(ideaEmbeddings.ideaId, ideas.id))
+          .where(and(...conditions, isNull(ideaEmbeddings.problemEmbedding)))
           .orderBy(asc(ideas.id))
           .limit(BATCH_SIZE);
       }
