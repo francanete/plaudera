@@ -17,6 +17,187 @@ import {
 import { cn } from "@/lib/utils";
 import type { Cluster } from "./page";
 
+type ClusterPair = Cluster["pairs"][0];
+
+interface MergeResult {
+  merged: ClusterPair[];
+  failed: ClusterPair[];
+}
+
+async function mergePairs(
+  pairs: ClusterPair[],
+  keepIdeaId: string
+): Promise<MergeResult> {
+  const results = await Promise.allSettled(
+    pairs.map(async (pair) => {
+      const res = await fetch(`/api/duplicates/${pair.suggestionId}/merge`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ keepIdeaId }),
+      });
+      if (res.ok || res.status === 404) return { pair, success: true };
+      const data = await res.json().catch(() => ({}));
+      if (data.error?.includes("already been processed")) {
+        return { pair, success: true };
+      }
+      return { pair, success: false };
+    })
+  );
+
+  const merged: ClusterPair[] = [];
+  const failed: ClusterPair[] = [];
+  for (const result of results) {
+    if (result.status === "fulfilled" && result.value.success) {
+      merged.push(result.value.pair);
+    } else if (result.status === "fulfilled") {
+      failed.push(result.value.pair);
+    } else {
+      failed.push(pairs[results.indexOf(result)]);
+    }
+  }
+  return { merged, failed };
+}
+
+async function dismissPairs(pairs: ClusterPair[]): Promise<number> {
+  const results = await Promise.allSettled(
+    pairs.map(async (pair) => {
+      const res = await fetch(`/api/duplicates/${pair.suggestionId}/dismiss`, {
+        method: "POST",
+      });
+      if (!res.ok && res.status !== 404) {
+        throw new Error(`Failed to dismiss pair ${pair.suggestionId}`);
+      }
+    })
+  );
+  const failedCount = results.filter((r) => r.status === "rejected").length;
+  return failedCount;
+}
+
+function getCluster(clusters: Cluster[], clusterId: string) {
+  return clusters.find((c) => c.canonicalId === clusterId);
+}
+
+// --- Sub-components ---
+
+interface ClusterIdeaRowProps {
+  idea: Cluster["ideas"][0];
+  isCanonical: boolean;
+  isSelected: boolean;
+  isLoading: boolean;
+  similarityPercent: number | null;
+  onToggleSelection: () => void;
+}
+
+function ClusterIdeaRow({
+  idea,
+  isCanonical,
+  isSelected,
+  isLoading,
+  similarityPercent,
+  onToggleSelection,
+}: ClusterIdeaRowProps) {
+  return (
+    <div
+      className={cn(
+        "flex items-center gap-4 px-5 py-3",
+        isCanonical && "bg-indigo-50/50",
+        !isCanonical && isSelected && "bg-amber-50/30"
+      )}
+    >
+      {isCanonical ? (
+        <div className="flex h-4 w-4 items-center justify-center">
+          <Crown className="h-4 w-4 text-indigo-500" />
+        </div>
+      ) : (
+        <Checkbox
+          checked={isSelected}
+          onCheckedChange={onToggleSelection}
+          disabled={isLoading}
+        />
+      )}
+      <div className="flex items-center gap-1 rounded-md bg-slate-100 px-2 py-1">
+        <ArrowUp className="h-3 w-3 text-slate-500" />
+        <span className="text-sm font-medium text-slate-700">
+          {idea.voteCount}
+        </span>
+      </div>
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-sm font-medium text-slate-900">
+          {idea.title}
+        </p>
+        {idea.description && (
+          <p className="truncate text-xs text-slate-500">{idea.description}</p>
+        )}
+      </div>
+      {similarityPercent !== null && (
+        <span className="shrink-0 rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700">
+          {similarityPercent}% similar
+        </span>
+      )}
+      {isCanonical && (
+        <span className="flex shrink-0 items-center gap-1 rounded-full bg-indigo-100 px-2 py-0.5 text-xs font-medium text-indigo-700">
+          Keep
+        </span>
+      )}
+    </div>
+  );
+}
+
+interface ClusterActionsProps {
+  selectedCount: number;
+  nonCanonicalCount: number;
+  isLoading: boolean;
+  onDismiss: () => void;
+  onMerge: () => void;
+}
+
+function ClusterActions({
+  selectedCount,
+  nonCanonicalCount,
+  isLoading,
+  onDismiss,
+  onMerge,
+}: ClusterActionsProps) {
+  return (
+    <div className="flex items-center justify-between border-t border-slate-100 bg-slate-50/50 px-5 py-3">
+      <span className="text-xs text-slate-500">
+        {selectedCount > 0
+          ? `${selectedCount} of ${nonCanonicalCount} duplicate${nonCanonicalCount > 1 ? "s" : ""} selected`
+          : "No duplicates selected"}
+      </span>
+      <div className="flex gap-2">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={onDismiss}
+          disabled={isLoading}
+        >
+          {isLoading ? (
+            <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+          ) : (
+            <X className="mr-1.5 h-3.5 w-3.5" />
+          )}
+          Dismiss All
+        </Button>
+        <Button
+          size="sm"
+          onClick={onMerge}
+          disabled={isLoading || selectedCount === 0}
+        >
+          {isLoading ? (
+            <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+          ) : (
+            <Merge className="mr-1.5 h-3.5 w-3.5" />
+          )}
+          Merge Selected
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+// --- Main component ---
+
 interface ClusterListProps {
   initialClusters: Cluster[];
 }
@@ -33,7 +214,6 @@ export function ClusterList({ initialClusters }: ClusterListProps) {
   const [loadingClusters, setLoadingClusters] = useState<Set<string>>(
     new Set()
   );
-  // Track which non-canonical ideas are selected for merge per cluster canonicalId
   const [selectedIdeas, setSelectedIdeas] = useState<
     Record<string, Set<string>>
   >(() => {
@@ -70,7 +250,7 @@ export function ClusterList({ initialClusters }: ClusterListProps) {
   };
 
   const toggleSelectAll = (clusterId: string) => {
-    const cluster = clusters.find((c) => c.canonicalId === clusterId);
+    const cluster = getCluster(clusters, clusterId);
     if (!cluster) return;
     const nonCanonicalIds = cluster.ideas
       .filter((idea) => idea.id !== cluster.canonicalId)
@@ -85,7 +265,7 @@ export function ClusterList({ initialClusters }: ClusterListProps) {
   };
 
   const handleMergeSelected = async (clusterId: string) => {
-    const cluster = clusters.find((c) => c.canonicalId === clusterId);
+    const cluster = getCluster(clusters, clusterId);
     if (!cluster) return;
 
     const selected = selectedIdeas[clusterId] ?? new Set();
@@ -98,96 +278,25 @@ export function ClusterList({ initialClusters }: ClusterListProps) {
 
     try {
       const pairsToMerge = cluster.pairs.filter((pair) => {
-        if (pair.ideaAId === cluster.canonicalId) {
+        if (pair.ideaAId === cluster.canonicalId)
           return selected.has(pair.ideaBId);
-        }
-        if (pair.ideaBId === cluster.canonicalId) {
+        if (pair.ideaBId === cluster.canonicalId)
           return selected.has(pair.ideaAId);
-        }
         return false;
       });
 
-      const mergedPairs: (typeof cluster.pairs)[0][] = [];
-      const failedPairs: (typeof cluster.pairs)[0][] = [];
+      const { merged, failed } = await mergePairs(
+        pairsToMerge,
+        cluster.canonicalId
+      );
 
-      for (const pair of pairsToMerge) {
-        try {
-          const res = await fetch(
-            `/api/duplicates/${pair.suggestionId}/merge`,
-            {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ keepIdeaId: cluster.canonicalId }),
-            }
-          );
-          if (res.ok || res.status === 404) {
-            mergedPairs.push(pair);
-          } else {
-            const data = await res.json().catch(() => ({}));
-            if (data.error?.includes("already been processed")) {
-              mergedPairs.push(pair);
-            } else {
-              failedPairs.push(pair);
-            }
-          }
-        } catch {
-          failedPairs.push(pair);
-        }
-      }
-
-      if (mergedPairs.length === 0) {
+      if (merged.length === 0) {
         toast.error("Failed to merge any ideas");
         return;
       }
 
-      // Only remove successfully merged ideas from UI
-      const successfullyMergedIds = new Set(
-        mergedPairs.map((pair) =>
-          pair.ideaAId === cluster.canonicalId ? pair.ideaBId : pair.ideaAId
-        )
-      );
-
-      const nonCanonicalIds = cluster.ideas
-        .filter((i) => i.id !== cluster.canonicalId)
-        .map((i) => i.id);
-      const allMerged = nonCanonicalIds.every((id) =>
-        successfullyMergedIds.has(id)
-      );
-
-      if (allMerged) {
-        // Entire cluster resolved
-        setClusters((prev) => prev.filter((c) => c.canonicalId !== clusterId));
-      } else {
-        // Remove only successfully merged ideas from cluster
-        setClusters((prev) =>
-          prev.map((c) => {
-            if (c.canonicalId !== clusterId) return c;
-            return {
-              ...c,
-              ideas: c.ideas.filter(
-                (idea) =>
-                  idea.id === c.canonicalId ||
-                  !successfullyMergedIds.has(idea.id)
-              ),
-              pairs: c.pairs.filter((pair) => !mergedPairs.includes(pair)),
-            };
-          })
-        );
-        setSelectedIdeas((prev) => ({
-          ...prev,
-          [clusterId]: new Set(),
-        }));
-      }
-
-      if (failedPairs.length > 0) {
-        toast.warning(
-          `Merged ${mergedPairs.length} idea${mergedPairs.length > 1 ? "s" : ""}, ${failedPairs.length} failed`
-        );
-      } else {
-        toast.success(
-          `Merged ${mergedPairs.length} idea${mergedPairs.length > 1 ? "s" : ""}`
-        );
-      }
+      updateStateAfterMerge(clusterId, cluster, merged);
+      showMergeToast(merged.length, failed.length);
     } catch {
       toast.error("Failed to merge ideas");
     } finally {
@@ -199,29 +308,73 @@ export function ClusterList({ initialClusters }: ClusterListProps) {
     }
   };
 
+  const updateStateAfterMerge = (
+    clusterId: string,
+    cluster: Cluster,
+    mergedPairs: ClusterPair[]
+  ) => {
+    const mergedSuggestionIds = new Set(mergedPairs.map((p) => p.suggestionId));
+    const mergedIdeaIds = new Set(
+      mergedPairs.map((pair) =>
+        pair.ideaAId === cluster.canonicalId ? pair.ideaBId : pair.ideaAId
+      )
+    );
+
+    const nonCanonicalIds = cluster.ideas
+      .filter((i) => i.id !== cluster.canonicalId)
+      .map((i) => i.id);
+    const allMerged = nonCanonicalIds.every((id) => mergedIdeaIds.has(id));
+
+    if (allMerged) {
+      setClusters((prev) => prev.filter((c) => c.canonicalId !== clusterId));
+    } else {
+      setClusters((prev) =>
+        prev.map((c) => {
+          if (c.canonicalId !== clusterId) return c;
+          return {
+            ...c,
+            ideas: c.ideas.filter(
+              (idea) => idea.id === c.canonicalId || !mergedIdeaIds.has(idea.id)
+            ),
+            pairs: c.pairs.filter(
+              (pair) => !mergedSuggestionIds.has(pair.suggestionId)
+            ),
+          };
+        })
+      );
+      setSelectedIdeas((prev) => ({
+        ...prev,
+        [clusterId]: new Set(),
+      }));
+    }
+  };
+
+  const showMergeToast = (mergedCount: number, failedCount: number) => {
+    const label = `${mergedCount} idea${mergedCount > 1 ? "s" : ""}`;
+    if (failedCount > 0) {
+      toast.warning(`Merged ${label}, ${failedCount} failed`);
+    } else {
+      toast.success(`Merged ${label}`);
+    }
+  };
+
   const handleDismissAll = async (clusterId: string) => {
-    const cluster = clusters.find((c) => c.canonicalId === clusterId);
+    const cluster = getCluster(clusters, clusterId);
     if (!cluster) return;
 
     setLoadingClusters((prev) => new Set(prev).add(clusterId));
 
     try {
-      for (const pair of cluster.pairs) {
-        try {
-          const res = await fetch(
-            `/api/duplicates/${pair.suggestionId}/dismiss`,
-            { method: "POST" }
-          );
-          if (!res.ok && res.status !== 404) {
-            console.error(`Failed to dismiss pair ${pair.suggestionId}`);
-          }
-        } catch {
-          // Continue
-        }
-      }
-
+      const failedCount = await dismissPairs(cluster.pairs);
       setClusters((prev) => prev.filter((c) => c.canonicalId !== clusterId));
-      toast.success("Cluster dismissed");
+
+      if (failedCount > 0) {
+        toast.warning(
+          `Cluster dismissed, but ${failedCount} pair${failedCount > 1 ? "s" : ""} failed`
+        );
+      } else {
+        toast.success("Cluster dismissed");
+      }
     } catch {
       toast.error("Failed to dismiss cluster");
     } finally {
@@ -325,7 +478,6 @@ export function ClusterList({ initialClusters }: ClusterListProps) {
                 <div className="divide-y divide-slate-100">
                   {cluster.ideas.map((idea) => {
                     const isCanonical = idea.id === cluster.canonicalId;
-                    const isSelected = selected.has(idea.id);
                     const similarityPair = !isCanonical
                       ? cluster.pairs.find(
                           (p) =>
@@ -335,95 +487,33 @@ export function ClusterList({ initialClusters }: ClusterListProps) {
                               p.ideaAId === cluster.canonicalId)
                         )
                       : null;
+                    const similarityPercent = similarityPair
+                      ? Math.round(similarityPair.similarity * 100)
+                      : null;
+
                     return (
-                      <div
+                      <ClusterIdeaRow
                         key={idea.id}
-                        className={cn(
-                          "flex items-center gap-4 px-5 py-3",
-                          isCanonical && "bg-indigo-50/50",
-                          !isCanonical && isSelected && "bg-amber-50/30"
-                        )}
-                      >
-                        {isCanonical ? (
-                          <div className="flex h-4 w-4 items-center justify-center">
-                            <Crown className="h-4 w-4 text-indigo-500" />
-                          </div>
-                        ) : (
-                          <Checkbox
-                            checked={isSelected}
-                            onCheckedChange={() =>
-                              toggleIdeaSelection(clusterId, idea.id)
-                            }
-                            disabled={isLoading}
-                          />
-                        )}
-                        <div className="flex items-center gap-1 rounded-md bg-slate-100 px-2 py-1">
-                          <ArrowUp className="h-3 w-3 text-slate-500" />
-                          <span className="text-sm font-medium text-slate-700">
-                            {idea.voteCount}
-                          </span>
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <p className="truncate text-sm font-medium text-slate-900">
-                            {idea.title}
-                          </p>
-                          {idea.description && (
-                            <p className="truncate text-xs text-slate-500">
-                              {idea.description}
-                            </p>
-                          )}
-                        </div>
-                        {similarityPair && (
-                          <span className="shrink-0 rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700">
-                            {Math.round(similarityPair.similarity * 100)}%
-                            similar
-                          </span>
-                        )}
-                        {isCanonical && (
-                          <span className="flex shrink-0 items-center gap-1 rounded-full bg-indigo-100 px-2 py-0.5 text-xs font-medium text-indigo-700">
-                            Keep
-                          </span>
-                        )}
-                      </div>
+                        idea={idea}
+                        isCanonical={isCanonical}
+                        isSelected={selected.has(idea.id)}
+                        isLoading={isLoading}
+                        similarityPercent={similarityPercent}
+                        onToggleSelection={() =>
+                          toggleIdeaSelection(clusterId, idea.id)
+                        }
+                      />
                     );
                   })}
                 </div>
 
-                {/* Actions */}
-                <div className="flex items-center justify-between border-t border-slate-100 bg-slate-50/50 px-5 py-3">
-                  <span className="text-xs text-slate-500">
-                    {selected.size > 0
-                      ? `${selected.size} of ${nonCanonicalCount} duplicate${nonCanonicalCount > 1 ? "s" : ""} selected`
-                      : "No duplicates selected"}
-                  </span>
-                  <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleDismissAll(clusterId)}
-                      disabled={isLoading}
-                    >
-                      {isLoading ? (
-                        <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
-                      ) : (
-                        <X className="mr-1.5 h-3.5 w-3.5" />
-                      )}
-                      Dismiss All
-                    </Button>
-                    <Button
-                      size="sm"
-                      onClick={() => handleMergeSelected(clusterId)}
-                      disabled={isLoading || selected.size === 0}
-                    >
-                      {isLoading ? (
-                        <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
-                      ) : (
-                        <Merge className="mr-1.5 h-3.5 w-3.5" />
-                      )}
-                      Merge Selected
-                    </Button>
-                  </div>
-                </div>
+                <ClusterActions
+                  selectedCount={selected.size}
+                  nonCanonicalCount={nonCanonicalCount}
+                  isLoading={isLoading}
+                  onDismiss={() => handleDismissAll(clusterId)}
+                  onMerge={() => handleMergeSelected(clusterId)}
+                />
               </div>
             )}
           </div>
