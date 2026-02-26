@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { db, dedupeEvents } from "@/lib/db";
+import { and, eq } from "drizzle-orm";
+import { db, dedupeEvents, ideas } from "@/lib/db";
 import { getWorkspaceCorsHeaders } from "@/lib/cors";
+import { validateRequestOrigin } from "@/lib/csrf";
 import { handleApiError } from "@/lib/api-utils";
 
 const dedupeEventSchema = z.object({
@@ -24,6 +26,31 @@ export async function OPTIONS(request: NextRequest, { params }: RouteParams) {
 export async function POST(request: NextRequest, { params }: RouteParams) {
   try {
     const { workspaceId, id: ideaId } = await params;
+
+    const csrfResult = await validateRequestOrigin(request, workspaceId);
+    if (!csrfResult.valid) {
+      const origin = request.headers.get("origin");
+      const headers = await getWorkspaceCorsHeaders(origin, workspaceId, "POST, OPTIONS");
+      return NextResponse.json(
+        { error: csrfResult.reason },
+        { status: 403, headers }
+      );
+    }
+
+    const idea = await db.query.ideas.findFirst({
+      where: and(eq(ideas.id, ideaId), eq(ideas.workspaceId, workspaceId)),
+      columns: { id: true },
+    });
+
+    if (!idea) {
+      const origin = request.headers.get("origin");
+      const headers = await getWorkspaceCorsHeaders(origin, workspaceId, "POST, OPTIONS");
+      return NextResponse.json(
+        { error: "Idea not found" },
+        { status: 404, headers }
+      );
+    }
+
     const body = await request.json();
     const data = dedupeEventSchema.parse(body);
 

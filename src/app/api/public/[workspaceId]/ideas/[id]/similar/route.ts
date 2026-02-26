@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { eq } from "drizzle-orm";
-import { db, ideaEmbeddings, dedupeEvents } from "@/lib/db";
+import { and, eq } from "drizzle-orm";
+import { db, ideaEmbeddings, ideas, dedupeEvents } from "@/lib/db";
 import { findSimilarToIdea } from "@/lib/ai/similarity";
 import { getWorkspaceCorsHeaders } from "@/lib/cors";
 import { handleApiError } from "@/lib/api-utils";
@@ -19,6 +19,21 @@ export async function OPTIONS(request: NextRequest, { params }: RouteParams) {
 export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
     const { workspaceId, id: ideaId } = await params;
+
+    // Validate idea belongs to this workspace
+    const idea = await db.query.ideas.findFirst({
+      where: and(eq(ideas.id, ideaId), eq(ideas.workspaceId, workspaceId)),
+      columns: { id: true },
+    });
+
+    if (!idea) {
+      const origin = request.headers.get("origin");
+      const headers = await getWorkspaceCorsHeaders(origin, workspaceId);
+      return NextResponse.json(
+        { error: "Idea not found" },
+        { status: 404, headers }
+      );
+    }
 
     // Check if embedding exists for this idea
     const embedding = await db.query.ideaEmbeddings.findFirst({
