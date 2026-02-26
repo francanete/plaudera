@@ -91,7 +91,7 @@ export function IdeaSubmissionDialog({
 
   const hasPoll = activePoll && onPollResponse;
 
-  const resetFields = () => {
+  const resetFields = useCallback(() => {
     setTitle("");
     setProblemStatement("");
     setDescription("");
@@ -108,7 +108,7 @@ export function IdeaSubmissionDialog({
     if (!defaultType) {
       setSubmissionType("idea");
     }
-  };
+  }, [defaultType]);
 
   const pollForSimilarIdeas = useCallback(
     async (ideaId: string, wsId: string) => {
@@ -121,10 +121,17 @@ export function IdeaSubmissionDialog({
           );
           if (!res.ok) continue;
           const data = await res.json();
-          if (data.status === "ready" && data.similarIdeas?.length > 0) {
-            setSimilarIdeas(data.similarIdeas);
-            setShowSimilarPanel(true);
+          if (data.status === "ready") {
+            if (data.similarIdeas?.length > 0) {
+              setSimilarIdeas(data.similarIdeas);
+              setShowSimilarPanel(true);
+              setIsCheckingSimilar(false);
+              return;
+            }
+            // No similar ideas found — close the dialog
             setIsCheckingSimilar(false);
+            resetFields();
+            onOpenChange(false);
             return;
           }
           if (data.status === "failed") break;
@@ -132,9 +139,12 @@ export function IdeaSubmissionDialog({
           // continue retrying
         }
       }
+      // Exhausted retries or failed — close the dialog since the idea was already created
       setIsCheckingSimilar(false);
+      resetFields();
+      onOpenChange(false);
     },
-    []
+    [resetFields, onOpenChange]
   );
 
   const handleRecordDedupeEvent = useCallback(

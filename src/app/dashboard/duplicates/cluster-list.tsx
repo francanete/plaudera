@@ -23,19 +23,23 @@ interface ClusterListProps {
 
 export function ClusterList({ initialClusters }: ClusterListProps) {
   const [clusters, setClusters] = useState(initialClusters);
-  const [expandedClusters, setExpandedClusters] = useState<Set<number>>(
-    new Set(initialClusters.length <= 5 ? initialClusters.map((_, i) => i) : [])
+  const [expandedClusters, setExpandedClusters] = useState<Set<string>>(
+    new Set(
+      initialClusters.length <= 5
+        ? initialClusters.map((c) => c.canonicalId)
+        : []
+    )
   );
-  const [loadingClusters, setLoadingClusters] = useState<Set<number>>(
+  const [loadingClusters, setLoadingClusters] = useState<Set<string>>(
     new Set()
   );
-  // Track which non-canonical ideas are selected for merge per cluster index
+  // Track which non-canonical ideas are selected for merge per cluster canonicalId
   const [selectedIdeas, setSelectedIdeas] = useState<
-    Record<number, Set<string>>
+    Record<string, Set<string>>
   >(() => {
-    const initial: Record<number, Set<string>> = {};
-    initialClusters.forEach((cluster, index) => {
-      initial[index] = new Set(
+    const initial: Record<string, Set<string>> = {};
+    initialClusters.forEach((cluster) => {
+      initial[cluster.canonicalId] = new Set(
         cluster.ideas
           .filter((idea) => idea.id !== cluster.canonicalId)
           .map((idea) => idea.id)
@@ -44,53 +48,53 @@ export function ClusterList({ initialClusters }: ClusterListProps) {
     return initial;
   });
 
-  const toggleExpanded = (index: number) => {
+  const toggleExpanded = (clusterId: string) => {
     setExpandedClusters((prev) => {
       const next = new Set(prev);
-      if (next.has(index)) next.delete(index);
-      else next.add(index);
+      if (next.has(clusterId)) next.delete(clusterId);
+      else next.add(clusterId);
       return next;
     });
   };
 
-  const toggleIdeaSelection = (clusterIndex: number, ideaId: string) => {
+  const toggleIdeaSelection = (clusterId: string, ideaId: string) => {
     setSelectedIdeas((prev) => {
-      const current = new Set(prev[clusterIndex] ?? []);
+      const current = new Set(prev[clusterId] ?? []);
       if (current.has(ideaId)) {
         current.delete(ideaId);
       } else {
         current.add(ideaId);
       }
-      return { ...prev, [clusterIndex]: current };
+      return { ...prev, [clusterId]: current };
     });
   };
 
-  const toggleSelectAll = (clusterIndex: number) => {
-    const cluster = clusters[clusterIndex];
+  const toggleSelectAll = (clusterId: string) => {
+    const cluster = clusters.find((c) => c.canonicalId === clusterId);
     if (!cluster) return;
     const nonCanonicalIds = cluster.ideas
       .filter((idea) => idea.id !== cluster.canonicalId)
       .map((idea) => idea.id);
-    const currentSelected = selectedIdeas[clusterIndex] ?? new Set();
+    const currentSelected = selectedIdeas[clusterId] ?? new Set();
     const allSelected = nonCanonicalIds.every((id) => currentSelected.has(id));
 
     setSelectedIdeas((prev) => ({
       ...prev,
-      [clusterIndex]: allSelected ? new Set() : new Set(nonCanonicalIds),
+      [clusterId]: allSelected ? new Set() : new Set(nonCanonicalIds),
     }));
   };
 
-  const handleMergeSelected = async (clusterIndex: number) => {
-    const cluster = clusters[clusterIndex];
+  const handleMergeSelected = async (clusterId: string) => {
+    const cluster = clusters.find((c) => c.canonicalId === clusterId);
     if (!cluster) return;
 
-    const selected = selectedIdeas[clusterIndex] ?? new Set();
+    const selected = selectedIdeas[clusterId] ?? new Set();
     if (selected.size === 0) {
       toast.error("No ideas selected for merge");
       return;
     }
 
-    setLoadingClusters((prev) => new Set(prev).add(clusterIndex));
+    setLoadingClusters((prev) => new Set(prev).add(clusterId));
 
     try {
       // Only merge pairs where at least one idea (non-canonical) is selected
@@ -149,12 +153,12 @@ export function ClusterList({ initialClusters }: ClusterListProps) {
 
       if (allMerged) {
         // Entire cluster resolved
-        setClusters((prev) => prev.filter((_, i) => i !== clusterIndex));
+        setClusters((prev) => prev.filter((c) => c.canonicalId !== clusterId));
       } else {
         // Remove only successfully merged ideas from cluster
         setClusters((prev) =>
-          prev.map((c, i) => {
-            if (i !== clusterIndex) return c;
+          prev.map((c) => {
+            if (c.canonicalId !== clusterId) return c;
             return {
               ...c,
               ideas: c.ideas.filter(
@@ -168,7 +172,7 @@ export function ClusterList({ initialClusters }: ClusterListProps) {
         );
         setSelectedIdeas((prev) => ({
           ...prev,
-          [clusterIndex]: new Set(),
+          [clusterId]: new Set(),
         }));
       }
 
@@ -186,17 +190,17 @@ export function ClusterList({ initialClusters }: ClusterListProps) {
     } finally {
       setLoadingClusters((prev) => {
         const next = new Set(prev);
-        next.delete(clusterIndex);
+        next.delete(clusterId);
         return next;
       });
     }
   };
 
-  const handleDismissAll = async (clusterIndex: number) => {
-    const cluster = clusters[clusterIndex];
+  const handleDismissAll = async (clusterId: string) => {
+    const cluster = clusters.find((c) => c.canonicalId === clusterId);
     if (!cluster) return;
 
-    setLoadingClusters((prev) => new Set(prev).add(clusterIndex));
+    setLoadingClusters((prev) => new Set(prev).add(clusterId));
 
     try {
       for (const pair of cluster.pairs) {
@@ -213,14 +217,14 @@ export function ClusterList({ initialClusters }: ClusterListProps) {
         }
       }
 
-      setClusters((prev) => prev.filter((_, i) => i !== clusterIndex));
+      setClusters((prev) => prev.filter((c) => c.canonicalId !== clusterId));
       toast.success("Cluster dismissed");
     } catch {
       toast.error("Failed to dismiss cluster");
     } finally {
       setLoadingClusters((prev) => {
         const next = new Set(prev);
-        next.delete(clusterIndex);
+        next.delete(clusterId);
         return next;
       });
     }
@@ -247,25 +251,26 @@ export function ClusterList({ initialClusters }: ClusterListProps) {
 
   return (
     <div className="space-y-4">
-      {clusters.map((cluster, index) => {
-        const isExpanded = expandedClusters.has(index);
-        const isLoading = loadingClusters.has(index);
+      {clusters.map((cluster) => {
+        const clusterId = cluster.canonicalId;
+        const isExpanded = expandedClusters.has(clusterId);
+        const isLoading = loadingClusters.has(clusterId);
         const canonical = cluster.ideas.find(
           (i) => i.id === cluster.canonicalId
         );
-        const selected = selectedIdeas[index] ?? new Set();
+        const selected = selectedIdeas[clusterId] ?? new Set();
         const nonCanonicalCount = cluster.ideas.length - 1;
         const allSelected =
           nonCanonicalCount > 0 && selected.size === nonCanonicalCount;
 
         return (
           <div
-            key={index}
+            key={clusterId}
             className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm"
           >
             {/* Header */}
             <button
-              onClick={() => toggleExpanded(index)}
+              onClick={() => toggleExpanded(clusterId)}
               className="flex w-full items-center justify-between px-5 py-4 text-left hover:bg-slate-50"
               disabled={isLoading}
             >
@@ -305,7 +310,7 @@ export function ClusterList({ initialClusters }: ClusterListProps) {
                 <div className="flex items-center gap-3 border-b border-slate-100 bg-slate-50/30 px-5 py-2">
                   <Checkbox
                     checked={allSelected}
-                    onCheckedChange={() => toggleSelectAll(index)}
+                    onCheckedChange={() => toggleSelectAll(clusterId)}
                     disabled={isLoading}
                   />
                   <span className="text-xs text-slate-500">
@@ -335,7 +340,7 @@ export function ClusterList({ initialClusters }: ClusterListProps) {
                           <Checkbox
                             checked={isSelected}
                             onCheckedChange={() =>
-                              toggleIdeaSelection(index, idea.id)
+                              toggleIdeaSelection(clusterId, idea.id)
                             }
                             disabled={isLoading}
                           />
@@ -377,7 +382,7 @@ export function ClusterList({ initialClusters }: ClusterListProps) {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => handleDismissAll(index)}
+                      onClick={() => handleDismissAll(clusterId)}
                       disabled={isLoading}
                     >
                       {isLoading ? (
@@ -389,7 +394,7 @@ export function ClusterList({ initialClusters }: ClusterListProps) {
                     </Button>
                     <Button
                       size="sm"
-                      onClick={() => handleMergeSelected(index)}
+                      onClick={() => handleMergeSelected(clusterId)}
                       disabled={isLoading || selected.size === 0}
                     >
                       {isLoading ? (
