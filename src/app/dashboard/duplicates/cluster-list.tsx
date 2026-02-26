@@ -364,6 +364,21 @@ export function ClusterList({ initialClusters }: ClusterListProps) {
                             </p>
                           )}
                         </div>
+                        {!isCanonical &&
+                          (() => {
+                            const pair = cluster.pairs.find(
+                              (p) =>
+                                (p.ideaAId === idea.id &&
+                                  p.ideaBId === cluster.canonicalId) ||
+                                (p.ideaBId === idea.id &&
+                                  p.ideaAId === cluster.canonicalId)
+                            );
+                            return pair ? (
+                              <span className="shrink-0 rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700">
+                                {Math.round(pair.similarity * 100)}% similar
+                              </span>
+                            ) : null;
+                          })()}
                         {isCanonical && (
                           <span className="flex shrink-0 items-center gap-1 rounded-full bg-indigo-100 px-2 py-0.5 text-xs font-medium text-indigo-700">
                             Keep

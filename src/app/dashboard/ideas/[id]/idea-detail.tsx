@@ -24,6 +24,7 @@ import type { DecisionTimelineEntry } from "@/lib/idea-queries";
 import type { DecisionType } from "@/lib/db/schema";
 import { ConfidenceBadge, OutlierWarning } from "../components";
 import { IdeaClassification } from "./components/idea-classification";
+import { IdeaTagPicker } from "./components/idea-tag-picker";
 import { isOnRoadmap } from "@/lib/roadmap-status-config";
 
 interface MergedChild {
@@ -36,6 +37,12 @@ interface PublishedIdea {
   title: string;
 }
 
+interface TagInfo {
+  id: string;
+  name: string;
+  color: string;
+}
+
 interface IdeaDetailProps {
   idea: Idea;
   mergedChildren?: MergedChild[];
@@ -43,6 +50,8 @@ interface IdeaDetailProps {
   duplicateSuggestions?: DuplicateSuggestionForView[];
   confidence?: ConfidenceResult;
   decisionTimeline?: DecisionTimelineEntry[];
+  assignedTags?: TagInfo[];
+  workspaceTags?: TagInfo[];
 }
 
 export function IdeaDetail({
@@ -52,6 +61,8 @@ export function IdeaDetail({
   duplicateSuggestions: initialDupSuggestions = [],
   confidence,
   decisionTimeline: initialTimeline = [],
+  assignedTags = [],
+  workspaceTags = [],
 }: IdeaDetailProps) {
   const router = useRouter();
   const [idea, setIdea] = useState(initialIdea);
@@ -578,6 +589,13 @@ export function IdeaDetail({
         workflowImpact={idea.workflowImpact}
         workflowStage={idea.workflowStage}
         onSave={handleSaveClassification}
+      />
+
+      {/* Tags */}
+      <IdeaTagPicker
+        ideaId={idea.id}
+        assignedTags={assignedTags}
+        workspaceTags={workspaceTags}
       />
 
       {/* Internal Note (Private zone - visually distinct with dashed border) */}
