@@ -373,7 +373,7 @@ export async function updateIdea(
 
     // Only apply explicit status if auto-publish hasn't already set it
     // (auto-publish takes precedence when moving to roadmap)
-    if (updateData.status === undefined || updateData.status !== data.status) {
+    if (updateData.status === undefined) {
       updateData.status = data.status;
     }
     ideaStatusChanged = ideaStatusChanged || data.status !== idea.status;

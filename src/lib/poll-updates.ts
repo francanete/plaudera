@@ -87,7 +87,7 @@ export async function activatePoll(pollId: string, workspaceId: string) {
     const [activated] = await tx
       .update(polls)
       .set({ status: "active" })
-      .where(eq(polls.id, pollId))
+      .where(and(eq(polls.id, pollId), eq(polls.workspaceId, workspaceId)))
       .returning();
 
     return activated;
@@ -109,7 +109,7 @@ export async function closePoll(pollId: string, workspaceId: string) {
   const [closed] = await db
     .update(polls)
     .set({ status: "closed", closedAt: new Date() })
-    .where(eq(polls.id, pollId))
+    .where(and(eq(polls.id, pollId), eq(polls.workspaceId, workspaceId)))
     .returning();
 
   return closed;
