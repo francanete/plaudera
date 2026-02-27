@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { eq, and } from "drizzle-orm";
-import { db, duplicateSuggestions } from "@/lib/db";
+import { db, duplicateSuggestions, dedupeEvents } from "@/lib/db";
 import { protectedApiRouteWrapper } from "@/lib/dal";
 import { getUserWorkspace } from "@/lib/workspace";
 import { NotFoundError, BadRequestError } from "@/lib/errors";
@@ -37,6 +37,15 @@ export const POST = protectedApiRouteWrapper<{ id: string }>(
         reviewedAt: new Date(),
       })
       .where(eq(duplicateSuggestions.id, params.id));
+
+    // Record telemetry before responding
+    await db.insert(dedupeEvents).values({
+      workspaceId: workspace.id,
+      ideaId: suggestion.sourceIdeaId,
+      relatedIdeaId: suggestion.duplicateIdeaId,
+      eventType: "dashboard_dismissed",
+      similarity: suggestion.similarity,
+    });
 
     return NextResponse.json({ success: true });
   },

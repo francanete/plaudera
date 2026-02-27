@@ -3,10 +3,17 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { AuthStatusPill } from "./auth-status-pill";
-import { Plus, Lightbulb, Map, Mail } from "lucide-react";
+import {
+  Plus,
+  Lightbulb,
+  Map,
+  Mail,
+  Ban,
+  MessageCircleQuestion,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 
-export type BoardView = "ideas" | "roadmap";
+export type BoardView = "ideas" | "roadmap" | "wont-build";
 
 interface BoardHeaderProps {
   workspaceName: string;
@@ -18,6 +25,8 @@ interface BoardHeaderProps {
   activeView?: BoardView;
   slug?: string;
   isSubdomain?: boolean;
+  activePollQuestion?: string | null;
+  onPollClick?: () => void;
 }
 
 export function BoardHeader({
@@ -30,12 +39,19 @@ export function BoardHeader({
   activeView = "ideas",
   slug,
   isSubdomain = false,
+  activePollQuestion,
+  onPollClick,
 }: BoardHeaderProps) {
   const ideasHref = slug ? (isSubdomain ? "/" : `/b/${slug}`) : "#";
   const roadmapHref = slug
     ? isSubdomain
       ? "/roadmap"
       : `/b/${slug}/roadmap`
+    : "#";
+  const wontBuildHref = slug
+    ? isSubdomain
+      ? "/wont-build"
+      : `/b/${slug}/wont-build`
     : "#";
 
   return (
@@ -105,6 +121,26 @@ export function BoardHeader({
                 />
                 Roadmap
               </Link>
+              <Link
+                href={wontBuildHref}
+                prefetch
+                className={cn(
+                  "group flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-all duration-150",
+                  activeView === "wont-build"
+                    ? "border border-slate-200/80 bg-white text-slate-900 shadow-sm dark:border-slate-600 dark:bg-slate-700 dark:text-white"
+                    : "border border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
+                )}
+              >
+                <Ban
+                  className={cn(
+                    "h-4 w-4",
+                    activeView === "wont-build"
+                      ? "text-slate-900 dark:text-white"
+                      : "text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-300"
+                  )}
+                />
+                Won&apos;t Build
+              </Link>
             </nav>
           )}
 
@@ -155,6 +191,25 @@ export function BoardHeader({
         </div>
       </div>
 
+      {/* Poll banner */}
+      {activePollQuestion && onPollClick && (
+        <div className="border-b border-slate-200 dark:border-slate-700">
+          <button
+            onClick={onPollClick}
+            className="flex w-full items-center gap-2 px-4 py-2.5 text-left transition-colors hover:bg-slate-50 sm:px-6 dark:hover:bg-slate-800/50"
+          >
+            <MessageCircleQuestion className="h-4 w-4 shrink-0 text-violet-500" />
+            <span className="min-w-0 flex-1 truncate text-sm">
+              <span className="font-medium">Quick question:</span>{" "}
+              {activePollQuestion}
+            </span>
+            <span className="text-primary shrink-0 text-xs font-medium">
+              Share your thoughts
+            </span>
+          </button>
+        </div>
+      )}
+
       {/* Mobile Navigation Tabs */}
       {slug && (
         <div className="border-b border-slate-200 md:hidden dark:border-slate-700">
@@ -184,6 +239,19 @@ export function BoardHeader({
             >
               <Map className="h-4 w-4" />
               Roadmap
+            </Link>
+            <Link
+              href={wontBuildHref}
+              prefetch
+              className={cn(
+                "flex flex-1 items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium transition-colors",
+                activeView === "wont-build"
+                  ? "bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900"
+                  : "bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:hover:bg-slate-700"
+              )}
+            >
+              <Ban className="h-4 w-4" />
+              Won&apos;t Build
             </Link>
           </nav>
         </div>

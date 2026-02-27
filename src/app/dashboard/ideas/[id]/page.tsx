@@ -2,8 +2,19 @@ import { notFound, redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { db } from "@/lib/db";
-import { ideas, duplicateSuggestions } from "@/lib/db/schema";
+import {
+  ideas,
+  duplicateSuggestions,
+  strategicTags,
+  ideaStrategicTags,
+} from "@/lib/db/schema";
 import { eq, and, ne, or, desc } from "drizzle-orm";
+import {
+  queryIdeaSignals,
+  buildConfidenceSignals,
+  queryDecisionTimeline,
+} from "@/lib/idea-queries";
+import { computeConfidence } from "@/lib/confidence";
 import { IdeaDetail } from "./idea-detail";
 import type { DuplicateSuggestionForView } from "./components";
 
@@ -43,8 +54,15 @@ export default async function IdeaDetailPage({ params }: PageProps) {
     redirect(`/dashboard/roadmap/${idea.id}`);
   }
 
-  // Fetch published ideas and duplicate suggestions in parallel
-  const [publishedIdeas, rawDupSuggestions] = await Promise.all([
+  // Fetch published ideas, duplicate suggestions, confidence signals, timeline, and tags in parallel
+  const [
+    publishedIdeas,
+    rawDupSuggestions,
+    signalsMap,
+    decisionTimeline,
+    workspaceTags,
+    ideaTags,
+  ] = await Promise.all([
     db
       .select({ id: ideas.id, title: ideas.title })
       .from(ideas)
@@ -90,6 +108,25 @@ export default async function IdeaDetailPage({ params }: PageProps) {
       },
       orderBy: [desc(duplicateSuggestions.similarity)],
     }),
+    queryIdeaSignals([id]),
+    queryDecisionTimeline(id),
+    db
+      .select({
+        id: strategicTags.id,
+        name: strategicTags.name,
+        color: strategicTags.color,
+      })
+      .from(strategicTags)
+      .where(eq(strategicTags.workspaceId, idea.workspaceId)),
+    db
+      .select({
+        id: strategicTags.id,
+        name: strategicTags.name,
+        color: strategicTags.color,
+      })
+      .from(ideaStrategicTags)
+      .innerJoin(strategicTags, eq(ideaStrategicTags.tagId, strategicTags.id))
+      .where(eq(ideaStrategicTags.ideaId, id)),
   ]);
 
   // Transform: for each suggestion, pick the "other" idea (not the current one)
@@ -105,12 +142,22 @@ export default async function IdeaDetailPage({ params }: PageProps) {
     })
     .filter((s) => s.otherIdea.status !== "MERGED");
 
+  // Compute confidence score
+  const rawSignals = signalsMap.get(id);
+  const confidence = rawSignals
+    ? computeConfidence(buildConfidenceSignals(rawSignals, idea))
+    : undefined;
+
   return (
     <IdeaDetail
       idea={idea}
       mergedChildren={idea.mergedFrom}
       publishedIdeas={publishedIdeas}
       duplicateSuggestions={dupSuggestionsForView}
+      confidence={confidence}
+      decisionTimeline={decisionTimeline}
+      assignedTags={ideaTags}
+      workspaceTags={workspaceTags}
     />
   );
 }

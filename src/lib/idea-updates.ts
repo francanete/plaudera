@@ -4,18 +4,42 @@ import {
   db,
   ideas,
   roadmapStatusChanges,
+  ideaStatusChanges,
   duplicateSuggestions,
   type IdeaStatus,
   type RoadmapStatus,
+  type DecisionType,
 } from "@/lib/db";
 import { NotFoundError, ForbiddenError, BadRequestError } from "@/lib/errors";
 import { ALL_IDEA_STATUSES } from "@/lib/idea-status-config";
-import { ALL_ROADMAP_STATUSES } from "@/lib/roadmap-status-config";
+import {
+  ALL_ROADMAP_STATUSES,
+  ROADMAP_STATUS_ORDER,
+} from "@/lib/roadmap-status-config";
 import { updateIdeaEmbedding } from "@/lib/ai/embeddings";
 
 export const createIdeaSchema = z.object({
   title: z.string().min(1, "Title is required").max(200, "Title too long"),
-  description: z.string().max(5000, "Description too long").optional(),
+  description: z.string().max(2000, "Description too long").optional(),
+  problemStatement: z
+    .string()
+    .max(2000, "Problem statement too long")
+    .optional(),
+  frequencyTag: z.enum(["daily", "weekly", "monthly", "rarely"]).optional(),
+  workflowImpact: z
+    .enum(["blocker", "major", "minor", "nice_to_have"])
+    .optional(),
+  workflowStage: z
+    .enum([
+      "onboarding",
+      "setup",
+      "daily_workflow",
+      "billing",
+      "reporting",
+      "integrations",
+      "other",
+    ])
+    .optional(),
   roadmapStatus: z.enum(["PLANNED", "IN_PROGRESS", "RELEASED"]).optional(),
   featureDetails: z.string().max(2000, "Feature details too long").optional(),
 });
@@ -23,16 +47,46 @@ export const createIdeaSchema = z.object({
 export type CreateIdeaInput = z.infer<typeof createIdeaSchema>;
 
 /**
+ * Options for public/contributor submissions that don't go through
+ * the dashboard auth flow.
+ */
+export interface PublicSubmissionOptions {
+  contributorId: string;
+  authorEmail: string;
+  /** Public submissions default to UNDER_REVIEW instead of PUBLISHED */
+  defaultStatus?: "UNDER_REVIEW" | "PUBLISHED";
+}
+
+/**
  * Create a new idea, optionally placing it directly on the roadmap.
  * When roadmapStatus is provided, uses a transaction to atomically
  * insert the idea and its audit log entry.
+ *
+ * Pass `publicSubmission` for contributor-submitted ideas (public board/widget).
  */
 export async function createIdea(
   workspaceId: string,
-  userId: string,
-  data: CreateIdeaInput
+  userId: string | null,
+  data: CreateIdeaInput,
+  publicSubmission?: PublicSubmissionOptions
 ) {
   const isRoadmapIdea = !!data.roadmapStatus;
+  const defaultStatus = publicSubmission?.defaultStatus ?? "PUBLISHED";
+
+  const baseValues = {
+    workspaceId,
+    title: data.title,
+    description: data.description || null,
+    problemStatement: data.problemStatement || null,
+    frequencyTag: data.frequencyTag || null,
+    workflowImpact: data.workflowImpact || null,
+    workflowStage: data.workflowStage || null,
+    voteCount: 0,
+    ...(publicSubmission && {
+      contributorId: publicSubmission.contributorId,
+      authorEmail: publicSubmission.authorEmail,
+    }),
+  };
 
   let newIdea;
 
@@ -41,13 +95,10 @@ export async function createIdea(
       const [idea] = await tx
         .insert(ideas)
         .values({
-          workspaceId,
-          title: data.title,
-          description: data.description || null,
+          ...baseValues,
           status: "PUBLISHED",
           roadmapStatus: data.roadmapStatus!,
           featureDetails: data.featureDetails || null,
-          voteCount: 0,
         })
         .returning();
 
@@ -64,17 +115,18 @@ export async function createIdea(
     [newIdea] = await db
       .insert(ideas)
       .values({
-        workspaceId,
-        title: data.title,
-        description: data.description || null,
-        status: "PUBLISHED",
-        voteCount: 0,
+        ...baseValues,
+        status: defaultStatus,
       })
       .returning();
   }
 
   // Generate embedding for duplicate detection (fire-and-forget)
-  updateIdeaEmbedding(newIdea.id, newIdea.title).catch((err) =>
+  updateIdeaEmbedding(
+    newIdea.id,
+    newIdea.title,
+    newIdea.problemStatement
+  ).catch((err) =>
     console.error("Failed to generate embedding for idea:", err)
   );
 
@@ -83,7 +135,28 @@ export async function createIdea(
 
 export const updateIdeaSchema = z.object({
   title: z.string().min(1).max(200).optional(),
-  description: z.string().max(5000).optional().nullable(),
+  description: z.string().max(2000).optional().nullable(),
+  problemStatement: z.string().max(2000).optional().nullable(),
+  frequencyTag: z
+    .enum(["daily", "weekly", "monthly", "rarely"])
+    .optional()
+    .nullable(),
+  workflowImpact: z
+    .enum(["blocker", "major", "minor", "nice_to_have"])
+    .optional()
+    .nullable(),
+  workflowStage: z
+    .enum([
+      "onboarding",
+      "setup",
+      "daily_workflow",
+      "billing",
+      "reporting",
+      "integrations",
+      "other",
+    ])
+    .optional()
+    .nullable(),
   status: z.enum(ALL_IDEA_STATUSES as [IdeaStatus, ...IdeaStatus[]]).optional(),
   roadmapStatus: z
     .enum(ALL_ROADMAP_STATUSES as [RoadmapStatus, ...RoadmapStatus[]])
@@ -92,6 +165,9 @@ export const updateIdeaSchema = z.object({
   publicUpdate: z.string().max(1000).optional().nullable(),
   featureDetails: z.string().max(2000).optional().nullable(),
   showPublicUpdateOnRoadmap: z.boolean().optional(),
+  rationale: z.string().max(2000).optional(),
+  wontBuildReason: z.string().max(2000).optional().nullable(),
+  isPublicRationale: z.boolean().optional(),
 });
 
 export type UpdateIdeaInput = z.infer<typeof updateIdeaSchema>;
@@ -119,11 +195,57 @@ export async function getIdeaWithOwnerCheck(ideaId: string, userId: string) {
   return idea;
 }
 
+// ============ Decision Type Classification ============
+
+/**
+ * Determine the decision type for a roadmap status change.
+ */
+export function classifyRoadmapDecision(
+  from: RoadmapStatus,
+  to: RoadmapStatus
+): DecisionType {
+  if (from === "NONE" && to !== "NONE") return "prioritized";
+  if (ROADMAP_STATUS_ORDER[to] < ROADMAP_STATUS_ORDER[from])
+    return "deprioritized";
+  return "status_progression";
+}
+
+/**
+ * Determine the decision type for an idea status change.
+ */
+export function classifyIdeaStatusDecision(
+  from: IdeaStatus,
+  to: IdeaStatus
+): DecisionType {
+  if (to === "DECLINED") return "declined";
+  // UNDER_REVIEW → PUBLISHED is forward progression
+  if (from === "UNDER_REVIEW" && to === "PUBLISHED")
+    return "status_progression";
+  // PUBLISHED → UNDER_REVIEW is a reversal
+  if (from === "PUBLISHED" && to === "UNDER_REVIEW") return "status_reversal";
+  return "status_progression";
+}
+
+/**
+ * Check if a roadmap transition is "governed" (requires rationale).
+ * - First entry to roadmap (NONE → anything)
+ * - Roadmap regression (higher → lower, e.g. IN_PROGRESS → PLANNED)
+ */
+function isGovernedRoadmapTransition(
+  from: RoadmapStatus,
+  to: RoadmapStatus
+): boolean {
+  if (from === to) return false;
+  if (from === "NONE" && to !== "NONE") return true; // prioritized
+  return ROADMAP_STATUS_ORDER[to] < ROADMAP_STATUS_ORDER[from]; // deprioritized
+}
+
 /**
  * Update an idea with full business rule enforcement:
  * - Irreversibility guard (cannot remove from roadmap)
  * - Auto-publish (UNDER_REVIEW -> PUBLISHED when moving to roadmap)
- * - Audit logging for roadmap status changes
+ * - Audit logging for roadmap and idea status changes
+ * - Rationale enforcement for governed transitions
  * - Auto-dismiss pending duplicate suggestions when moving to roadmap
  * - Embedding regeneration on title/description change
  */
@@ -146,12 +268,25 @@ export async function updateIdea(
   const updateData: Partial<{
     title: string;
     description: string | null;
+    problemStatement: string | null;
+    frequencyTag: "daily" | "weekly" | "monthly" | "rarely" | null;
+    workflowImpact: "blocker" | "major" | "minor" | "nice_to_have" | null;
+    workflowStage:
+      | "onboarding"
+      | "setup"
+      | "daily_workflow"
+      | "billing"
+      | "reporting"
+      | "integrations"
+      | "other"
+      | null;
     status: IdeaStatus;
     roadmapStatus: RoadmapStatus;
     internalNote: string | null;
     publicUpdate: string | null;
     featureDetails: string | null;
     showPublicUpdateOnRoadmap: boolean;
+    wontBuildReason: string | null;
     mergedIntoId: string | null;
     updatedAt: Date;
   }> = {
@@ -160,6 +295,14 @@ export async function updateIdea(
 
   if (data.title !== undefined) updateData.title = data.title;
   if (data.description !== undefined) updateData.description = data.description;
+  if (data.problemStatement !== undefined)
+    updateData.problemStatement = data.problemStatement;
+  if (data.frequencyTag !== undefined)
+    updateData.frequencyTag = data.frequencyTag;
+  if (data.workflowImpact !== undefined)
+    updateData.workflowImpact = data.workflowImpact;
+  if (data.workflowStage !== undefined)
+    updateData.workflowStage = data.workflowStage;
   if (data.internalNote !== undefined)
     updateData.internalNote = data.internalNote;
   if (data.publicUpdate !== undefined)
@@ -182,6 +325,17 @@ export async function updateIdea(
     updateData.roadmapStatus = data.roadmapStatus;
     roadmapStatusChanged = data.roadmapStatus !== idea.roadmapStatus;
 
+    // Rationale enforcement for governed roadmap transitions
+    if (
+      roadmapStatusChanged &&
+      isGovernedRoadmapTransition(idea.roadmapStatus, data.roadmapStatus) &&
+      !data.rationale
+    ) {
+      throw new BadRequestError(
+        "Rationale is required for this roadmap status change"
+      );
+    }
+
     // Auto-publish: when moving to roadmap, publish if still under review
     if (
       roadmapStatusChanged &&
@@ -193,6 +347,11 @@ export async function updateIdea(
     }
   }
 
+  // Track idea status changes (including auto-publish)
+  let ideaStatusChanged =
+    updateData.status !== undefined && updateData.status !== idea.status;
+  const previousIdeaStatus = idea.status;
+
   if (data.status !== undefined) {
     // Block declining ideas that are on the roadmap
     const effectiveRoadmapStatus = data.roadmapStatus ?? idea.roadmapStatus;
@@ -202,7 +361,22 @@ export async function updateIdea(
       );
     }
 
-    updateData.status = data.status;
+    // Rationale enforcement: DECLINED requires rationale
+    if (data.status === "DECLINED" && !data.rationale) {
+      throw new BadRequestError("Rationale is required when declining an idea");
+    }
+
+    // Set wontBuildReason when declining with a reason
+    if (data.status === "DECLINED") {
+      updateData.wontBuildReason = data.wontBuildReason ?? null;
+    }
+
+    // Only apply explicit status if auto-publish hasn't already set it
+    // (auto-publish takes precedence when moving to roadmap)
+    if (updateData.status === undefined) {
+      updateData.status = data.status;
+    }
+    ideaStatusChanged = ideaStatusChanged || data.status !== idea.status;
   }
 
   const updatedIdea = await db.transaction(async (tx) => {
@@ -217,11 +391,35 @@ export async function updateIdea(
       roadmapStatusChanged &&
       result.roadmapStatus !== previousRoadmapStatus
     ) {
+      const decisionType = classifyRoadmapDecision(
+        previousRoadmapStatus,
+        result.roadmapStatus
+      );
       await tx.insert(roadmapStatusChanges).values({
         ideaId: idea.id,
         fromStatus: previousRoadmapStatus,
         toStatus: result.roadmapStatus,
         changedBy: userId,
+        rationale: data.rationale ?? null,
+        isPublic: data.isPublicRationale ?? false,
+        decisionType,
+      });
+    }
+
+    // Log idea status change to audit table
+    if (ideaStatusChanged && result.status !== previousIdeaStatus) {
+      const decisionType = classifyIdeaStatusDecision(
+        previousIdeaStatus,
+        result.status
+      );
+      await tx.insert(ideaStatusChanges).values({
+        ideaId: idea.id,
+        userId,
+        fromStatus: previousIdeaStatus,
+        toStatus: result.status,
+        rationale: data.rationale ?? null,
+        isPublic: data.isPublicRationale ?? false,
+        decisionType,
       });
     }
 
@@ -244,32 +442,20 @@ export async function updateIdea(
     return result;
   });
 
-  // Regenerate embedding if title or description changed (fire-and-forget)
-  if (data.title !== undefined || data.description !== undefined) {
-    updateIdeaEmbedding(updatedIdea.id, updatedIdea.title).catch((err) =>
+  // Regenerate embedding if title, description, or problem statement changed (fire-and-forget)
+  if (
+    data.title !== undefined ||
+    data.description !== undefined ||
+    data.problemStatement !== undefined
+  ) {
+    updateIdeaEmbedding(
+      updatedIdea.id,
+      updatedIdea.title,
+      updatedIdea.problemStatement
+    ).catch((err) =>
       console.error("Failed to update embedding for idea:", err)
     );
   }
 
   return updatedIdea;
-}
-
-/**
- * Soft-delete an idea (set status to DECLINED).
- * Blocks deletion of ideas that are on the roadmap.
- */
-export async function deleteIdea(ideaId: string, userId: string) {
-  const idea = await getIdeaWithOwnerCheck(ideaId, userId);
-
-  if (idea.roadmapStatus !== "NONE") {
-    throw new BadRequestError("Cannot delete an idea that is on the roadmap");
-  }
-
-  await db
-    .update(ideas)
-    .set({
-      status: "DECLINED",
-      updatedAt: new Date(),
-    })
-    .where(eq(ideas.id, ideaId));
 }

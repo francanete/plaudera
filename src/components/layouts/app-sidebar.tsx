@@ -9,7 +9,9 @@ import {
   LayoutPanelLeft,
   Copy,
   Code2,
+  Tag,
   LifeBuoy,
+  MessageCircleQuestion,
 } from "lucide-react";
 import { PlauderaLogo } from "@/components/plaudera-logo";
 import {
@@ -52,8 +54,14 @@ const navigation = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { name: "Ideas", href: "/dashboard/ideas", icon: Lightbulb },
   { name: "Roadmap", href: "/dashboard/roadmap", icon: Map },
+  {
+    name: "Polls",
+    href: "/dashboard/polls",
+    icon: MessageCircleQuestion,
+  },
   { name: "Duplicates", href: "/dashboard/duplicates", icon: Copy },
   { name: "Board", href: "/dashboard/board", icon: LayoutPanelLeft },
+  { name: "Tags", href: "/dashboard/board/tags", icon: Tag },
   { name: "Widget", href: "/dashboard/widget", icon: Code2 },
 ];
 

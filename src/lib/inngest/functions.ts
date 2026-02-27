@@ -3,6 +3,7 @@ import { inngest, type InngestStepLike } from "./client";
 // Re-export type for tests
 export type { InngestStepLike };
 import { detectDuplicatesJob } from "./functions/detect-duplicates";
+import { backfillEmbeddingsJob } from "./functions/backfill-embeddings";
 import { db, users, subscriptions } from "@/lib/db";
 import { eq, and, gte, lt, inArray } from "drizzle-orm";
 import { sendAccountSetupEmail } from "@/lib/email";
@@ -429,4 +430,5 @@ export const functions = [
   paidSignupEmailJob,
   trialEndingReminderJob,
   detectDuplicatesJob,
+  backfillEmbeddingsJob,
 ];

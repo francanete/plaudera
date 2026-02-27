@@ -13,6 +13,16 @@ export const ALL_ROADMAP_STATUSES: RoadmapStatus[] = [
 ];
 
 /**
+ * Numeric ordering of roadmap statuses for progression/regression detection.
+ */
+export const ROADMAP_STATUS_ORDER: Record<RoadmapStatus, number> = {
+  NONE: 0,
+  PLANNED: 1,
+  IN_PROGRESS: 2,
+  RELEASED: 3,
+};
+
+/**
  * Roadmap statuses that indicate an idea is on the roadmap.
  * Excludes NONE (not on roadmap).
  * Used for public board filtering and roadmap view display.

@@ -9,6 +9,9 @@ export const inngest = new Inngest({
     };
     "email/welcome": { data: { userId: string; email: string; name: string } };
     "subscription/changed": { data: { userId: string; plan: string } };
+    "embedding/backfill-requested": {
+      data: { workspaceId?: string };
+    };
   }>(),
 });
 

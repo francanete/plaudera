@@ -51,6 +51,7 @@ type SendResult = {
 export async function sendSequenceEmail({
   userId,
   email,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   name,
   emailKey,
 }: SendSequenceEmailParams): Promise<SendResult> {

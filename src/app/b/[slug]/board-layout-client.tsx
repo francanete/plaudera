@@ -38,15 +38,31 @@ export function BoardLayoutClient({
   const [authDialogOpen, setAuthDialogOpen] = useState(false);
   const [submitDialogOpen, setSubmitDialogOpen] = useState(false);
   const [pendingAction, setPendingAction] = useState<PendingAction>(null);
+  const [activePoll, setActivePoll] = useState<{
+    id: string;
+    question: string;
+  } | null>(null);
 
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const router = useRouter();
 
+  // Fetch active poll on mount
+  useEffect(() => {
+    fetch(`/api/public/${workspaceId}/polls/active`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data?.poll) setActivePoll(data.poll);
+      })
+      .catch(() => {});
+  }, [workspaceId]);
+
   const isAuthenticated = contributor !== null;
   const activeView: BoardView = pathname.endsWith("/roadmap")
     ? "roadmap"
-    : "ideas";
+    : pathname.endsWith("/wont-build")
+      ? "wont-build"
+      : "ideas";
 
   const refreshData = useCallback(async () => {
     try {
@@ -154,20 +170,33 @@ export function BoardLayoutClient({
     onSuccess: () => setContributor(null),
   });
 
-  const handleIdeaSubmit = async (title: string, description?: string) => {
+  const handleIdeaSubmit = async (data: {
+    title: string;
+    problemStatement: string;
+    description?: string;
+    frequencyTag?: string;
+    workflowImpact?: string;
+    workflowStage?: string;
+  }): Promise<{ ideaId: string }> => {
     const res = await fetch(`/api/public/${workspaceId}/ideas`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ title, description }),
+      body: JSON.stringify(data),
     });
 
     if (!res.ok) {
-      const data = await res.json().catch(() => ({}));
-      throw new Error(data.error || "Failed to submit idea");
+      const errorData = await res.json().catch(() => ({}));
+      throw new Error(errorData.error || "Failed to submit idea");
     }
 
+    const responseData = await res.json();
     toast.success("Idea submitted successfully!");
     router.refresh();
+    return { ideaId: responseData.idea.id };
+  };
+
+  const handleVoteForIdea = async (ideaId: string) => {
+    await handleVoteAfterAuth(ideaId);
   };
 
   const getCallbackUrl = () => {
@@ -198,6 +227,14 @@ export function BoardLayoutClient({
           activeView={activeView}
           slug={slug}
           isSubdomain={isSubdomain}
+          activePollQuestion={activePoll?.question}
+          onPollClick={() => {
+            if (!isAuthenticated) {
+              handleRequireAuth({ type: "submit" });
+              return;
+            }
+            setSubmitDialogOpen(true);
+          }}
         />
       </div>
 
@@ -228,6 +265,31 @@ export function BoardLayoutClient({
         open={submitDialogOpen}
         onOpenChange={setSubmitDialogOpen}
         onSubmit={handleIdeaSubmit}
+        workspaceId={workspaceId}
+        onVoteForIdea={handleVoteForIdea}
+        activePoll={activePoll}
+        onPollResponse={
+          activePoll
+            ? async (response) => {
+                const res = await fetch(
+                  `/api/public/${workspaceId}/polls/${activePoll.id}/respond`,
+                  {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ response }),
+                  }
+                );
+                if (!res.ok) {
+                  const errorData = await res.json().catch(() => ({}));
+                  throw new Error(
+                    errorData.error || "Failed to submit feedback"
+                  );
+                }
+                toast.success("Feedback submitted!");
+                router.refresh();
+              }
+            : undefined
+        }
       />
     </div>
   );

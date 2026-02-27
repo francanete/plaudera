@@ -5,7 +5,6 @@ import {
   getIdeaWithOwnerCheck,
   updateIdea,
   updateIdeaSchema,
-  deleteIdea,
 } from "@/lib/idea-updates";
 
 type RouteParams = { id: string };
@@ -33,12 +32,16 @@ export const PATCH = protectedApiRouteWrapper<RouteParams>(
   { requirePaid: false }
 );
 
-// DELETE /api/ideas/[id] - Soft-delete an idea (set status to DECLINED)
+// DELETE /api/ideas/[id] - Retired. Use PATCH with status: DECLINED.
 export const DELETE = protectedApiRouteWrapper<RouteParams>(
-  async (_request, { session, params }) => {
-    await deleteIdea(params.id, session.user.id);
-
-    return NextResponse.json({ success: true });
+  async () => {
+    return NextResponse.json(
+      {
+        error:
+          "DELETE is retired. Use PATCH with status: DECLINED and rationale.",
+      },
+      { status: 410 }
+    );
   },
   { requirePaid: false }
 );

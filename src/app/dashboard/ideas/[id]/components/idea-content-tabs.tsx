@@ -6,6 +6,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { TriangleAlert } from "lucide-react";
 
 interface IdeaContentTabsProps {
+  problemStatement: string;
+  onProblemStatementChange: (value: string) => void;
+  onSaveProblemStatement: () => void;
+  isSavingProblemStatement: boolean;
+  hasProblemStatementChanges: boolean;
+
   description: string;
   onDescriptionChange: (value: string) => void;
   onSaveDescription: () => void;
@@ -19,7 +25,7 @@ interface IdeaContentTabsProps {
   hasPublicUpdateChanges: boolean;
 }
 
-type TabValue = "description" | "public-update";
+type TabValue = "problem" | "description" | "public-update";
 
 const TAB_CONFIG: Record<
   TabValue,
@@ -29,6 +35,11 @@ const TAB_CONFIG: Record<
     helpText: string;
   }
 > = {
+  problem: {
+    label: "Problem Statement",
+    visibilityText: "",
+    helpText: "The problem this idea solves, as described by the contributor.",
+  },
   description: {
     label: "Contributor's Idea",
     visibilityText: "",
@@ -44,6 +55,11 @@ const TAB_CONFIG: Record<
 };
 
 export function IdeaContentTabs({
+  problemStatement,
+  onProblemStatementChange,
+  onSaveProblemStatement,
+  isSavingProblemStatement,
+  hasProblemStatementChanges,
   description,
   onDescriptionChange,
   onSaveDescription,
@@ -55,12 +71,12 @@ export function IdeaContentTabs({
   isSavingPublicUpdate,
   hasPublicUpdateChanges,
 }: IdeaContentTabsProps) {
-  const [activeTab, setActiveTab] = useState<TabValue>("description");
+  const [activeTab, setActiveTab] = useState<TabValue>("problem");
   const [indicatorStyle, setIndicatorStyle] = useState({ left: 0, width: 0 });
   const tabsRef = useRef<HTMLDivElement>(null);
   const tabRefs = useRef<Map<TabValue, HTMLButtonElement>>(new Map());
 
-  const visibleTabs: TabValue[] = ["description", "public-update"];
+  const visibleTabs: TabValue[] = ["problem", "description", "public-update"];
 
   // Update indicator position
   useEffect(() => {
@@ -115,6 +131,18 @@ export function IdeaContentTabs({
 
       {/* Tab Content Area */}
       <div className="bg-muted/30 mt-6 rounded-lg p-4">
+        {activeTab === "problem" && (
+          <ContentField
+            value={problemStatement}
+            onChange={onProblemStatementChange}
+            onSave={onSaveProblemStatement}
+            isSaving={isSavingProblemStatement}
+            hasChanges={hasProblemStatementChanges}
+            placeholder="Describe the problem this idea solves..."
+            maxLength={2000}
+          />
+        )}
+
         {activeTab === "description" && (
           <div className="space-y-4">
             {description && (

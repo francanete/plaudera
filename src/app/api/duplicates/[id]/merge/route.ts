@@ -7,6 +7,7 @@ import {
   ideas,
   votes,
   ideaEmbeddings,
+  dedupeEvents,
 } from "@/lib/db";
 import { protectedApiRouteWrapper } from "@/lib/dal";
 import { getUserWorkspace } from "@/lib/workspace";
@@ -85,12 +86,13 @@ export const POST = protectedApiRouteWrapper<{ id: string }>(
 
       // 1. Transfer votes from merged idea to kept idea in bulk (preserve original timestamps, skip duplicates)
       await tx.execute(sql`
-        INSERT INTO votes (id, idea_id, contributor_id, created_at)
+        INSERT INTO votes (id, idea_id, contributor_id, created_at, is_inherited)
         SELECT
           'vote_' || gen_random_uuid()::text,
           ${keepIdeaId},
           contributor_id,
-          created_at
+          created_at,
+          true
         FROM votes
         WHERE idea_id = ${mergeIdeaId}
         ON CONFLICT (idea_id, contributor_id) DO NOTHING
@@ -152,6 +154,15 @@ export const POST = protectedApiRouteWrapper<{ id: string }>(
             )
           )
         );
+    });
+
+    // Record telemetry before responding
+    await db.insert(dedupeEvents).values({
+      workspaceId: workspace.id,
+      ideaId: keepIdeaId,
+      relatedIdeaId: mergeIdeaId,
+      eventType: "dashboard_merged",
+      similarity: suggestion.similarity,
     });
 
     return NextResponse.json({

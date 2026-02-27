@@ -10,6 +10,8 @@ import {
   vector,
   check,
   foreignKey,
+  jsonb,
+  primaryKey,
 } from "drizzle-orm/pg-core";
 import { relations, sql } from "drizzle-orm";
 import { createId } from "@paralleldrive/cuid2";
@@ -33,6 +35,51 @@ export const roadmapStatusEnum = pgEnum("roadmap_status", [
   "PLANNED",
   "IN_PROGRESS",
   "RELEASED",
+]);
+export const frequencyTagEnum = pgEnum("frequency_tag", [
+  "daily",
+  "weekly",
+  "monthly",
+  "rarely",
+]);
+export const workflowImpactEnum = pgEnum("workflow_impact", [
+  "blocker",
+  "major",
+  "minor",
+  "nice_to_have",
+]);
+export const workflowStageEnum = pgEnum("workflow_stage", [
+  "onboarding",
+  "setup",
+  "daily_workflow",
+  "billing",
+  "reporting",
+  "integrations",
+  "other",
+]);
+export const decisionTypeEnum = pgEnum("decision_type", [
+  "prioritized",
+  "deprioritized",
+  "declined",
+  "status_progression",
+  "status_reversal",
+]);
+export const pollTemplateTypeEnum = pgEnum("poll_template_type", [
+  "cant_do",
+  "most_annoying",
+  "custom",
+]);
+export const pollStatusEnum = pgEnum("poll_status", [
+  "draft",
+  "active",
+  "closed",
+]);
+export const dedupeEventTypeEnum = pgEnum("dedupe_event_type", [
+  "shown",
+  "accepted",
+  "dismissed",
+  "dashboard_merged",
+  "dashboard_dismissed",
 ]);
 
 // ============ Auth Tables (Better Auth) ============
@@ -398,6 +445,7 @@ export const workspaces = pgTable(
     ownerId: text("owner_id")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
+    featureFlags: jsonb("feature_flags").default("{}"),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at")
       .defaultNow()
@@ -540,6 +588,11 @@ export const ideas = pgTable(
       .default(false)
       .notNull(),
     featureDetails: text("feature_details"),
+    problemStatement: text("problem_statement"),
+    frequencyTag: frequencyTagEnum("frequency_tag"),
+    workflowImpact: workflowImpactEnum("workflow_impact"),
+    workflowStage: workflowStageEnum("workflow_stage"),
+    wontBuildReason: text("wont_build_reason"),
     mergedIntoId: text("merged_into_id"),
     authorEmail: text("author_email"),
     authorName: text("author_name"),
@@ -583,6 +636,7 @@ export const votes = pgTable(
       .notNull()
       .references(() => contributors.id, { onDelete: "cascade" }),
     createdAt: timestamp("created_at").defaultNow().notNull(),
+    isInherited: boolean("is_inherited").default(false).notNull(),
   },
   (table) => [
     uniqueIndex("votes_idea_contributor_idx").on(
@@ -612,7 +666,10 @@ export const ideaEmbeddings = pgTable(
       .unique()
       .references(() => ideas.id, { onDelete: "cascade" }),
     embedding: vector("embedding", { dimensions: 768 }).notNull(),
-    modelVersion: text("model_version").notNull().default("text-embedding-004"),
+    problemEmbedding: vector("problem_embedding", { dimensions: 768 }),
+    modelVersion: text("model_version")
+      .notNull()
+      .default("gemini-embedding-001"),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at")
       .defaultNow()
@@ -624,6 +681,10 @@ export const ideaEmbeddings = pgTable(
     index("idea_embeddings_vector_idx").using(
       "hnsw",
       table.embedding.op("vector_cosine_ops")
+    ),
+    index("idea_embeddings_problem_vector_idx").using(
+      "hnsw",
+      table.problemEmbedding.op("vector_cosine_ops")
     ),
   ]
 );
@@ -663,6 +724,35 @@ export const duplicateSuggestions = pgTable(
   ]
 );
 
+// ============ Dedupe Events (Telemetry) ============
+export const dedupeEvents = pgTable(
+  "dedupe_events",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => createId()),
+    workspaceId: text("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    ideaId: text("idea_id").references(() => ideas.id, {
+      onDelete: "set null",
+    }),
+    relatedIdeaId: text("related_idea_id").references(() => ideas.id, {
+      onDelete: "set null",
+    }),
+    eventType: dedupeEventTypeEnum("event_type").notNull(),
+    similarity: integer("similarity"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => [
+    index("dedupe_events_workspace_event_idx").on(
+      table.workspaceId,
+      table.eventType
+    ),
+    index("dedupe_events_idea_id_idx").on(table.ideaId),
+  ]
+);
+
 // ============ Roadmap Status Changes (Audit Log) ============
 export const roadmapStatusChanges = pgTable(
   "roadmap_status_changes",
@@ -678,9 +768,128 @@ export const roadmapStatusChanges = pgTable(
     changedBy: text("changed_by").references(() => users.id, {
       onDelete: "set null",
     }),
+    rationale: text("rationale"),
+    isPublic: boolean("is_public").default(false).notNull(),
+    decisionType: decisionTypeEnum("decision_type"),
     changedAt: timestamp("changed_at").defaultNow().notNull(),
   },
   (table) => [index("roadmap_changes_idea_idx").on(table.ideaId)]
+);
+
+// ============ Idea Status Changes (Audit Log) ============
+export const ideaStatusChanges = pgTable(
+  "idea_status_changes",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => createId()),
+    ideaId: text("idea_id")
+      .notNull()
+      .references(() => ideas.id, { onDelete: "cascade" }),
+    userId: text("user_id").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    fromStatus: ideaStatusEnum("from_status").notNull(),
+    toStatus: ideaStatusEnum("to_status").notNull(),
+    rationale: text("rationale"),
+    isPublic: boolean("is_public").default(false).notNull(),
+    decisionType: decisionTypeEnum("decision_type"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => [index("idea_status_changes_idea_idx").on(table.ideaId)]
+);
+
+// ============ Strategic Tags ============
+export const strategicTags = pgTable(
+  "strategic_tags",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => createId()),
+    workspaceId: text("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    color: text("color").notNull().default("#6B7280"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex("strategic_tags_workspace_name_idx").on(
+      table.workspaceId,
+      table.name
+    ),
+    index("strategic_tags_workspace_id_idx").on(table.workspaceId),
+  ]
+);
+
+export const ideaStrategicTags = pgTable(
+  "idea_strategic_tags",
+  {
+    ideaId: text("idea_id")
+      .notNull()
+      .references(() => ideas.id, { onDelete: "cascade" }),
+    tagId: text("tag_id")
+      .notNull()
+      .references(() => strategicTags.id, { onDelete: "cascade" }),
+  },
+  (table) => [
+    primaryKey({ columns: [table.ideaId, table.tagId] }),
+    index("idea_strategic_tags_idea_id_idx").on(table.ideaId),
+    index("idea_strategic_tags_tag_id_idx").on(table.tagId),
+  ]
+);
+
+// ============ Polls Table ============
+export const polls = pgTable(
+  "polls",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => createId()),
+    workspaceId: text("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    question: text("question").notNull(),
+    templateType: pollTemplateTypeEnum("template_type"),
+    status: pollStatusEnum("status").default("draft").notNull(),
+    maxResponses: integer("max_responses"),
+    closesAt: timestamp("closes_at"),
+    closedAt: timestamp("closed_at"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at")
+      .defaultNow()
+      .notNull()
+      .$onUpdate(() => new Date()),
+  },
+  (table) => [index("polls_workspace_id_idx").on(table.workspaceId)]
+);
+
+// ============ Poll Responses Table ============
+export const pollResponses = pgTable(
+  "poll_responses",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => createId()),
+    pollId: text("poll_id")
+      .notNull()
+      .references(() => polls.id, { onDelete: "cascade" }),
+    contributorId: text("contributor_id")
+      .notNull()
+      .references(() => contributors.id, { onDelete: "cascade" }),
+    response: text("response").notNull(),
+    linkedIdeaId: text("linked_idea_id").references(() => ideas.id, {
+      onDelete: "set null",
+    }),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex("poll_responses_poll_contributor_idx").on(
+      table.pollId,
+      table.contributorId
+    ),
+    index("poll_responses_poll_id_idx").on(table.pollId),
+  ]
 );
 
 // ============ Workspaces Relations ============
@@ -695,6 +904,8 @@ export const workspacesRelations = relations(workspaces, ({ one, many }) => ({
   duplicateSuggestions: many(duplicateSuggestions),
   slugChangeHistory: many(slugChangeHistory),
   contributorMemberships: many(contributorWorkspaceMemberships),
+  strategicTags: many(strategicTags),
+  polls: many(polls),
 }));
 
 // ============ Slug Change History Relations ============
@@ -746,6 +957,8 @@ export const ideasRelations = relations(ideas, ({ one, many }) => ({
     references: [ideaEmbeddings.ideaId],
   }),
   roadmapStatusChanges: many(roadmapStatusChanges),
+  ideaStatusChanges: many(ideaStatusChanges),
+  strategicTags: many(ideaStrategicTags),
 }));
 
 // ============ Roadmap Status Changes Relations ============
@@ -758,6 +971,21 @@ export const roadmapStatusChangesRelations = relations(
     }),
     changedByUser: one(users, {
       fields: [roadmapStatusChanges.changedBy],
+      references: [users.id],
+    }),
+  })
+);
+
+// ============ Idea Status Changes Relations ============
+export const ideaStatusChangesRelations = relations(
+  ideaStatusChanges,
+  ({ one }) => ({
+    idea: one(ideas, {
+      fields: [ideaStatusChanges.ideaId],
+      references: [ideas.id],
+    }),
+    user: one(users, {
+      fields: [ideaStatusChanges.userId],
       references: [users.id],
     }),
   })
@@ -780,6 +1008,7 @@ export const contributorsRelations = relations(contributors, ({ many }) => ({
   ideas: many(ideas),
   votes: many(votes),
   workspaceMemberships: many(contributorWorkspaceMemberships),
+  pollResponses: many(pollResponses),
 }));
 
 // ============ Contributor Workspace Membership Relations ============
@@ -825,6 +1054,56 @@ export const duplicateSuggestionsRelations = relations(
     }),
   })
 );
+
+// ============ Strategic Tags Relations ============
+export const strategicTagsRelations = relations(
+  strategicTags,
+  ({ one, many }) => ({
+    workspace: one(workspaces, {
+      fields: [strategicTags.workspaceId],
+      references: [workspaces.id],
+    }),
+    ideaTags: many(ideaStrategicTags),
+  })
+);
+
+export const ideaStrategicTagsRelations = relations(
+  ideaStrategicTags,
+  ({ one }) => ({
+    idea: one(ideas, {
+      fields: [ideaStrategicTags.ideaId],
+      references: [ideas.id],
+    }),
+    tag: one(strategicTags, {
+      fields: [ideaStrategicTags.tagId],
+      references: [strategicTags.id],
+    }),
+  })
+);
+
+// ============ Polls Relations ============
+export const pollsRelations = relations(polls, ({ one, many }) => ({
+  workspace: one(workspaces, {
+    fields: [polls.workspaceId],
+    references: [workspaces.id],
+  }),
+  responses: many(pollResponses),
+}));
+
+export const pollResponsesRelations = relations(pollResponses, ({ one }) => ({
+  poll: one(polls, {
+    fields: [pollResponses.pollId],
+    references: [polls.id],
+  }),
+  contributor: one(contributors, {
+    fields: [pollResponses.contributorId],
+    references: [contributors.id],
+  }),
+  linkedIdea: one(ideas, {
+    fields: [pollResponses.linkedIdeaId],
+    references: [ideas.id],
+  }),
+}));
 
 // ============ Type Exports ============
 export type User = typeof users.$inferSelect;
@@ -873,6 +1152,25 @@ export type NewSlugChangeHistory = typeof slugChangeHistory.$inferInsert;
 export type RoadmapStatus = (typeof roadmapStatusEnum.enumValues)[number];
 export type RoadmapStatusChange = typeof roadmapStatusChanges.$inferSelect;
 export type NewRoadmapStatusChange = typeof roadmapStatusChanges.$inferInsert;
+export type StrategicTag = typeof strategicTags.$inferSelect;
+export type NewStrategicTag = typeof strategicTags.$inferInsert;
+export type IdeaStrategicTag = typeof ideaStrategicTags.$inferSelect;
+export type NewIdeaStrategicTag = typeof ideaStrategicTags.$inferInsert;
+export type FrequencyTag = (typeof frequencyTagEnum.enumValues)[number];
+export type DecisionType = (typeof decisionTypeEnum.enumValues)[number];
+export type IdeaStatusChange = typeof ideaStatusChanges.$inferSelect;
+export type NewIdeaStatusChange = typeof ideaStatusChanges.$inferInsert;
+export type WorkflowImpact = (typeof workflowImpactEnum.enumValues)[number];
+export type WorkflowStage = (typeof workflowStageEnum.enumValues)[number];
+export type Poll = typeof polls.$inferSelect;
+export type NewPoll = typeof polls.$inferInsert;
+export type PollResponse = typeof pollResponses.$inferSelect;
+export type NewPollResponse = typeof pollResponses.$inferInsert;
+export type PollTemplateType = (typeof pollTemplateTypeEnum.enumValues)[number];
+export type PollStatus = (typeof pollStatusEnum.enumValues)[number];
+export type DedupeEvent = typeof dedupeEvents.$inferSelect;
+export type NewDedupeEvent = typeof dedupeEvents.$inferInsert;
+export type DedupeEventType = (typeof dedupeEventTypeEnum.enumValues)[number];
 
 // ============ Rate Limiting ============
 export const rateLimits = pgTable("rate_limits", {

@@ -8,5 +8,8 @@ export { IdeaStatusSection } from "./idea-status-section";
 export { IdeaContentTabs } from "./idea-content-tabs";
 export { IdeaDangerZone } from "./idea-danger-zone";
 export { MoveToRoadmapForm } from "./move-to-roadmap-form";
+export { IdeaClassification } from "./idea-classification";
 export { DuplicateSuggestionAlert } from "./duplicate-suggestion-alert";
 export type { DuplicateSuggestionForView } from "./duplicate-suggestion-alert";
+export { RationaleDialog } from "./rationale-dialog";
+export { DecisionTimeline } from "./decision-timeline";

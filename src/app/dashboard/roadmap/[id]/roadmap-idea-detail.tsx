@@ -29,15 +29,19 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import type { Idea, RoadmapStatus } from "@/lib/db/schema";
+import type { Idea, RoadmapStatus, DecisionType } from "@/lib/db/schema";
 import {
   VISIBLE_ROADMAP_STATUSES,
   ROADMAP_STATUS_CONFIG,
   ROADMAP_ICON_COLORS,
+  ROADMAP_STATUS_ORDER,
 } from "@/lib/roadmap-status-config";
 import { RoadmapIdeaCard } from "@/components/board/roadmap-idea-card";
 import { IdeaInternalNote } from "@/app/dashboard/ideas/[id]/components/idea-internal-note";
 import { IdeaMeta } from "@/app/dashboard/ideas/[id]/components/idea-meta";
+import { RationaleDialog } from "@/app/dashboard/ideas/[id]/components/rationale-dialog";
+import { DecisionTimeline } from "@/app/dashboard/ideas/[id]/components/decision-timeline";
+import type { DecisionTimelineEntry } from "@/lib/idea-queries";
 
 interface StatusChange {
   id: string;
@@ -48,6 +52,7 @@ interface StatusChange {
 
 interface RoadmapIdeaDetailProps {
   idea: Idea;
+  decisionTimeline?: DecisionTimelineEntry[];
 }
 
 type TabValue = "feature-details" | "public-update" | "description";
@@ -86,6 +91,7 @@ function formatDate(dateString: string): string {
 
 export function RoadmapIdeaDetail({
   idea: initialIdea,
+  decisionTimeline: initialTimeline = [],
 }: RoadmapIdeaDetailProps) {
   const [idea, setIdea] = useState(initialIdea);
   const [title, setTitle] = useState(idea.title);
@@ -108,6 +114,20 @@ export function RoadmapIdeaDetail({
 
   const [roadmapHistory, setRoadmapHistory] = useState<StatusChange[]>([]);
   const [historyOpen, setHistoryOpen] = useState(false);
+
+  // Decision governance state
+  const [timeline, setTimeline] = useState(initialTimeline);
+  const [rationaleDialog, setRationaleDialog] = useState<{
+    open: boolean;
+    decisionType: DecisionType;
+    transitionLabel: string;
+    pendingRoadmapStatus?: RoadmapStatus;
+  }>({
+    open: false,
+    decisionType: "status_progression",
+    transitionLabel: "",
+  });
+  const [isSubmittingRationale, setIsSubmittingRationale] = useState(false);
 
   const [activeTab, setActiveTab] = useState<TabValue>("feature-details");
   const [indicatorStyle, setIndicatorStyle] = useState({ left: 0, width: 0 });
@@ -174,6 +194,21 @@ export function RoadmapIdeaDetail({
   };
 
   const handleRoadmapStatusChange = async (newStatus: RoadmapStatus) => {
+    const isRegression =
+      ROADMAP_STATUS_ORDER[newStatus] <
+      ROADMAP_STATUS_ORDER[idea.roadmapStatus];
+
+    // Intercept governed transitions (regressions require rationale)
+    if (isRegression) {
+      setRationaleDialog({
+        open: true,
+        decisionType: "deprioritized",
+        transitionLabel: "Deprioritize Item",
+        pendingRoadmapStatus: newStatus,
+      });
+      return;
+    }
+
     const previousStatus = idea.roadmapStatus;
     setIdea((prev) => ({ ...prev, roadmapStatus: newStatus }));
 
@@ -197,6 +232,59 @@ export function RoadmapIdeaDetail({
     } catch {
       setIdea((prev) => ({ ...prev, roadmapStatus: previousStatus }));
       toast.error("Failed to update roadmap status");
+    }
+  };
+
+  const handleRoadmapRationaleConfirm = async (
+    rationale: string,
+    isPublic: boolean
+  ) => {
+    if (!rationaleDialog.pendingRoadmapStatus) return;
+
+    setIsSubmittingRationale(true);
+    const newStatus = rationaleDialog.pendingRoadmapStatus;
+    const previousStatus = idea.roadmapStatus;
+    setIdea((prev) => ({ ...prev, roadmapStatus: newStatus }));
+
+    try {
+      const res = await fetch(`/api/ideas/${idea.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          roadmapStatus: newStatus,
+          rationale,
+          isPublicRationale: isPublic,
+        }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "Failed to update");
+      }
+
+      // Refresh history and timeline
+      const [historyRes, timelineRes] = await Promise.all([
+        fetch(`/api/ideas/${idea.id}/roadmap-history`),
+        fetch(`/api/ideas/${idea.id}/decision-timeline`),
+      ]);
+      if (historyRes.ok) {
+        const data = await historyRes.json();
+        setRoadmapHistory(data.changes);
+      }
+      if (timelineRes.ok) {
+        const data = await timelineRes.json();
+        setTimeline(data.entries);
+      }
+
+      toast.success("Decision recorded");
+    } catch (error) {
+      setIdea((prev) => ({ ...prev, roadmapStatus: previousStatus }));
+      toast.error(
+        error instanceof Error ? error.message : "Failed to save decision"
+      );
+    } finally {
+      setIsSubmittingRationale(false);
+      setRationaleDialog((prev) => ({ ...prev, open: false }));
     }
   };
 
@@ -512,8 +600,11 @@ export function RoadmapIdeaDetail({
         {/* Meta */}
         <IdeaMeta createdAt={idea.createdAt} authorEmail={idea.authorEmail} />
 
-        {/* Status History */}
-        {roadmapHistory.length > 0 && (
+        {/* Decision Timeline */}
+        {timeline.length > 0 && <DecisionTimeline entries={timeline} />}
+
+        {/* Legacy Status History (for entries without rationale) */}
+        {roadmapHistory.length > 0 && timeline.length === 0 && (
           <Collapsible open={historyOpen} onOpenChange={setHistoryOpen}>
             <CollapsibleTrigger asChild>
               <button className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5 text-sm transition-colors">
@@ -556,6 +647,18 @@ export function RoadmapIdeaDetail({
             </CollapsibleContent>
           </Collapsible>
         )}
+
+        {/* Rationale Dialog */}
+        <RationaleDialog
+          open={rationaleDialog.open}
+          onOpenChange={(open) =>
+            setRationaleDialog((prev) => ({ ...prev, open }))
+          }
+          decisionType={rationaleDialog.decisionType}
+          transitionLabel={rationaleDialog.transitionLabel}
+          onConfirm={handleRoadmapRationaleConfirm}
+          isSubmitting={isSubmittingRationale}
+        />
       </div>
 
       {/* Right: Live Preview (hidden below xl) */}

@@ -14,7 +14,11 @@ import { MoveToRoadmapConfirmDialog } from "./move-to-roadmap-confirm-dialog";
 interface MoveToRoadmapFormProps {
   ideaTitle: string;
   ideaDescription: string | null;
-  onConfirm: (roadmapStatus: RoadmapStatus, featureDetails: string) => void;
+  onConfirm: (
+    roadmapStatus: RoadmapStatus,
+    featureDetails: string,
+    rationale: string
+  ) => void;
   onCancel: () => void;
   isMoving: boolean;
 }
@@ -29,10 +33,11 @@ export function MoveToRoadmapForm({
   const [selectedStatus, setSelectedStatus] =
     useState<RoadmapStatus>("PLANNED");
   const [featureSpecs, setFeatureSpecs] = useState("");
+  const [rationale, setRationale] = useState("");
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
 
   const handleConfirm = () => {
-    onConfirm(selectedStatus, featureSpecs);
+    onConfirm(selectedStatus, featureSpecs, rationale);
   };
 
   return (
@@ -122,10 +127,28 @@ export function MoveToRoadmapForm({
         </p>
       </div>
 
+      {/* Rationale (required for governance) */}
+      <div className="space-y-3">
+        <label className="text-foreground text-sm font-medium">
+          Why now? <span className="text-destructive">*</span>
+        </label>
+        <Textarea
+          value={rationale}
+          onChange={(e) => setRationale(e.target.value)}
+          placeholder="Why are you prioritizing this idea now?"
+          className="min-h-[80px] resize-none"
+          maxLength={2000}
+        />
+        <span className="text-muted-foreground font-mono text-xs tabular-nums">
+          {rationale.length}/2000
+        </span>
+      </div>
+
       {/* Confirm button */}
       <div className="border-border flex justify-end border-t pt-6">
         <Button
           onClick={() => setShowConfirmDialog(true)}
+          disabled={!rationale.trim()}
           className="bg-foreground text-background hover:bg-foreground/90"
         >
           Move to Roadmap

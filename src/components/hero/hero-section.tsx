@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { ArrowRight, CheckCircle2, ChevronRight, Sparkles } from "lucide-react";
+import { ArrowRight, ChevronRight, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { HeroDashboardMockup } from "./hero-dashboard-mockup";
@@ -66,17 +66,17 @@ export function HeroSection({ className }: HeroSectionProps) {
             >
               <span className="flex h-5 items-center gap-1 rounded-full bg-slate-900 px-2 text-[10px] font-bold text-white uppercase">
                 <Sparkles className="h-2.5 w-2.5" />
-                New
+                Just Launched
               </span>
               <span className="text-sm font-medium text-slate-600">
-                AI duplicate detection
+                AI-Powered Feedback
               </span>
               <ChevronRight className="h-3 w-3 text-slate-400" />
             </div>
 
             {/* Headline */}
             <h1 className="mb-4 text-4xl font-bold tracking-tight text-slate-900 sm:text-5xl lg:text-6xl">
-              Collect customer feedback and turn it into a clear roadmap
+              Know exactly what to build next — and why
             </h1>
 
             {/* Subheadline */}
@@ -89,8 +89,10 @@ export function HeroSection({ className }: HeroSectionProps) {
                   : "translate-y-8 opacity-0"
               )}
             >
-              Plaudera helps SaaS teams capture feature requests, spot patterns,
-              and prioritize what to build next — without enterprise bloat.
+              Your users are telling you what to build. The problem? Their
+              feedback is scattered, duplicated, and impossible to prioritize.
+              Plaudera turns raw pain signals into confidence-scored priorities
+              — so you ship what matters, not what&apos;s loudest.
             </p>
 
             {/* CTAs */}
@@ -109,7 +111,7 @@ export function HeroSection({ className }: HeroSectionProps) {
                 className="h-12 rounded-full bg-slate-900 px-8 text-base font-semibold text-white shadow-lg shadow-slate-900/20 transition-all hover:-translate-y-0.5 hover:bg-slate-800 hover:shadow-xl hover:shadow-slate-900/30"
               >
                 <Link href="/signup">
-                  Start free
+                  Start free trial
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Link>
               </Button>
@@ -126,31 +128,6 @@ export function HeroSection({ className }: HeroSectionProps) {
               </Button>
             </div>
 
-            {/* Product Hunt Badge */}
-            <div
-              className={cn(
-                "mt-8",
-                "transition-all delay-400 duration-700",
-                isInView
-                  ? "translate-y-0 opacity-100"
-                  : "translate-y-8 opacity-0"
-              )}
-            >
-              <a
-                href="https://www.producthunt.com/products/plaudera?embed=true&utm_source=badge-featured&utm_medium=badge&utm_campaign=badge-plaudera"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  alt="Plaudera - Customer feedback + feature request board for SaaS teams | Product Hunt"
-                  width="250"
-                  height="54"
-                  src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1080194&theme=dark&t=1771352833938"
-                />
-              </a>
-            </div>
-
             {/* Trust Indicators */}
             <div
               className={cn(
@@ -162,10 +139,10 @@ export function HeroSection({ className }: HeroSectionProps) {
               )}
             >
               <p className="text-sm text-slate-500">
-                Built for indie founders and small SaaS teams.
+                5-day free trial. Cancel anytime.
               </p>
               <p className="text-sm text-slate-400">
-                Actively built with user feedback.
+                Set up in under 5 minutes.
               </p>
             </div>
           </div>

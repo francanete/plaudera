@@ -9,7 +9,6 @@ import { DashboardPageHeader } from "@/components/dashboard/dashboard-page-heade
 import { StatsCard } from "@/components/dashboard/stats-card";
 import { QuickActions } from "@/components/dashboard/quick-actions";
 import { RecentActivity } from "@/components/dashboard/recent-activity";
-import { appConfig } from "@/lib/config";
 import type { IdeaStatus, RoadmapStatus } from "@/lib/db/schema";
 import { VISIBLE_ROADMAP_STATUSES } from "@/lib/roadmap-status-config";
 import { RoadmapSummaryCard } from "@/components/dashboard/roadmap-summary-card";

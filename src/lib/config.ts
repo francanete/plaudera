@@ -135,7 +135,7 @@ export type AppConfig = {
 export const appConfig: AppConfig = {
   name: "Plaudera",
   description:
-    "Collect, organize, and prioritize customer feedback with public boards, embeddable widgets, and AI-powered insights.",
+    "Capture user pain, score demand confidence, and make transparent product decisions — with public boards, embeddable widgets, and AI-powered intelligence.",
   email: {
     from: "noreply@app.plaudera.com",
   },
@@ -167,10 +167,13 @@ export const appConfig: AppConfig = {
             "Everything you need to collect and manage customer feedback",
           features: [
             "Public feedback board with custom URL",
-            "Public roadmap",
-            "Embeddable widget for any website",
-            "AI-powered duplicate detection",
-            "Unlimited idea submissions",
+            "Public roadmap + Won't Build transparency",
+            "Embeddable widget with pulse polls",
+            "AI demand confidence scoring",
+            "AI duplicate detection at submission",
+            "Problem-first intake (pain, frequency, impact)",
+            "Strategic tags for idea categorization",
+            "Decision audit trail with rationale",
             "Contributor voting system",
             "Dashboard analytics",
             "Widget customization (position, colors, page rules)",
@@ -296,7 +299,7 @@ export const appConfig: AppConfig = {
       template: "%s | Plaudera",
     },
     description:
-      "Collect, organize, and prioritize customer feedback with public boards, embeddable widgets, and AI-powered duplicate detection.",
+      "Capture user pain points, score demand confidence, and make transparent product decisions — with public boards, embeddable widgets, and AI-powered intelligence.",
     keywords: [
       "customer feedback",
       "feedback board",

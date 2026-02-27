@@ -28,7 +28,9 @@ export {
 export {
   findDuplicatesInWorkspace,
   createDuplicateSuggestions,
+  findSimilarToIdea,
   SIMILARITY_THRESHOLD,
   MIN_IDEAS_FOR_DETECTION,
   type DuplicatePair,
+  type SimilarIdea,
 } from "./ai/similarity";

@@ -34,6 +34,7 @@ vi.mock("@/lib/db", () => ({
     roadmapStatus: "roadmap_status",
   },
   roadmapStatusChanges: { ideaId: "idea_id" },
+  ideaStatusChanges: { ideaId: "idea_id" },
   duplicateSuggestions: {
     status: "status",
     sourceIdeaId: "source_idea_id",
@@ -51,6 +52,7 @@ vi.mock("@/lib/idea-status-config", () => ({
 
 vi.mock("@/lib/roadmap-status-config", () => ({
   ALL_ROADMAP_STATUSES: ["NONE", "PLANNED", "IN_PROGRESS", "RELEASED"],
+  ROADMAP_STATUS_ORDER: { NONE: 0, PLANNED: 1, IN_PROGRESS: 2, RELEASED: 3 },
 }));
 
 // ── Imports (after mocks) ───────────────────────────────────────────────────
@@ -59,7 +61,8 @@ import {
   getIdeaWithOwnerCheck,
   createIdea,
   updateIdea,
-  deleteIdea,
+  classifyRoadmapDecision,
+  classifyIdeaStatusDecision,
 } from "@/lib/idea-updates";
 import { updateIdeaEmbedding } from "@/lib/ai/embeddings";
 import { NotFoundError, ForbiddenError } from "@/lib/errors";
@@ -79,6 +82,11 @@ function makeIdea(overrides: Record<string, unknown> = {}) {
     publicUpdate: null,
     showPublicUpdateOnRoadmap: false,
     featureDetails: null,
+    problemStatement: null,
+    frequencyTag: null,
+    workflowImpact: null,
+    workflowStage: null,
+    wontBuildReason: null,
     mergedIntoId: null,
     authorEmail: "author@test.com",
     authorName: "Author",
@@ -107,6 +115,7 @@ function setupTxInsert() {
 }
 
 /** Set up the db.update chain (used by deleteIdea) */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function setupDbUpdate() {
   const whereFn = vi.fn().mockResolvedValue(undefined);
   const setFn = vi.fn().mockReturnValue({ where: whereFn });
@@ -265,7 +274,11 @@ describe("idea-updates", () => {
 
       await createIdea("ws-1", "user-1", { title: "Embed me" });
 
-      expect(updateIdeaEmbedding).toHaveBeenCalledWith("new-5", "Embed me");
+      expect(updateIdeaEmbedding).toHaveBeenCalledWith(
+        "new-5",
+        "Embed me",
+        null
+      );
     });
   });
 
@@ -316,6 +329,7 @@ describe("idea-updates", () => {
         updateIdea("idea-1", "user-1", {
           roadmapStatus: "PLANNED",
           status: "DECLINED",
+          rationale: "test",
         })
       ).rejects.toThrow("Cannot decline an idea that is on the roadmap");
     });
@@ -337,7 +351,10 @@ describe("idea-updates", () => {
       });
       setupTxInsert();
 
-      await updateIdea("idea-1", "user-1", { roadmapStatus: "PLANNED" });
+      await updateIdea("idea-1", "user-1", {
+        roadmapStatus: "PLANNED",
+        rationale: "test",
+      });
 
       const updateData = setFn.mock.calls[0][0];
       expect(updateData.status).toBe("PUBLISHED");
@@ -356,7 +373,10 @@ describe("idea-updates", () => {
       });
       setupTxInsert();
 
-      await updateIdea("idea-1", "user-1", { roadmapStatus: "PLANNED" });
+      await updateIdea("idea-1", "user-1", {
+        roadmapStatus: "PLANNED",
+        rationale: "test",
+      });
 
       const updateData = setFn.mock.calls[0][0];
       expect(updateData.status).toBeUndefined();
@@ -375,7 +395,10 @@ describe("idea-updates", () => {
       });
       const { valuesFn } = setupTxInsert();
 
-      await updateIdea("idea-1", "user-1", { roadmapStatus: "PLANNED" });
+      await updateIdea("idea-1", "user-1", {
+        roadmapStatus: "PLANNED",
+        rationale: "test",
+      });
 
       expect(mockTxInsert).toHaveBeenCalled();
       expect(valuesFn).toHaveBeenCalledWith(
@@ -384,6 +407,50 @@ describe("idea-updates", () => {
           fromStatus: "NONE",
           toStatus: "PLANNED",
           changedBy: "user-1",
+        })
+      );
+    });
+
+    it("inserts ideaStatusChanges record for auto-publish (UNDER_REVIEW -> PUBLISHED)", async () => {
+      const idea = makeIdea({
+        status: "UNDER_REVIEW",
+        roadmapStatus: "NONE",
+      });
+      mockFindFirst.mockResolvedValue(idea);
+
+      // tx.update for idea update, then for duplicate dismiss
+      const returningFn = vi
+        .fn()
+        .mockResolvedValue([
+          { ...idea, status: "PUBLISHED", roadmapStatus: "PLANNED" },
+        ]);
+      const ideaWhereFn = vi.fn().mockReturnValue({ returning: returningFn });
+      const ideaSetFn = vi.fn().mockReturnValue({ where: ideaWhereFn });
+      const dismissWhereFn = vi.fn().mockResolvedValue(undefined);
+      const dismissSetFn = vi.fn().mockReturnValue({ where: dismissWhereFn });
+      mockTxUpdate
+        .mockReturnValueOnce({ set: ideaSetFn })
+        .mockReturnValueOnce({ set: dismissSetFn });
+
+      const insertCalls: unknown[] = [];
+      const valuesFn = vi.fn().mockImplementation((vals) => {
+        insertCalls.push(vals);
+        return Promise.resolve(undefined);
+      });
+      mockTxInsert.mockReturnValue({ values: valuesFn });
+
+      await updateIdea("idea-1", "user-1", {
+        roadmapStatus: "PLANNED",
+        rationale: "test",
+      });
+
+      // Should have 2 inserts: roadmapStatusChanges + ideaStatusChanges
+      expect(valuesFn).toHaveBeenCalledTimes(2);
+      expect(valuesFn).toHaveBeenCalledWith(
+        expect.objectContaining({
+          ideaId: "idea-1",
+          fromStatus: "UNDER_REVIEW",
+          toStatus: "PUBLISHED",
         })
       );
     });
@@ -418,6 +485,33 @@ describe("idea-updates", () => {
         })
       );
     });
+
+    it("inserts ideaStatusChanges for auto-publish UNDER_REVIEW -> PUBLISHED", async () => {
+      const idea = makeIdea({
+        status: "UNDER_REVIEW",
+        roadmapStatus: "NONE",
+      });
+      mockFindFirst.mockResolvedValue(idea);
+      setupTxUpdate({
+        ...idea,
+        status: "PUBLISHED",
+        roadmapStatus: "PLANNED",
+      });
+      const { valuesFn } = setupTxInsert();
+
+      await updateIdea("idea-1", "user-1", {
+        roadmapStatus: "PLANNED",
+        rationale: "test",
+      });
+
+      expect(valuesFn).toHaveBeenCalledWith(
+        expect.objectContaining({
+          userId: "user-1",
+          fromStatus: "UNDER_REVIEW",
+          toStatus: "PUBLISHED",
+        })
+      );
+    });
   });
 
   // ── updateIdea — Auto-dismiss duplicates ──────────────────────────────
@@ -445,7 +539,10 @@ describe("idea-updates", () => {
 
       setupTxInsert();
 
-      await updateIdea("idea-1", "user-1", { roadmapStatus: "PLANNED" });
+      await updateIdea("idea-1", "user-1", {
+        roadmapStatus: "PLANNED",
+        rationale: "test",
+      });
 
       // The second tx.update call should be for dismissing duplicates
       expect(mockTxUpdate).toHaveBeenCalledTimes(2);
@@ -503,7 +600,8 @@ describe("idea-updates", () => {
 
       expect(updateIdeaEmbedding).toHaveBeenCalledWith(
         updatedIdea.id,
-        updatedIdea.title
+        updatedIdea.title,
+        updatedIdea.problemStatement
       );
     });
 
@@ -520,7 +618,8 @@ describe("idea-updates", () => {
 
       expect(updateIdeaEmbedding).toHaveBeenCalledWith(
         updatedIdea.id,
-        updatedIdea.title
+        updatedIdea.title,
+        updatedIdea.problemStatement
       );
     });
 
@@ -536,44 +635,63 @@ describe("idea-updates", () => {
     });
   });
 
-  // ── deleteIdea ────────────────────────────────────────────────────────
+  // ── classifyRoadmapDecision ─────────────────────────────────────────
 
-  describe("deleteIdea", () => {
-    it("throws NotFoundError when idea does not exist", async () => {
-      mockFindFirst.mockResolvedValue(undefined);
+  describe("classifyRoadmapDecision", () => {
+    it("returns 'prioritized' when entering roadmap (NONE → any)", () => {
+      expect(classifyRoadmapDecision("NONE", "PLANNED")).toBe("prioritized");
+      expect(classifyRoadmapDecision("NONE", "IN_PROGRESS")).toBe(
+        "prioritized"
+      );
+      expect(classifyRoadmapDecision("NONE", "RELEASED")).toBe("prioritized");
+    });
 
-      await expect(deleteIdea("nonexistent", "user-1")).rejects.toThrow(
-        NotFoundError
+    it("returns 'deprioritized' when regressing (higher → lower)", () => {
+      expect(classifyRoadmapDecision("IN_PROGRESS", "PLANNED")).toBe(
+        "deprioritized"
+      );
+      expect(classifyRoadmapDecision("RELEASED", "PLANNED")).toBe(
+        "deprioritized"
+      );
+      expect(classifyRoadmapDecision("RELEASED", "IN_PROGRESS")).toBe(
+        "deprioritized"
       );
     });
 
-    it("throws ForbiddenError when user does not own the workspace", async () => {
-      mockFindFirst.mockResolvedValue(
-        makeIdea({ workspace: { ownerId: "other-user" } })
+    it("returns 'status_progression' for forward movement", () => {
+      expect(classifyRoadmapDecision("PLANNED", "IN_PROGRESS")).toBe(
+        "status_progression"
       );
+      expect(classifyRoadmapDecision("IN_PROGRESS", "RELEASED")).toBe(
+        "status_progression"
+      );
+      expect(classifyRoadmapDecision("PLANNED", "RELEASED")).toBe(
+        "status_progression"
+      );
+    });
+  });
 
-      await expect(deleteIdea("idea-1", "user-1")).rejects.toThrow(
-        ForbiddenError
+  // ── classifyIdeaStatusDecision ──────────────────────────────────────
+
+  describe("classifyIdeaStatusDecision", () => {
+    it("returns 'declined' when target is DECLINED", () => {
+      expect(classifyIdeaStatusDecision("PUBLISHED", "DECLINED")).toBe(
+        "declined"
+      );
+      expect(classifyIdeaStatusDecision("UNDER_REVIEW", "DECLINED")).toBe(
+        "declined"
       );
     });
 
-    it("throws BadRequestError when idea is on the roadmap", async () => {
-      mockFindFirst.mockResolvedValue(makeIdea({ roadmapStatus: "PLANNED" }));
-
-      await expect(deleteIdea("idea-1", "user-1")).rejects.toThrow(
-        "Cannot delete an idea that is on the roadmap"
+    it("returns 'status_progression' for UNDER_REVIEW → PUBLISHED", () => {
+      expect(classifyIdeaStatusDecision("UNDER_REVIEW", "PUBLISHED")).toBe(
+        "status_progression"
       );
     });
 
-    it("soft-deletes idea (sets status to DECLINED) when roadmapStatus is NONE", async () => {
-      mockFindFirst.mockResolvedValue(makeIdea({ roadmapStatus: "NONE" }));
-      const { setFn } = setupDbUpdate();
-
-      await deleteIdea("idea-1", "user-1");
-
-      expect(mockUpdate).toHaveBeenCalled();
-      expect(setFn).toHaveBeenCalledWith(
-        expect.objectContaining({ status: "DECLINED" })
+    it("returns 'status_reversal' for PUBLISHED → UNDER_REVIEW", () => {
+      expect(classifyIdeaStatusDecision("PUBLISHED", "UNDER_REVIEW")).toBe(
+        "status_reversal"
       );
     });
   });

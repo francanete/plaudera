@@ -1,6 +1,6 @@
 "use client";
 
-import { Clock, Rocket, CheckCircle2, ThumbsUp } from "lucide-react";
+import { Clock, Rocket, CheckCircle2, XCircle, ThumbsUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { MockupProps } from "@/lib/features-config";
 
@@ -36,9 +36,22 @@ const columns = [
     headerBorder: "border-green-200",
     iconColor: "text-green-500",
     delay: 500,
+    ideas: [{ title: "Email notifications", votes: 42 }],
+  },
+  {
+    title: "Won't Build",
+    icon: XCircle,
+    headerBg: "bg-slate-50",
+    headerText: "text-slate-500",
+    headerBorder: "border-slate-200",
+    iconColor: "text-slate-400",
+    delay: 650,
     ideas: [
-      { title: "Email notifications", votes: 42 },
-      { title: "Custom branding", votes: 27 },
+      {
+        title: "Desktop app",
+        votes: 8,
+        reason: "Out of scope for v1",
+      },
     ],
   },
 ];
@@ -60,7 +73,7 @@ export function PublicRoadmapMockup({ className, isInView }: MockupProps) {
           <h3 className="text-sm font-semibold text-slate-900">
             Product Roadmap
           </h3>
-          <p className="text-[10px] text-slate-500">5 ideas across 3 stages</p>
+          <p className="text-[10px] text-slate-500">6 ideas across 4 stages</p>
         </div>
         <span
           className={cn(
@@ -74,7 +87,7 @@ export function PublicRoadmapMockup({ className, isInView }: MockupProps) {
       </div>
 
       {/* Columns */}
-      <div className="grid grid-cols-3 gap-2 p-3">
+      <div className="grid grid-cols-4 gap-1.5 p-3">
         {columns.map((column) => (
           <div
             key={column.title}
@@ -89,14 +102,17 @@ export function PublicRoadmapMockup({ className, isInView }: MockupProps) {
             {/* Column Header */}
             <div
               className={cn(
-                "mb-2 flex items-center gap-1 rounded-md border px-2 py-1.5",
+                "mb-2 flex items-center gap-1 rounded-md border px-1.5 py-1.5",
                 column.headerBg,
                 column.headerBorder
               )}
             >
-              <column.icon className={cn("h-3 w-3", column.iconColor)} />
+              <column.icon className={cn("h-2.5 w-2.5", column.iconColor)} />
               <span
-                className={cn("text-[10px] font-semibold", column.headerText)}
+                className={cn(
+                  "text-[9px] leading-tight font-semibold",
+                  column.headerText
+                )}
               >
                 {column.title}
               </span>
@@ -123,10 +139,18 @@ export function PublicRoadmapMockup({ className, isInView }: MockupProps) {
                   <p className="text-[10px] leading-tight font-medium text-slate-700">
                     {idea.title}
                   </p>
-                  <div className="mt-1.5 flex items-center gap-1 text-slate-400">
-                    <ThumbsUp className="h-2.5 w-2.5" />
-                    <span className="text-[9px] font-medium">{idea.votes}</span>
-                  </div>
+                  {"reason" in idea && idea.reason ? (
+                    <p className="mt-1 text-[8px] text-slate-400 italic">
+                      {idea.reason}
+                    </p>
+                  ) : (
+                    <div className="mt-1.5 flex items-center gap-1 text-slate-400">
+                      <ThumbsUp className="h-2.5 w-2.5" />
+                      <span className="text-[9px] font-medium">
+                        {idea.votes}
+                      </span>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
