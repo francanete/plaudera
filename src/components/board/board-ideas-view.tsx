@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import { toast } from "sonner";
 import { IdeaCard, type IdeaCardData } from "./idea-card";
 import { Lightbulb } from "lucide-react";
 import { useBoardContext } from "@/app/b/[slug]/board-context";

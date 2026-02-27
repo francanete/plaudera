@@ -2,7 +2,12 @@ import { notFound, redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { db } from "@/lib/db";
-import { ideas, duplicateSuggestions } from "@/lib/db/schema";
+import {
+  ideas,
+  duplicateSuggestions,
+  strategicTags,
+  ideaStrategicTags,
+} from "@/lib/db/schema";
 import { eq, and, ne, or, desc } from "drizzle-orm";
 import {
   queryIdeaSignals,
@@ -49,57 +54,80 @@ export default async function IdeaDetailPage({ params }: PageProps) {
     redirect(`/dashboard/roadmap/${idea.id}`);
   }
 
-  // Fetch published ideas, duplicate suggestions, confidence signals, and timeline in parallel
-  const [publishedIdeas, rawDupSuggestions, signalsMap, decisionTimeline] =
-    await Promise.all([
-      db
-        .select({ id: ideas.id, title: ideas.title })
-        .from(ideas)
-        .where(
-          and(
-            eq(ideas.workspaceId, idea.workspaceId),
-            eq(ideas.status, "PUBLISHED"),
-            ne(ideas.id, id)
-          )
-        ),
-      db.query.duplicateSuggestions.findMany({
-        where: and(
-          eq(duplicateSuggestions.workspaceId, idea.workspaceId),
-          eq(duplicateSuggestions.status, "PENDING"),
-          or(
-            eq(duplicateSuggestions.sourceIdeaId, id),
-            eq(duplicateSuggestions.duplicateIdeaId, id)
-          )
-        ),
-        with: {
-          sourceIdea: {
-            columns: {
-              id: true,
-              title: true,
-              description: true,
-              status: true,
-              roadmapStatus: true,
-              voteCount: true,
-              createdAt: true,
-            },
-          },
-          duplicateIdea: {
-            columns: {
-              id: true,
-              title: true,
-              description: true,
-              status: true,
-              roadmapStatus: true,
-              voteCount: true,
-              createdAt: true,
-            },
+  // Fetch published ideas, duplicate suggestions, confidence signals, timeline, and tags in parallel
+  const [
+    publishedIdeas,
+    rawDupSuggestions,
+    signalsMap,
+    decisionTimeline,
+    workspaceTags,
+    ideaTags,
+  ] = await Promise.all([
+    db
+      .select({ id: ideas.id, title: ideas.title })
+      .from(ideas)
+      .where(
+        and(
+          eq(ideas.workspaceId, idea.workspaceId),
+          eq(ideas.status, "PUBLISHED"),
+          ne(ideas.id, id)
+        )
+      ),
+    db.query.duplicateSuggestions.findMany({
+      where: and(
+        eq(duplicateSuggestions.workspaceId, idea.workspaceId),
+        eq(duplicateSuggestions.status, "PENDING"),
+        or(
+          eq(duplicateSuggestions.sourceIdeaId, id),
+          eq(duplicateSuggestions.duplicateIdeaId, id)
+        )
+      ),
+      with: {
+        sourceIdea: {
+          columns: {
+            id: true,
+            title: true,
+            description: true,
+            status: true,
+            roadmapStatus: true,
+            voteCount: true,
+            createdAt: true,
           },
         },
-        orderBy: [desc(duplicateSuggestions.similarity)],
-      }),
-      queryIdeaSignals([id]),
-      queryDecisionTimeline(id),
-    ]);
+        duplicateIdea: {
+          columns: {
+            id: true,
+            title: true,
+            description: true,
+            status: true,
+            roadmapStatus: true,
+            voteCount: true,
+            createdAt: true,
+          },
+        },
+      },
+      orderBy: [desc(duplicateSuggestions.similarity)],
+    }),
+    queryIdeaSignals([id]),
+    queryDecisionTimeline(id),
+    db
+      .select({
+        id: strategicTags.id,
+        name: strategicTags.name,
+        color: strategicTags.color,
+      })
+      .from(strategicTags)
+      .where(eq(strategicTags.workspaceId, idea.workspaceId)),
+    db
+      .select({
+        id: strategicTags.id,
+        name: strategicTags.name,
+        color: strategicTags.color,
+      })
+      .from(ideaStrategicTags)
+      .innerJoin(strategicTags, eq(ideaStrategicTags.tagId, strategicTags.id))
+      .where(eq(ideaStrategicTags.ideaId, id)),
+  ]);
 
   // Transform: for each suggestion, pick the "other" idea (not the current one)
   // and filter out suggestions where the other idea has been merged
@@ -128,6 +156,8 @@ export default async function IdeaDetailPage({ params }: PageProps) {
       duplicateSuggestions={dupSuggestionsForView}
       confidence={confidence}
       decisionTimeline={decisionTimeline}
+      assignedTags={ideaTags}
+      workspaceTags={workspaceTags}
     />
   );
 }

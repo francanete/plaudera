@@ -65,7 +65,7 @@ import {
   classifyIdeaStatusDecision,
 } from "@/lib/idea-updates";
 import { updateIdeaEmbedding } from "@/lib/ai/embeddings";
-import { NotFoundError, ForbiddenError, BadRequestError } from "@/lib/errors";
+import { NotFoundError, ForbiddenError } from "@/lib/errors";
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -115,6 +115,7 @@ function setupTxInsert() {
 }
 
 /** Set up the db.update chain (used by deleteIdea) */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function setupDbUpdate() {
   const whereFn = vi.fn().mockResolvedValue(undefined);
   const setFn = vi.fn().mockReturnValue({ where: whereFn });

@@ -13,15 +13,20 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Plus, Lightbulb } from "lucide-react";
-import type { Idea, IdeaStatus } from "@/lib/db/schema";
+import { Plus, Lightbulb, LayoutList, Table2 } from "lucide-react";
+import type { IdeaStatus } from "@/lib/db/schema";
 import type { ConfidenceResult } from "@/lib/confidence";
 import type { queryDashboardIdeas } from "@/lib/idea-queries";
 import {
   ALL_IDEA_STATUSES,
   IDEA_STATUS_CONFIG,
 } from "@/lib/idea-status-config";
-import { IdeaCard, IdeasStatsBar, IdeasToolbar } from "./components";
+import {
+  IdeaCard,
+  IdeasStatsBar,
+  IdeasToolbar,
+  IdeasTable,
+} from "./components";
 import type { SortOption } from "./components";
 
 type TabValue = "all" | IdeaStatus;
@@ -63,6 +68,7 @@ export function IdeasList({
   const [activeTab, setActiveTab] = useState<TabValue>("all");
   const [searchTerm, setSearchTerm] = useState("");
   const [sortBy, setSortBy] = useState<SortOption>("votes");
+  const [viewMode, setViewMode] = useState<"card" | "table">("card");
 
   // Count ideas per status for tab badges
   const countByStatus = useMemo(() => {
@@ -361,29 +367,55 @@ export function IdeasList({
         </div>
       </Tabs>
 
-      {/* Search + sort toolbar */}
-      <IdeasToolbar
-        searchTerm={searchTerm}
-        onSearchChange={setSearchTerm}
-        sortBy={sortBy}
-        onSortChange={setSortBy}
-      />
+      {/* Search + sort toolbar + view toggle */}
+      <div className="flex items-center gap-3">
+        <div className="flex-1">
+          <IdeasToolbar
+            searchTerm={searchTerm}
+            onSearchChange={setSearchTerm}
+            sortBy={sortBy}
+            onSortChange={setSortBy}
+          />
+        </div>
+        <div className="flex gap-1 rounded-lg border p-1">
+          <Button
+            variant={viewMode === "card" ? "secondary" : "ghost"}
+            size="icon"
+            className="h-8 w-8"
+            onClick={() => setViewMode("card")}
+          >
+            <LayoutList className="h-4 w-4" />
+          </Button>
+          <Button
+            variant={viewMode === "table" ? "secondary" : "ghost"}
+            size="icon"
+            className="h-8 w-8"
+            onClick={() => setViewMode("table")}
+          >
+            <Table2 className="h-4 w-4" />
+          </Button>
+        </div>
+      </div>
 
       {/* Ideas list */}
-      <div className="space-y-5" role="feed" aria-label="Feature requests">
-        {displayedIdeas.length === 0
-          ? renderFilteredEmptyState()
-          : displayedIdeas.map((idea) => (
-              <IdeaCard
-                key={idea.id}
-                idea={idea}
-                hasDuplicate={duplicateIdeaIds.has(idea.id)}
-                onStatusChange={handleStatusChange}
-                tags={idea.strategicTags?.map((st) => st.tag)}
-                confidence={idea.confidence}
-              />
-            ))}
-      </div>
+      {displayedIdeas.length === 0 ? (
+        renderFilteredEmptyState()
+      ) : viewMode === "table" ? (
+        <IdeasTable ideas={displayedIdeas} />
+      ) : (
+        <div className="space-y-5" role="feed" aria-label="Feature requests">
+          {displayedIdeas.map((idea) => (
+            <IdeaCard
+              key={idea.id}
+              idea={idea}
+              hasDuplicate={duplicateIdeaIds.has(idea.id)}
+              onStatusChange={handleStatusChange}
+              tags={idea.strategicTags?.map((st) => st.tag)}
+              confidence={idea.confidence}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 }

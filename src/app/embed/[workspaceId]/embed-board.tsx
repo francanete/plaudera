@@ -23,7 +23,6 @@ import {
   ROADMAP_STATUS_CONFIG,
   isOnRoadmap,
 } from "@/lib/roadmap-status-config";
-import { appConfig } from "@/lib/config";
 import { getBoardUrl } from "@/lib/board-url";
 
 type PendingAction =

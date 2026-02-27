@@ -9,6 +9,7 @@ import {
   LayoutPanelLeft,
   Copy,
   Code2,
+  Tag,
   LifeBuoy,
   MessageCircleQuestion,
 } from "lucide-react";
@@ -60,6 +61,7 @@ const navigation = [
   },
   { name: "Duplicates", href: "/dashboard/duplicates", icon: Copy },
   { name: "Board", href: "/dashboard/board", icon: LayoutPanelLeft },
+  { name: "Tags", href: "/dashboard/board/tags", icon: Tag },
   { name: "Widget", href: "/dashboard/widget", icon: Code2 },
 ];
 
