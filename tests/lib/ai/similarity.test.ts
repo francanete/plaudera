@@ -1,17 +1,28 @@
 import { vi, describe, it, expect, beforeEach } from "vitest";
 import type { DuplicatePair } from "@/lib/ai/similarity";
 
+const mockExecute = vi.fn();
+const mockSelect = vi.fn();
+
 // Chainable insert mock
 const onConflictDoNothing = vi.fn().mockResolvedValue(undefined);
 const values = vi.fn().mockReturnValue({ onConflictDoNothing });
 const insert = vi.fn().mockReturnValue({ values });
 
 vi.mock("@/lib/db", () => ({
-  db: { insert: (...args: unknown[]) => insert(...args) },
+  db: {
+    insert: (...args: unknown[]) => insert(...args),
+    execute: (...args: unknown[]) => mockExecute(...args),
+    select: (...args: unknown[]) => mockSelect(...args),
+  },
   duplicateSuggestions: Symbol("duplicateSuggestions"),
 }));
 
-import { createDuplicateSuggestions } from "@/lib/ai/similarity";
+import {
+  createDuplicateSuggestions,
+  findDuplicatesInWorkspace,
+  findSimilarToIdea,
+} from "@/lib/ai/similarity";
 import { duplicateSuggestions } from "@/lib/db";
 
 describe("createDuplicateSuggestions", () => {
@@ -113,5 +124,93 @@ describe("createDuplicateSuggestions", () => {
     expect(result).toBe(3);
 
     vi.restoreAllMocks();
+  });
+});
+
+describe("findDuplicatesInWorkspace", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("returns [] when workspace has fewer than minimum embedded ideas", async () => {
+    mockExecute.mockResolvedValueOnce({ rows: [{ count: 3 }] });
+
+    const result = await findDuplicatesInWorkspace("ws-1");
+
+    expect(result).toEqual([]);
+    expect(mockSelect).not.toHaveBeenCalled();
+    expect(mockExecute).toHaveBeenCalledTimes(1);
+  });
+
+  it("orients by older idea, filters existing pairs in either direction, and rounds similarity", async () => {
+    mockExecute
+      .mockResolvedValueOnce({ rows: [{ count: 8 }] })
+      .mockResolvedValueOnce({
+        rows: [
+          {
+            idea_a_id: "idea-a",
+            idea_a_created_at: new Date("2025-01-10T00:00:00.000Z"),
+            idea_b_id: "idea-b",
+            idea_b_created_at: new Date("2025-01-01T00:00:00.000Z"),
+            similarity: 0.876,
+          },
+          {
+            idea_a_id: "idea-c",
+            idea_a_created_at: new Date("2025-01-01T00:00:00.000Z"),
+            idea_b_id: "idea-d",
+            idea_b_created_at: new Date("2025-01-02T00:00:00.000Z"),
+            similarity: 0.801,
+          },
+        ],
+      });
+
+    const where = vi.fn().mockResolvedValue([
+      { sourceIdeaId: "idea-b", duplicateIdeaId: "idea-a" },
+    ]);
+    const from = vi.fn().mockReturnValue({ where });
+    mockSelect.mockReturnValue({ from });
+
+    const result = await findDuplicatesInWorkspace("ws-1");
+
+    expect(result).toEqual([
+      {
+        sourceIdeaId: "idea-c",
+        duplicateIdeaId: "idea-d",
+        similarity: 80,
+      },
+    ]);
+  });
+});
+
+describe("findSimilarToIdea", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("maps SQL rows to public shape and rounds similarity percent", async () => {
+    mockExecute.mockResolvedValue({
+      rows: [
+        {
+          idea_id: "idea-2",
+          title: "Second idea",
+          vote_count: 9,
+          similarity: 0.901,
+        },
+        {
+          idea_id: "idea-3",
+          title: "Third idea",
+          vote_count: 4,
+          similarity: 0.556,
+        },
+      ],
+    });
+
+    const result = await findSimilarToIdea("idea-1", "ws-1", 2);
+
+    expect(result).toEqual([
+      { ideaId: "idea-2", title: "Second idea", voteCount: 9, similarity: 90 },
+      { ideaId: "idea-3", title: "Third idea", voteCount: 4, similarity: 56 },
+    ]);
+    expect(mockExecute).toHaveBeenCalledTimes(1);
   });
 });
