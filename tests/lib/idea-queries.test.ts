@@ -214,9 +214,9 @@ describe("idea-queries", () => {
       mockSelect.mockImplementation(() => ({
         from: () => {
           const withGroupBy = {
-            groupBy: vi.fn().mockImplementation(() =>
-              Promise.resolve(results[idx++])
-            ),
+            groupBy: vi
+              .fn()
+              .mockImplementation(() => Promise.resolve(results[idx++])),
           };
           const withWhere = {
             where: vi.fn().mockReturnValue(withGroupBy),

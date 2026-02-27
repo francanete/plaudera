@@ -164,9 +164,11 @@ describe("findDuplicatesInWorkspace", () => {
         ],
       });
 
-    const where = vi.fn().mockResolvedValue([
-      { sourceIdeaId: "idea-b", duplicateIdeaId: "idea-a" },
-    ]);
+    const where = vi
+      .fn()
+      .mockResolvedValue([
+        { sourceIdeaId: "idea-b", duplicateIdeaId: "idea-a" },
+      ]);
     const from = vi.fn().mockReturnValue({ where });
     mockSelect.mockReturnValue({ from });
 
