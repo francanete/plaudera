@@ -1,10 +1,11 @@
 import type { LucideIcon } from "lucide-react";
 import type { ComponentType } from "react";
-import { MessageSquare, Code2, Sparkles, Map } from "lucide-react";
+import { MessageSquare, Code2, Sparkles, Map, Scale } from "lucide-react";
 import { FeedbackBoardMockup } from "@/components/features/mockups/feedback-board-mockup";
 import { WidgetEmbedMockup } from "@/components/features/mockups/widget-embed-mockup";
 import { AiDuplicatesMockup } from "@/components/features/mockups/ai-duplicates-mockup";
 import { PublicRoadmapMockup } from "@/components/features/mockups/public-roadmap-mockup";
+import { DecisionTimelineMockup } from "@/components/features/mockups/decision-timeline-mockup";
 
 /**
  * Alignment options for feature showcase
@@ -67,16 +68,16 @@ export interface FeaturesSectionConfig {
 export const homepageFeaturesConfig: FeaturesSectionConfig = {
   id: "features",
   header: {
-    title: "Your feature request board & feedback widget in one place",
+    title: "Stop building features nobody asked for",
     description:
-      "Public boards for voting. An embeddable widget for in-app feedback. AI that merges duplicates automatically.",
+      "Every feature you ship based on gut feel is a bet. Plaudera replaces guesswork with evidence — capturing real user pain, scoring demand confidence, and making every decision transparent.",
   },
   features: [
     {
       id: "public-feedback-boards",
-      title: "Public feedback boards",
+      title: "Problem-first feedback boards",
       description:
-        "Let users submit ideas, vote on what matters, and see your roadmap — on a branded board you control.",
+        "Most feedback tools collect wish lists. Plaudera captures the pain behind the request — how often it happens, how bad it hurts, and who it affects. You stop guessing which requests actually matter.",
       icon: MessageSquare,
       mockup: FeedbackBoardMockup,
       alignment: "left",
@@ -84,9 +85,9 @@ export const homepageFeaturesConfig: FeaturesSectionConfig = {
     },
     {
       id: "public-roadmap",
-      title: "Public roadmap",
+      title: "Public roadmap + Won't Build transparency",
       description:
-        "Share your product roadmap publicly. Let users see what's planned, in progress, and released — building trust and reducing duplicate requests.",
+        "Share what you're building and why. Show declined ideas with honest reasoning in a public Won't Build lane — so users see every decision, not just the wins.",
       icon: Map,
       mockup: PublicRoadmapMockup,
       alignment: "right",
@@ -94,24 +95,34 @@ export const homepageFeaturesConfig: FeaturesSectionConfig = {
     },
     {
       id: "embeddable-widget",
-      title: "Embeddable feedback widget",
+      title: "Embeddable feedback & pulse polls",
       description:
-        "Drop a lightweight widget into your app with a single code snippet. Capture feedback right where your users are, without breaking their flow.",
+        "Drop a widget into your app with a single snippet. Capture feature ideas and run quick pulse polls — all without leaving your product. One question, real pain signals, zero friction.",
       icon: Code2,
       mockup: WidgetEmbedMockup,
       alignment: "left",
       category: "integration",
     },
     {
-      id: "ai-duplicate-detection",
-      title: "AI-powered duplicate detection",
+      id: "ai-demand-intelligence",
+      title: "AI-powered demand intelligence",
       description:
-        "Stop wasting time on duplicate ideas. Our AI surfaces similar submissions automatically, so you can merge them, consolidate votes, and keep your board clean.",
+        "Three vocal users can look like a movement. Plaudera's AI scores every idea across votes, velocity, and contributor diversity — then labels demand as Strong, Emerging, or Anecdotal. You'll never mistake noise for signal again.",
       icon: Sparkles,
       mockup: AiDuplicatesMockup,
       alignment: "right",
       category: "analytics",
       badge: "AI",
+    },
+    {
+      id: "decision-audit-trail",
+      title: "Decision audit trail",
+      description:
+        "Every prioritization and decline leaves a rationale. See who decided what, when, and why — with a timeline that keeps your team aligned and your users informed.",
+      icon: Scale,
+      mockup: DecisionTimelineMockup,
+      alignment: "left",
+      category: "core",
     },
   ],
 };
