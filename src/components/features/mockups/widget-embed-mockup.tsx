@@ -52,6 +52,24 @@ export function WidgetEmbedMockup({ className, isInView }: MockupProps) {
             </p>
           </div>
 
+          {/* Type Selector */}
+          <div className="border-b border-slate-100 px-3.5 py-2.5">
+            <div
+              className={cn(
+                "flex gap-1.5",
+                "transition-all delay-200 duration-500",
+                isInView ? "opacity-100" : "opacity-0"
+              )}
+            >
+              <span className="rounded-full bg-slate-900 px-2.5 py-1 text-[10px] font-medium text-white">
+                Quick feedback
+              </span>
+              <span className="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[10px] font-medium text-slate-600">
+                Feature idea
+              </span>
+            </div>
+          </div>
+
           {/* Widget Form */}
           <div className="p-3.5">
             <div
@@ -61,7 +79,9 @@ export function WidgetEmbedMockup({ className, isInView }: MockupProps) {
                 isInView ? "opacity-100" : "opacity-0"
               )}
             >
-              <p className="text-[10px] font-medium text-slate-400">Title</p>
+              <p className="text-[10px] font-medium text-slate-400">
+                What problem are you facing?
+              </p>
               <p className="mt-0.5 text-xs text-slate-700">
                 Keyboard shortcuts for common actions
               </p>

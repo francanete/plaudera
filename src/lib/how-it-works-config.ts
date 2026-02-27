@@ -27,15 +27,15 @@ export const howItWorksConfig: HowItWorksConfig = {
     },
     {
       number: 2,
-      title: "Users share & vote",
+      title: "Users share pain, not just wishes",
       description:
-        "Your users start submitting feature ideas and voting on what matters most to them. No sign-up friction.",
+        "Your users describe the problem they're facing, how often it happens, and how much it affects them. They vote, you get real signal.",
     },
     {
       number: 3,
-      title: "Build what matters",
+      title: "Decide with confidence",
       description:
-        "Identify real user-driven opportunities backed by data. No more guessing — you know exactly what to build next.",
+        "Every idea gets a confidence score. See which requests have strong, diverse demand vs. loud-minority noise — and document every decision with a rationale.",
     },
   ],
 };

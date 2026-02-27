@@ -20,9 +20,9 @@ export interface BenefitComparisonConfig {
 
 export const benefitComparisonConfig: BenefitComparisonConfig = {
   header: {
-    title: "The cost of ignoring feedback",
+    title: "You're building your roadmap based on who complains loudest",
     subtitle:
-      "Every feature request lost in a Slack thread or buried in a support ticket is a missed opportunity to build what your users actually want.",
+      "Most teams think they're data-driven. Then they realize their entire backlog was shaped by 3 vocal users and a Slack thread.",
   },
   oldWay: {
     label: "Without Plaudera",
@@ -33,9 +33,9 @@ export const benefitComparisonConfig: BenefitComparisonConfig = {
           "Ideas buried in emails, Slack, support tickets, and spreadsheets nobody maintains",
       },
       {
-        title: "No way to prioritize",
+        title: "Loudest voice wins",
         description:
-          "Guessing which features matter most without data to back it up",
+          "The most vocal users drive your roadmap. Quiet majority pain goes unnoticed.",
       },
       {
         title: "Duplicate requests pile up",
@@ -43,9 +43,9 @@ export const benefitComparisonConfig: BenefitComparisonConfig = {
           "The same idea submitted ten different ways, inflating your backlog",
       },
       {
-        title: "Users feel unheard",
+        title: "Decisions happen in the dark",
         description:
-          "No visibility into what's planned, so customers stop sharing feedback entirely",
+          "No record of why features were built or rejected. Users and teammates are left guessing.",
       },
     ],
   },
@@ -58,9 +58,9 @@ export const benefitComparisonConfig: BenefitComparisonConfig = {
           "A public board where users submit, vote, and track ideas in real time",
       },
       {
-        title: "Data-driven prioritization",
+        title: "Confidence-scored prioritization",
         description:
-          "See exactly which features have the most votes and engagement",
+          "Every idea scored across multiple signals — votes, velocity, contributor diversity, and more. Loud minorities get flagged automatically.",
       },
       {
         title: "AI-powered deduplication",
@@ -68,9 +68,9 @@ export const benefitComparisonConfig: BenefitComparisonConfig = {
           "Automatically detect and merge similar ideas to keep your board clean",
       },
       {
-        title: "Users stay in the loop",
+        title: "Transparent decisions with audit trails",
         description:
-          "Status updates and an embeddable widget keep the feedback flowing",
+          "Every prioritization and decline has a rationale. Users see a public Won't Build lane alongside your roadmap.",
       },
     ],
   },

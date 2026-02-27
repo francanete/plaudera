@@ -12,11 +12,12 @@ import { HeroSection } from "@/components/hero/hero-section";
 import { BenefitComparison } from "@/components/benefit-comparison/benefit-comparison";
 import { PricingSection } from "@/components/pricing/pricing-section";
 import { HowItWorksSection } from "@/components/how-it-works/how-it-works-section";
+import { SignalsSection } from "@/components/signals/signals-section";
 
 export const metadata: Metadata = seo.page({
-  title: "Customer Feedback Tool & Feature Request Board",
+  title: "Feedback Intelligence for SaaS Teams — Know What to Build | Plaudera",
   description:
-    "Collect, organize, and prioritize customer feedback with public boards, embeddable widgets, voting, and AI-powered duplicate detection.",
+    "Your users are telling you what to build. Are you listening to the right ones? Plaudera scores demand confidence so you ship what matters — with public boards, widgets, and AI intelligence.",
   path: "/",
 });
 
@@ -29,6 +30,9 @@ export default function HomePage() {
       <div className="flex flex-col">
         {/* Hero */}
         <HeroSection />
+
+        {/* Feedback Signals */}
+        <SignalsSection />
 
         {/* Features */}
         <FeaturesSection />
@@ -49,14 +53,14 @@ export default function HomePage() {
         <section className="py-24">
           <div className="container mx-auto px-4 text-center md:px-6">
             <h2 className="mb-4 text-3xl font-bold">
-              Stop guessing what to build next
+              Your next product decision shouldn&apos;t be a coin flip.
             </h2>
             <p className="text-muted-foreground mb-8 text-xl">
-              Let your customers tell you. Set up your feedback board in
-              minutes.
+              Start your free 5-day trial. Set up in under 5 minutes. Cancel
+              anytime.
             </p>
             <Button size="lg" asChild>
-              <Link href="/signup">Get started</Link>
+              <Link href="/signup">Start your free trial</Link>
             </Button>
           </div>
         </section>
